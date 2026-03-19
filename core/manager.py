@@ -11,37 +11,38 @@ from core.notifications import send_alert
 logger = logging.getLogger(f"strategy.{__name__}")
 
 def get_portfolio_greeks(client, positions):
-    """Calculates total Portfolio Delta and Portfolio Theta."""
+    """Calculates total Portfolio Delta, Theta, and Vega."""
     from alpaca.trading.enums import AssetClass
     
     option_symbols = [p.symbol for p in positions if p.asset_class == AssetClass.US_OPTION]
     if not option_symbols:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
         
     total_delta = 0.0
     total_theta = 0.0
+    total_vega = 0.0  # <-- NEW
     
     try:
         snapshots = client.get_option_snapshot(option_symbols)
         
         for p in positions:
             if p.asset_class == AssetClass.US_OPTION:
-                qty = float(p.qty) # Negative for short positions
+                qty = float(p.qty) 
                 snap = snapshots.get(p.symbol)
                 
                 if snap and snap.greeks:
-                    # Greeks are per share. Multiply by 100 shares per contract * qty.
-                    # Fallback to 0.0 if Alpaca returns None for a missing Greek
                     delta = snap.greeks.delta or 0.0
                     theta = snap.greeks.theta or 0.0
+                    vega = snap.greeks.vega or 0.0  # <-- NEW
                     
                     total_delta += (delta * 100 * qty)
                     total_theta += (theta * 100 * qty)
+                    total_vega += (vega * 100 * qty)  # <-- NEW
                     
     except Exception as e:
-        logger.debug(f"Could not calculate Greeks (Market likely closed or missing data): {e}")
+        logger.debug(f"Could not calculate Greeks: {e}")
         
-    return total_delta, total_theta
+    return total_delta, total_theta, total_vega
     
 def cleanup_stale_orders(client):
     """Cancels all open limit orders to free up buying power."""
