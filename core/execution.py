@@ -263,9 +263,10 @@ def sell_iron_condors(client, symbols_list, buying_power, max_risk_limit, strat_
 
 def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
     import math
+    from datetime import datetime, timezone, timedelta
     
-    # Only hedge if our directional bias is getting extreme
-    if abs(port_delta) < 20.0:
+    # TIGHTENED LEASH: Hedge if Delta drifts past 10
+    if abs(port_delta) < 10.0:
         return
         
     # If we are overly Bullish (+ Delta), we buy Puts. If Bearish (- Delta), we buy Calls.
@@ -275,7 +276,7 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
     # Check if we already have an active SPY hedge
     spy_hedges = sum(int(p.qty) for p in positions if p.symbol.startswith("SPY") and hedge_type.upper()[0] in p.symbol and int(p.qty) > 0)
     if spy_hedges > 0:
-        logger.info(f"🛡️ Active SPY {hedge_type.capitalize()} Hedge already detected. Portfolio protected.")
+        logger.info(f"🛡️ Active SPY {hedge_type.capitalize()} Hedge already detected. Letting existing hedge work.")
         return
         
     try:
@@ -300,22 +301,23 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
                 opt_delta = abs(snap.greeks.delta or 0.50) * 100 # usually ~50 for ATM
                 contracts_needed = math.ceil(abs(port_delta) / opt_delta)
                 
-                # Cap the hedge spend so we don't blow the account
+                # Cap the hedge spend so we don't blow the account (2% limit)
                 max_contracts = math.floor((total_equity * 0.02) / (snap.latest_quote.ask_price * 100))
                 qty_to_buy = min(contracts_needed, max(1, max_contracts))
                 
-                try:
-                    client.market_buy(opt.symbol, qty=qty_to_buy)
-                    logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${snap.latest_quote.ask_price*100:.2f} each.")
-                    
-                    from core.notifications import send_alert
-                    send_alert(f"🚨 **DELTA NEUTRAL HEDGE DEPLOYED**\nPortfolio Delta was {port_delta:+.2f}.\nBought {qty_to_buy}x {opt.symbol} to flatten exposure.", "ALERT")
-                except Exception as e:
-                    if "market hours" in str(e).lower():
-                        logger.warning(f"⏳ Market closed. Cannot deploy Doomsday hedge {opt.symbol} yet.")
-                    else:
-                        logger.error(f"Failed to deploy Delta-Neutral hedge: {e}")
-                return
+                if qty_to_buy > 0:
+                    try:
+                        client.market_buy(opt.symbol, qty=qty_to_buy)
+                        logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${snap.latest_quote.ask_price*100:.2f} each.")
+                        
+                        from core.notifications import send_alert
+                        send_alert(f"🚨 **DELTA NEUTRAL HEDGE DEPLOYED**\nPortfolio Delta was {port_delta:+.2f}.\nBought {qty_to_buy}x {opt.symbol} to flatten exposure.", "ALERT")
+                    except Exception as e:
+                        if "market hours" in str(e).lower():
+                            logger.warning(f"⏳ Market closed. Cannot deploy Delta-Neutral hedge {opt.symbol} yet.")
+                        else:
+                            logger.error(f"Failed to deploy Delta-Neutral hedge: {e}")
+                    return
     except Exception as e:
         logger.error(f"Failed to search Delta-Neutral hedge: {e}")
 

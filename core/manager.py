@@ -148,8 +148,18 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
 
     logger.info(f"=== PORTFOLIO MANAGER ===")
 
+    closed_profits, closed_losses, closed_time, holding_status = [], [], [], []
+    processed_straddles = set()
+
     spreads = {}
     for pos in positions:
+        # --- NEW: Catch SGOV and normal stock/shares ---
+        if pos.asset_class == AssetClass.US_EQUITY:
+            profit_pct = float(pos.unrealized_plpc) * 100
+            profit_dollars = float(pos.unrealized_pl)
+            holding_status.append(f"{pos.symbol} [SHARES]: {profit_pct:+.2f}% (${profit_dollars:+.2f}) | Qty: {pos.qty}")
+            continue
+
         if pos.asset_class != AssetClass.US_OPTION: continue
             
         underlying, opt_type, strike = parse_option_symbol(pos.symbol)
@@ -164,9 +174,6 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
         elif int(pos.qty) > 0:
             spreads[key]['long'] = pos
             spreads[key]['long_strike'] = float(strike)
-
-    closed_profits, closed_losses, closed_time, holding_status = [], [], [], []
-    processed_straddles = set()
 
     for key, legs in spreads.items():
         underlying = key.split('_')[0]

@@ -10,12 +10,14 @@ from core.cli_args import parse_args
 import core.state_manager as state_manager_module
 
 from config.params import RISK_ALLOCATION, MAX_SPREADS_PER_SYMBOL, AVOID_EARNINGS, EXPIRATION_MAX, PROFIT_TARGET, STOP_LOSS, MAX_RISK_PER_SPREAD
-# --- NEW: Imported our Dashboard and Alert Tools ---
+# --- Dashboard and Alert Tools ---
 from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
 from core.notifications import send_alert
 from core.sentiment import get_market_sentiment, get_vix_level
-from core.earnings import analyze_market_regime
 
+# 🧠 THE AI INFERENCE ENGINES
+from core.regime_detection import get_brain_prediction # Macro market mood
+from scripts.mega_screener import get_mega_brain_targets
 def main():
     args = parse_args()
     
@@ -29,7 +31,7 @@ def main():
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
 
-    # --- FIX: Initialize holding_status BEFORE the if/else block ---
+    # --- Initialize holding_status BEFORE the if/else block ---
     holding_status = []
 
     if args.fresh_start:
@@ -111,14 +113,22 @@ def main():
         elif port_delta < -10: bias = "Bearish"
         else: bias = "Neutral"
 
+        # --- 🧠 ASK THE MACRO BRAIN (Regime Gatekeeper) ---
+        logger.info("🧠 Consulting the Macro Regime Gatekeeper...")
+        brain_strategy, brain_confidence, brain_probs = get_brain_prediction()
+
         # --- TERMINAL DASHBOARD ---
         logger.info(f"🟢 PORTFOLIO HEALTHY: Daily P/L is {daily_pnl_pct:+.2f}%. VIX: {current_vix:.2f} -> Risk/Trade: ${dynamic_max_risk:.2f}.")
         logger.info(f"📊 PORTFOLIO DELTA: {port_delta:+.2f} ({bias})")
         logger.info(f"⏳ PORTFOLIO THETA: ${port_theta:+.2f} / day")
         logger.info(f"🌊 PORTFOLIO VEGA: ${port_vega:+.2f} per 1% IV change")
+        logger.info(f"🔮 MACRO REGIME VERDICT: {brain_strategy} ({brain_confidence:.1f}% Confidence)")
         
         # --- DISCORD DASHBOARD ---
         holdings_str = "\n".join([f"• {h}" for h in holding_status]) if holding_status else "No open positions."
+        
+        # Pick an emoji based on the AI's mood
+        brain_emoji = "🟢" if brain_strategy == "THETA_ENGINE" else "🟡" if brain_strategy == "VEGA_SNIPER" else "🔴"
         
         dashboard_msg = (
             f"**Equity:** ${total_equity:.2f} (P/L: {daily_pnl_pct:+.2f}%)\n"
@@ -126,7 +136,8 @@ def main():
             f"**VIX Level:** {current_vix:.2f} (Risk Cap: ${dynamic_max_risk:.0f})\n"
             f"**Delta:** {port_delta:+.2f} ({bias})\n"
             f"**Theta (Daily Rent):** ${port_theta:+.2f}\n"
-            f"**Vega (Vol Risk):** ${port_vega:+.2f}\n\n"
+            f"**Vega (Vol Risk):** ${port_vega:+.2f}\n"
+            f"**🧠 Macro Regime:** {brain_emoji} **{brain_strategy}** ({brain_confidence:.1f}%)\n\n"
             f"**📦 CURRENT HOLDINGS:**\n{holdings_str}"
         )
         send_alert(dashboard_msg, "INFO")
@@ -146,28 +157,33 @@ def main():
             logger.info(f"Step 2: Hunting for new setups with ${buying_power:.2f} BP (Total Equity: ${total_equity:.2f})...")
             
             # --- 0A. THE DOOMSDAY PROTOCOL ---
-            # We pass port_delta to the hedge so it can Delta-Neutralize us
             try:
                 buy_tail_hedge(client, total_equity, positions, dynamic_max_risk, port_delta) 
             except TypeError:
                 logger.error("⚠️ buy_tail_hedge in execution.py needs to be updated to accept port_delta!")
 
-            # --- 1. INTELLIGENCE GATHERING ---
-            theta_candidates, vega_candidates, crush_candidates = analyze_market_regime(allowed_symbols, max_dte=EXPIRATION_MAX)
+            # =======================================================
+            # --- 1. RTX 5090 MEGA BRAIN INTELLIGENCE GATHERING ---
+            # =======================================================
+            logger.info("🧠 Awakening the RTX 5090: Scanning 150 tickers for neural setups...")
             
-            logger.info(f"📊 SCAN RESULTS: Theta(Safe): {len(theta_candidates)} | Vega(Straddles): {len(vega_candidates)} | IV Crush(Condors): {len(crush_candidates)}")
+            ai_targets = get_mega_brain_targets(confidence_threshold=75.0)
             
-            if not AVOID_EARNINGS:
-                vega_syms = [v['symbol'] if isinstance(v, dict) else v for v in vega_candidates]
-                crush_syms = [c['symbol'] if isinstance(c, dict) else c for c in crush_candidates]
-                theta_candidates = [sym for sym in allowed_symbols if sym not in vega_syms and sym not in crush_syms]
+            # Apply Concentration Risk Gates (Only allow symbols we aren't maxed out on)
+            theta_candidates = [sym for sym in ai_targets['THETA'] if sym in allowed_symbols]
+            vega_candidates  = [sym for sym in ai_targets['VEGA'] if sym in allowed_symbols]
+            bull_candidates  = [sym for sym in ai_targets['BULL'] if sym in allowed_symbols]
+            bear_candidates  = [sym for sym in ai_targets['BEAR'] if sym in allowed_symbols]
+            
+            logger.info(f"📊 NEURAL TARGETS ALIGNED WITH RISK: Theta(Condors): {len(theta_candidates)} | Vega(Straddles): {len(vega_candidates)} | Bull(Puts): {len(bull_candidates)} | Bear(Calls): {len(bear_candidates)}")
 
             # --- 0B. ASYMMETRIC / CONVEXITY BETS (The Lottery Tickets) ---
+            # Feed the most stable/range-bound (THETA) candidates to asymmetric generator
             deploy_asymmetric_bets(client, theta_candidates, total_equity, positions)
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
             if vega_candidates:
-                logger.info(f"Step 2A: Launching Vega Sniper on {len(vega_candidates)} earnings setups.")
+                logger.info(f"Step 2A: Launching Vega Sniper on {len(vega_candidates)} AI targets.")
                 buying_power = buy_straddles(
                     client=client, 
                     symbols_list=vega_candidates, 
@@ -177,45 +193,45 @@ def main():
                     strat_logger=strat_logger
                 )
             else:
-                logger.info("Step 2A: No Vega (Straddle) opportunities found today.")
+                logger.info("Step 2A: No Vega (Straddle) opportunities met the AI confidence threshold.")
 
-            # --- 2B. DEPLOY IV CRUSH ENGINE (Iron Condors) ---
-            if crush_candidates and buying_power >= 100:
-                logger.info(f"Step 2B: Launching IV Crush Condors on {len(crush_candidates)} tickers.")
-                buying_power = sell_iron_condors(
-                    client=client, 
-                    symbols_list=crush_candidates, 
-                    buying_power=buying_power, 
-                    max_risk_limit=dynamic_max_risk, 
-                    strat_logger=strat_logger
-                )
-            else:
-                logger.info("Step 2B: No IV Crush (Condor) opportunities found today.")
-
-            # --- 2C. DEPLOY THETA ENGINE (Credit Spreads) ---
-            if buying_power >= 50 and theta_candidates:
-                if current_vix >= 15.0:
-                    logger.info(f"Step 2C: VIX is {current_vix}. Deploying Theta Engine on {len(theta_candidates)} safe symbols.")
-                    sentiment = get_market_sentiment(client)
-                    
-                    if sentiment == "bullish":
-                        logger.info("Trend is BULLISH: Deploying capital to Put Credit Spreads.")
-                        sell_puts(client, theta_candidates, buying_power, dynamic_max_risk, strat_logger)
-                    elif sentiment == "bearish":
-                        logger.info("Trend is BEARISH: Deploying capital to Call Credit Spreads.")
-                        sell_calls(client, theta_candidates, purchase_price=None, stock_qty=0, buying_power=buying_power, max_risk_limit=dynamic_max_risk, strat_logger=strat_logger)
-                    else:
-                        logger.info("Trend is NEUTRAL: Splitting BP evenly between Puts and Calls.")
-                        half_bp = buying_power / 2
-                        if half_bp >= 50:
-                            sell_puts(client, theta_candidates, half_bp, dynamic_max_risk, strat_logger)
-                            sell_calls(client, theta_candidates, purchase_price=None, stock_qty=0, buying_power=half_bp, max_risk_limit=dynamic_max_risk, strat_logger=strat_logger)
-                        else:
-                            sell_puts(client, theta_candidates, buying_power, dynamic_max_risk, strat_logger)
+            # --- 2B. DEPLOY THETA ENGINE (Iron Condors) ---
+            if theta_candidates and buying_power >= 100:
+                # 🛑 MACRO GATEKEEPER CHECK FOR CREDIT STRATEGIES 🛑
+                if brain_strategy == "TAIL_HEDGE":
+                    logger.warning("🚨 MACRO AI SAYS TAIL_HEDGE: Market crash probability high. Iron Condors DEACTIVATED.")
+                elif brain_strategy == "VEGA_SNIPER":
+                    logger.warning("🟡 MACRO AI SAYS VEGA_SNIPER: Volatility expanding. Iron Condors DEACTIVATED to prevent blowouts.")
                 else:
-                    logger.info(f"Step 2C: VIX is too low ({current_vix}) for Credit Spreads. Remaining BP (${buying_power:.2f}) held in cash.")
+                    logger.info(f"Step 2B: Launching AI Theta Engine (Iron Condors) on {len(theta_candidates)} targets.")
+                    buying_power = sell_iron_condors(
+                        client=client, 
+                        symbols_list=theta_candidates, 
+                        buying_power=buying_power, 
+                        max_risk_limit=dynamic_max_risk, 
+                        strat_logger=strat_logger
+                    )
+            else:
+                logger.info("Step 2B: Insufficient BP or no Theta (Condor) opportunities found.")
+
+            # --- 2C. DEPLOY DIRECTIONAL EDGE (Bull / Bear Credit Spreads) ---
+            if buying_power >= 50:
+                if brain_strategy == "TAIL_HEDGE" or brain_strategy == "VEGA_SNIPER":
+                    logger.warning("🟡 MACRO AI GATE: Market is too volatile for directional short premium. Skipping Put/Call Spreads.")
+                elif current_vix >= 15.0:
+                    half_bp = buying_power / 2.0
+                    
+                    if bull_candidates and half_bp >= 50:
+                        logger.info(f"🧠 Step 2C: Deploying AI Bullish Edge (Put Credit Spreads) on {len(bull_candidates)} tickers.")
+                        sell_puts(client, bull_candidates, half_bp, dynamic_max_risk, strat_logger)
+                        
+                    if bear_candidates and half_bp >= 50:
+                        logger.info(f"🧠 Step 2D: Deploying AI Bearish Edge (Call Credit Spreads) on {len(bear_candidates)} tickers.")
+                        sell_calls(client, bear_candidates, purchase_price=None, stock_qty=0, buying_power=half_bp, max_risk_limit=dynamic_max_risk, strat_logger=strat_logger)
+                else:
+                    logger.info(f"Step 2C: VIX is too low ({current_vix}) for directional Credit Spreads. Remaining BP (${buying_power:.2f}) held in cash.")
             elif buying_power < 50:
-                logger.info(f"Remaining BP (${buying_power:.2f}) exhausted by Vega/Crush trades. Skipping Theta Engine.")
+                logger.info(f"Remaining BP (${buying_power:.2f}) exhausted. Skipping Directional Bets.")
                 
         else:
             if buying_power == 0 and dynamic_max_risk == 0:

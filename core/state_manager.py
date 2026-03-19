@@ -3,6 +3,7 @@ import os
 import logging
 from .utils import parse_option_symbol
 from alpaca.trading.enums import AssetClass
+from config.params import SWEEP_TICKER  # <-- NEW: Import the sweep ticker
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
@@ -50,7 +51,12 @@ def calculate_risk(positions):
     
     for p in positions:
         if p.asset_class == AssetClass.US_EQUITY:
+            # --- THE FIX: Ignore our cash-sweep ETF ---
+            if p.symbol == SWEEP_TICKER:
+                continue 
+                
             risk += float(p.avg_entry_price) * abs(int(p.qty))
+            
         elif p.asset_class == AssetClass.US_OPTION:
             underlying, option_type, strike = parse_option_symbol(p.symbol)
             qty = int(p.qty)
@@ -101,6 +107,10 @@ def update_state(all_positions):
 
     for p in all_positions:
         if p.asset_class == AssetClass.US_EQUITY:
+            # --- THE FIX: Ignore our cash-sweep ETF ---
+            if p.symbol == SWEEP_TICKER:
+                continue 
+                
             if int(p.qty) <= 0:
                 logger.debug(f"Skipping short stock: {p.symbol}")
                 continue
