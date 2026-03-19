@@ -1,59 +1,137 @@
+import json
+import os
+import logging
 from .utils import parse_option_symbol
 from alpaca.trading.enums import AssetClass
 
+logger = logging.getLogger(f"strategy.{__name__}")
+
+# --- METADATA TRACKER FOR EARNINGS DATES ---
+STRADDLE_META_FILE = "straddles_meta.json"
+
+def register_straddle(symbol, call_sym, put_sym, earnings_date):
+    """Saves the straddle's earnings date so manager.py knows when to exit."""
+    data = {}
+    if os.path.exists(STRADDLE_META_FILE):
+        with open(STRADDLE_META_FILE, 'r') as f:
+            data = json.load(f)
+            
+    data[symbol] = {
+        "call_symbol": call_sym,
+        "put_symbol": put_sym,
+        "earnings_date": str(earnings_date)
+    }
+    
+    with open(STRADDLE_META_FILE, 'w') as f:
+        json.dump(data, f)
+
+def get_straddle_metadata(symbol):
+    """Fetches the saved earnings date for a given symbol."""
+    if os.path.exists(STRADDLE_META_FILE):
+        with open(STRADDLE_META_FILE, 'r') as f:
+            data = json.load(f)
+            return data.get(symbol)
+    return None
+
+def remove_straddle_metadata(symbol):
+    """Cleans up the file once the straddle is sold."""
+    if os.path.exists(STRADDLE_META_FILE):
+        with open(STRADDLE_META_FILE, 'r') as f:
+            data = json.load(f)
+        if symbol in data:
+            del data[symbol]
+            with open(STRADDLE_META_FILE, 'w') as f:
+                json.dump(data, f)
+
+# --- UPDATED RISK CALCULATOR ---
 def calculate_risk(positions):
     risk = 0
+    options_by_underlying = {}
+    
     for p in positions:
         if p.asset_class == AssetClass.US_EQUITY:
             risk += float(p.avg_entry_price) * abs(int(p.qty))
         elif p.asset_class == AssetClass.US_OPTION:
-            _, option_type, strike_price = parse_option_symbol(p.symbol)
-            if option_type == 'P':
-                risk += 100 * strike_price * abs(int(p.qty))
+            underlying, option_type, strike = parse_option_symbol(p.symbol)
+            qty = int(p.qty)
+            
+            if underlying not in options_by_underlying:
+                options_by_underlying[underlying] = {'shorts': [], 'longs': []}
+                
+            if qty < 0:
+                options_by_underlying[underlying]['shorts'].append({'strike': strike, 'qty': abs(qty), 'type': option_type})
+            elif qty > 0:
+                options_by_underlying[underlying]['longs'].append({
+                    'strike': strike, 'qty': qty, 'type': option_type, 'cost': float(p.avg_entry_price)
+                })
 
+    for underlying, legs in options_by_underlying.items():
+        shorts = sorted(legs['shorts'], key=lambda x: x['strike'])
+        longs = sorted(legs['longs'], key=lambda x: x['strike'])
+        
+        # 1. Calculate Risk for Short Spreads
+        for short_leg in shorts:
+            if short_leg['type'] == 'P':
+                matching_long = next((l for l in longs if l['type'] == 'P' and l['strike'] < short_leg['strike']), None)
+                if matching_long:
+                    spread_width = round(short_leg['strike'] - matching_long['strike'], 2)
+                    risk += (spread_width * 100) * short_leg['qty']
+                    longs.remove(matching_long)
+                else:
+                    risk += (short_leg['strike'] * 100) * short_leg['qty']
+                    
+            elif short_leg['type'] == 'C':
+                matching_long = next((l for l in longs if l['type'] == 'C' and l['strike'] > short_leg['strike']), None)
+                if matching_long:
+                    spread_width = round(matching_long['strike'] - short_leg['strike'], 2)
+                    risk += (spread_width * 100) * short_leg['qty']
+                    longs.remove(matching_long)
+                else:
+                    pass 
+        
+        # 2. Calculate Risk for leftover pure Longs (Straddles/Hedges)
+        for long_leg in longs:
+            risk += (long_leg['cost'] * 100) * long_leg['qty']
+                    
     return risk
 
+# --- UPDATED STATE MACHINE ---
 def update_state(all_positions):    
-    """
-    Given the current positions, return a state dictionary describing where in the wheel each symbol is.
-    """
-
     state = {}
 
     for p in all_positions:
         if p.asset_class == AssetClass.US_EQUITY:
             if int(p.qty) <= 0:
-                raise ValueError(f"Only long stock positions allowed! Got {p.symbol} with qty {p.qty}")
+                logger.debug(f"Skipping short stock: {p.symbol}")
+                continue
 
             underlying = p.symbol
             if underlying in state:
-                if state[underlying]["type"] != "short_call_awaiting_stock":
-                    raise ValueError(f"Unexpected state for {underlying}: {state[underlying]}")
-                state[underlying]["type"] = "short_call"
+                state[underlying]["type"] = "complex_spread"
             else:
                 state[underlying] = {"type": "long_shares", "price": float(p.avg_entry_price), "qty": int(p.qty)}
 
         elif p.asset_class == AssetClass.US_OPTION:
-            if int(p.qty) >= 0:
-                raise ValueError(f"Only short option positions allowed! Got {p.symbol} with qty {p.qty}")
-
             underlying, option_type, _ = parse_option_symbol(p.symbol)
 
+            # --- LONG OPTION LOGIC ---
+            if int(p.qty) > 0:
+                if underlying in state:
+                    if state[underlying]["type"] == f"long_{'P' if option_type == 'C' else 'C'}":
+                        state[underlying]["type"] = "long_straddle"
+                    else:
+                        state[underlying]["type"] = "complex_spread"
+                else:
+                    state[underlying] = {"type": f"long_{option_type}", "price": float(p.avg_entry_price)}
+                continue 
+
+            # --- SHORT OPTION LOGIC ---
             if underlying in state:
-                if not (state[underlying]["type"] == "long_shares" and option_type == 'C'):
-                    raise ValueError(f"Unexpected state for {underlying}: {state[underlying]} with option {option_type}")
-                state[underlying]["type"] = "short_call"
+                state[underlying]["type"] = "complex_spread"
             else:
                 if option_type == "C":
                     state[underlying] = {"type": "short_call_awaiting_stock", "price": None}
                 elif option_type == "P":
                     state[underlying] = {"type": "short_put", "price": None}
-                else:
-                    raise ValueError(f"Unknown option type: {option_type}")
 
-    # Final validation
-    for underlying, st in state.items():
-        if st["type"] not in {"short_put", "long_shares", "short_call"}:
-            raise ValueError(f"Invalid final state for {underlying}: {st}")
-        
     return state

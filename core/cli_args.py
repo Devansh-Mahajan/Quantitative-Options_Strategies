@@ -27,5 +27,10 @@ def parse_args():
         action="store_true",
         help="Write logs to file instead of just printing to stdout"
     )
-    
+    parser.add_argument(
+        "--manage-only",
+        action="store_true",
+        help="Only manage open positions, do not open new trades."
+    )
+
     return parser.parse_args()
