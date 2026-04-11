@@ -130,10 +130,47 @@ def discover_ticker_patterns() -> dict:
     logger.info("🔝 Top positive pairs: %s", ", ".join(p['pair'] for p in top_positive_pairs[:5]))
     logger.info("🔻 Top negative pairs: %s", ", ".join(p['pair'] for p in top_negative_pairs[:5]))
 
+    lead_lag_pairs = []
+    for pair in top_positive_pairs[:20]:
+        a, b = pair['pair'].split('/')
+        pair_df = returns[[a, b]].dropna()
+        if len(pair_df) < 120:
+            continue
+        corr_a_leads_b = pair_df[a].shift(1).corr(pair_df[b])
+        corr_b_leads_a = pair_df[b].shift(1).corr(pair_df[a])
+        if pd.isna(corr_a_leads_b) or pd.isna(corr_b_leads_a):
+            continue
+        if abs(corr_a_leads_b) >= abs(corr_b_leads_a):
+            lead_lag_pairs.append(
+                {
+                    'pair': pair['pair'],
+                    'leader': a,
+                    'follower': b,
+                    'lag1_correlation': float(corr_a_leads_b),
+                }
+            )
+        else:
+            lead_lag_pairs.append(
+                {
+                    'pair': pair['pair'],
+                    'leader': b,
+                    'follower': a,
+                    'lag1_correlation': float(corr_b_leads_a),
+                }
+            )
+
+    lead_lag_pairs = sorted(lead_lag_pairs, key=lambda x: abs(x['lag1_correlation']), reverse=True)[:12]
+    if lead_lag_pairs:
+        logger.info(
+            "⛓️ Lead/Lag patterns: %s",
+            ", ".join(f"{p['leader']}→{p['follower']}({p['lag1_correlation']:+.2f})" for p in lead_lag_pairs[:5]),
+        )
+
     return {
         'symbols_used': list(returns.columns),
         'top_positive_pairs': top_positive_pairs,
         'top_negative_pairs': top_negative_pairs,
+        'lead_lag_pairs': lead_lag_pairs,
         'pattern_features': pattern_features.drop(columns=['Ticker_HMM_State']),
         'pattern_probabilities': pattern_prob_df,
         'hmm_state_series': pattern_features['Ticker_HMM_State'],

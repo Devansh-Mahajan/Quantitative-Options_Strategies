@@ -8,7 +8,11 @@ from config.params import (
     EXPIRATION_MIN,
     EXPIRATION_MAX,
     MAX_RELATIVE_SPREAD,
+    TCA_SPREAD_WEIGHT,
+    TCA_SLIPPAGE_WEIGHT,
+    TCA_LIQUIDITY_WEIGHT,
 )
+from core.execution_quality import estimate_option_transaction_cost, execution_quality_multiplier
 from core.sentiment import get_dynamic_yield
 from datetime import datetime
 
@@ -94,8 +98,18 @@ def score_options(options):
         liquidity_bonus = min(1.0, float(p.oi or 0) / (OPEN_INTEREST_MIN * 4.0))
         delta_safety = max(0.0, 1.0 - (abs(p.delta) / max(DELTA_MAX, 0.01)))
         duration_efficiency = 45.0 / (p.dte + 10.0)
+        expected_cost_ratio = estimate_option_transaction_cost(
+            bid_price=p.bid_price,
+            ask_price=p.ask_price,
+            open_interest=p.oi,
+            notional=float(p.strike) * 100.0,
+            spread_weight=TCA_SPREAD_WEIGHT,
+            slippage_weight=TCA_SLIPPAGE_WEIGHT,
+            liquidity_weight=TCA_LIQUIDITY_WEIGHT,
+        )
+        exec_quality = execution_quality_multiplier(expected_cost_ratio)
 
-        score = annualized_yield * (0.50 + 0.50 * spread_quality) * (0.70 + 0.30 * liquidity_bonus) * delta_safety * duration_efficiency
+        score = annualized_yield * (0.50 + 0.50 * spread_quality) * (0.70 + 0.30 * liquidity_bonus) * delta_safety * duration_efficiency * exec_quality
         scores.append(score)
     return scores
 

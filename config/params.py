@@ -43,3 +43,21 @@ MAX_RISK_BASE = 1000.0 # Your standard risk when VIX is normal
 # Avoid forcing full deployment when the directional models disagree or are weak.
 MIN_SIGNAL_CONFIDENCE = 0.18
 LOW_CONFIDENCE_RISK_MULTIPLIER = 0.50
+
+# 5. HMM pairs mean-reversion overlay
+ENABLE_PAIRS_TRADING = True
+PAIR_MAX_SIGNALS = 6
+PAIR_ENTRY_ZSCORE = 1.5
+PAIR_LOOKBACK_DAYS = 120
+PAIR_MIN_CORRELATION = 0.65
+PAIR_MIN_CONFIDENCE = 0.55
+
+# 6. Execution quality / TCA knobs
+TCA_SPREAD_WEIGHT = 0.65
+TCA_SLIPPAGE_WEIGHT = 0.25
+TCA_LIQUIDITY_WEIGHT = 0.10
+
+# 7. Platinum-mode portfolio sizing controls
+PLATINUM_MODE = True
+TARGET_DAILY_RETURN_GOAL = 0.05  # Stretch target; not a guarantee.
+MAX_KELLY_FRACTION = 0.35
