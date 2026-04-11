@@ -15,6 +15,7 @@ logger = logging.getLogger("train_hmm_macro")
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'hmm_macro_model.pkl')
 TARGET_ANNUAL_RETURN = 0.05
+RANDOM_SEED = 42
 
 
 def build_macro_features(raw_data: pd.DataFrame) -> pd.DataFrame:
@@ -36,6 +37,7 @@ def build_macro_features(raw_data: pd.DataFrame) -> pd.DataFrame:
 
 
 def train_and_save_macro_hmm():
+    np.random.seed(RANDOM_SEED)
     logger.info("🌍 Downloading 15 Years of Global Macro Data...")
 
     tickers = {
@@ -59,17 +61,55 @@ def train_and_save_macro_hmm():
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(features.values)
 
-    n_states = 4
-    logger.info(f"🏋️ Training {n_states}-State Hidden Markov Model with Full Covariance Matrix...")
-    model = GaussianHMM(
-        n_components=n_states,
-        covariance_type="full",
-        n_iter=3000,
-        random_state=42,
-        tol=1e-4,
-        min_covar=1e-5,
+    split_idx = int(len(X_scaled) * 0.8)
+    X_train = X_scaled[:split_idx]
+    X_valid = X_scaled[split_idx:]
+
+    candidate_states = [3, 4, 5]
+    candidate_seeds = [11, 21, 42, 84, 168]
+    best_model = None
+    best_score = -np.inf
+    best_n_states = None
+    best_seed = None
+
+    for n_states in candidate_states:
+        for seed in candidate_seeds:
+            try:
+                candidate = GaussianHMM(
+                    n_components=n_states,
+                    covariance_type="full",
+                    n_iter=3000,
+                    random_state=seed,
+                    tol=1e-4,
+                    min_covar=1e-5,
+                )
+                candidate.fit(X_train)
+                valid_score = candidate.score(X_valid) / max(len(X_valid), 1)
+                logger.info(
+                    "🧪 Candidate HMM | states=%d seed=%d valid_loglike_per_step=%.6f",
+                    n_states,
+                    seed,
+                    valid_score,
+                )
+                if valid_score > best_score:
+                    best_score = valid_score
+                    best_model = candidate
+                    best_n_states = n_states
+                    best_seed = seed
+            except Exception as exc:
+                logger.warning("Candidate training failed (states=%d seed=%d): %s", n_states, seed, exc)
+
+    if best_model is None:
+        raise RuntimeError("No viable HMM candidate could be trained.")
+
+    model = best_model
+    n_states = best_n_states
+    logger.info(
+        "🏆 Selected HMM: states=%d seed=%d valid_loglike_per_step=%.6f",
+        n_states,
+        best_seed,
+        best_score,
     )
-    model.fit(X_scaled)
 
     hidden_states = model.predict(X_scaled)
     state_probs = model.predict_proba(X_scaled)
@@ -100,12 +140,10 @@ def train_and_save_macro_hmm():
         )
 
     sorted_by_vix = sorted(state_profiles.items(), key=lambda x: x[1]['avg_vix'])
-    state_map = {
-        sorted_by_vix[0][0]: "GOLDILOCKS",
-        sorted_by_vix[1][0]: "TRANSITION",
-        sorted_by_vix[2][0]: "RISK_OFF",
-        sorted_by_vix[3][0]: "LIQUIDITY_CRUNCH",
-    }
+    base_labels = ["GOLDILOCKS", "TRANSITION", "RISK_OFF", "LIQUIDITY_CRUNCH", "PANIC"]
+    if n_states > len(base_labels):
+        base_labels.extend([f"REGIME_{idx}" for idx in range(len(base_labels), n_states)])
+    state_map = {state_id: base_labels[idx] for idx, (state_id, _) in enumerate(sorted_by_vix)}
 
     state_confidence = np.mean(np.max(state_probs, axis=1))
     transition_stability = float(np.mean(np.max(model.transmat_, axis=1)))
@@ -126,6 +164,9 @@ def train_and_save_macro_hmm():
             'target_annual_return': TARGET_ANNUAL_RETURN,
             'state_confidence': state_confidence,
             'transition_stability': transition_stability,
+            'validation_loglike_per_step': float(best_score),
+            'selected_n_states': int(n_states),
+            'selected_seed': int(best_seed),
         },
         MODEL_PATH,
     )

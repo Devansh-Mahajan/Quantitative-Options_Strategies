@@ -60,7 +60,7 @@ def print_pipeline_progress(current_step, total_steps, label):
 
 def main():
     parser = argparse.ArgumentParser(description="Weekend recalibration pipeline")
-    parser.add_argument("--top-n", type=int, default=0, help="How many high-volatility symbols to keep (<=0 keeps all symbols)")
+    parser.add_argument("--top-n", type=int, default=0, help="Deprecated: universe pruning is disabled and all symbols are always kept.")
     parser.add_argument("--train", action="store_true", help="Run full retraining pipeline")
     parser.add_argument("--target-daily-return", type=float, default=0.002, help="Optimization target for expected daily return.")
     parser.add_argument("--target-accuracy", type=float, default=0.56, help="Optimization target for validation accuracy.")
