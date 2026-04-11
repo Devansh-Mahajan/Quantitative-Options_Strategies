@@ -159,3 +159,14 @@ class BrokerClient:
             ]
         )
         self.trade_client.submit_order(req)
+    def get_portfolio_history(self, date_start=None, date_end=None, timeframe="1D"):
+        """Fetch account equity history from Alpaca for a date range."""
+        from alpaca.trading.requests import GetPortfolioHistoryRequest
+
+        req = GetPortfolioHistoryRequest(
+            date_start=date_start,
+            date_end=date_end,
+            timeframe=timeframe,
+            extended_hours=False,
+        )
+        return self.trade_client.get_portfolio_history(req)

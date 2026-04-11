@@ -101,6 +101,23 @@ Weekdays during market hours (example):
 
 Use cron/systemd/Kubernetes schedules based on your infrastructure.
 
+
+## 4.3 Portfolio History Review (Date Parameters)
+
+Use this when PM/risk/compliance wants a full equity trajectory for a specific window:
+
+```bash
+run-strategy --history-start 2025-01-01 --history-end 2025-12-31 --history-timeframe 1D --history-only
+```
+
+To print the history first and then run the strategy cycle:
+
+```bash
+run-strategy --history-start 2026-01-01 --history-end 2026-03-31 --strat-log
+```
+
+Accepted `--history-timeframe` values: `1Min`, `5Min`, `15Min`, `1H`, `1D`.
+
 ---
 
 ## 5) Risk Controls You Should Understand

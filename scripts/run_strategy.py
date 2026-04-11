@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from datetime import datetime
 import os
 from core.broker_client import BrokerClient
 from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
@@ -33,6 +34,47 @@ from core.greeks_targeting import derive_portfolio_greek_targets
 from core.regime_detection import get_brain_prediction # Macro market mood
 from scripts.mega_screener import get_mega_brain_targets
 from core.market_intelligence import estimate_institutional_flow
+
+
+def _validate_date(date_str):
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date().isoformat()
+    except ValueError as exc:
+        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.") from exc
+
+
+def _show_portfolio_history(client, logger, start_date, end_date, timeframe):
+    history = client.get_portfolio_history(date_start=start_date, date_end=end_date, timeframe=timeframe)
+    timestamps = list(getattr(history, "timestamp", []) or [])
+    equities = list(getattr(history, "equity", []) or [])
+    if not timestamps or not equities:
+        logger.warning("No portfolio history returned for the requested range.")
+        return
+
+    rows = list(zip(timestamps, equities))
+    start_equity = float(rows[0][1])
+    end_equity = float(rows[-1][1])
+    pnl = end_equity - start_equity
+    pnl_pct = (pnl / start_equity * 100.0) if start_equity else 0.0
+
+    logger.info(
+        "Portfolio history (%s to %s, %s): %d points | Start $%.2f | End $%.2f | P/L %+.2f (%+.2f%%)",
+        start_date or "default",
+        end_date or "default",
+        timeframe,
+        len(rows),
+        start_equity,
+        end_equity,
+        pnl,
+        pnl_pct,
+    )
+
+    logger.info("Recent equity points:")
+    for ts, eq in rows[-10:]:
+        logger.info("  %s -> $%.2f", ts, float(eq))
+
 def main():
     args = parse_args()
     
@@ -47,6 +89,16 @@ def main():
         SYMBOLS = [line.strip() for line in file.readlines() if line.strip()]
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
+
+    history_start = _validate_date(args.history_start)
+    history_end = _validate_date(args.history_end)
+    if history_start and history_end and history_start > history_end:
+        raise ValueError("--history-start must be on or before --history-end.")
+
+    if history_start or history_end or args.history_only:
+        _show_portfolio_history(client, logger, history_start, history_end, args.history_timeframe)
+        if args.history_only:
+            return
 
     # --- Initialize holding_status BEFORE the if/else block ---
     holding_status = []
