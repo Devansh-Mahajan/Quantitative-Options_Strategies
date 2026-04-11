@@ -101,10 +101,11 @@ def get_hmm_probabilities():
 
     # 3. Generate the Probabilities
     X_scaled = scaler.transform(features.values)
-    probs = hmm_model.predict_proba(X_scaled) # Shape: [n_days, 4]
+    probs = hmm_model.predict_proba(X_scaled)
+    hmm_cols = [f'HMM_State_{i}' for i in range(probs.shape[1])]
     
     # Return as a DataFrame indexed by Date
-    prob_df = pd.DataFrame(probs, index=features.index, columns=[f'HMM_State_{i}' for i in range(4)])
+    prob_df = pd.DataFrame(probs, index=features.index, columns=hmm_cols)
     return prob_df
 
 def get_data():
@@ -122,6 +123,13 @@ def build(target_annual_return: float = 0.05):
     # 1. Get the Hidden State Probabilities (The Edge)
     hmm_probs = get_hmm_probabilities()
     
+    hmm_data = joblib.load(HMM_MODEL_PATH)
+    ticker_patterns = hmm_data.get('ticker_patterns', {})
+    ticker_prob = ticker_patterns.get('pattern_probabilities')
+    ticker_feat = ticker_patterns.get('pattern_features')
+    ticker_hmm_cols = list(ticker_prob.columns) if isinstance(ticker_prob, pd.DataFrame) else []
+    ticker_pattern_cols = list(ticker_feat.columns) if isinstance(ticker_feat, pd.DataFrame) else []
+
     # 2. Get standard market data
     stock_data, macro_returns = get_data()
     
@@ -146,7 +154,12 @@ def build(target_annual_return: float = 0.05):
         # Merge Commodities/Rates
         df = df.join(macro_returns, how='left')
         # MERGE HMM PROBABILITIES (This is the magic)
-        df = df.join(hmm_probs, how='left').dropna()
+        df = df.join(hmm_probs, how='left')
+        if isinstance(ticker_prob, pd.DataFrame):
+            df = df.join(ticker_prob, how='left')
+        if isinstance(ticker_feat, pd.DataFrame):
+            df = df.join(ticker_feat, how='left')
+        df = df.dropna()
 
         # Hidden-correlation features between stock and macro flows
         correlation_windows = [10, 20]
@@ -181,7 +194,15 @@ def build(target_annual_return: float = 0.05):
             for macro_col in MACRO_TICKERS.values()
             for window in correlation_windows
         ]
-        feature_cols = ['Ret', 'Vol_20', 'SMA_50_Dist'] + list(MACRO_TICKERS.values()) + [f'HMM_State_{i}' for i in range(4)] + corr_cols
+        hmm_state_cols = list(hmm_probs.columns)
+        feature_cols = (
+            ['Ret', 'Vol_20', 'SMA_50_Dist']
+            + list(MACRO_TICKERS.values())
+            + hmm_state_cols
+            + ticker_hmm_cols
+            + ticker_pattern_cols
+            + corr_cols
+        )
         
         X_raw = df[feature_cols].values
         y_raw = df['Label'].values
