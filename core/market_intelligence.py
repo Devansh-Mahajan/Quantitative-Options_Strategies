@@ -18,12 +18,25 @@ def _resolve_symbol(symbol: str) -> str:
     return SYMBOL_ALIASES.get(symbol, symbol)
 
 
+def _print_progress(stage: str, current: int, total: int) -> None:
+    if total <= 0:
+        return
+    width = 28
+    ratio = min(max(current / total, 0.0), 1.0)
+    filled = int(width * ratio)
+    bar = "#" * filled + "-" * (width - filled)
+    print(f"\r[{stage}] [{bar}] {current}/{total}", end="", flush=True)
+    if current >= total:
+        print("", flush=True)
+
+
 def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple[pd.DataFrame, pd.DataFrame]:
     resolved_map = {_resolve_symbol(sym): sym for sym in symbols}
     resolved_symbols = list(resolved_map.keys())
 
     data = pd.DataFrame()
     for attempt in range(3):
+        _print_progress("bulk-download", attempt + 1, 3)
         try:
             data = yf.download(
                 resolved_symbols,
@@ -31,8 +44,8 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
                 progress=False,
                 auto_adjust=False,
                 threads=False,
-                timeout=20,
             )
+            _print_progress("bulk-download", 3, 3)
             break
         except Exception as exc:
             if attempt == 2:
@@ -57,7 +70,8 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
 
     # Retry any symbols that were omitted in the bulk request.
     missing = [s for s in resolved_symbols if s not in close.columns]
-    for resolved in missing:
+    for idx, resolved in enumerate(missing, start=1):
+        _print_progress("missing-symbols", idx, len(missing))
         try:
             single = yf.download(
                 resolved,
@@ -65,7 +79,6 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
                 progress=False,
                 auto_adjust=False,
                 threads=False,
-                timeout=20,
             )
             single_close = single.get("Close")
             single_volume = single.get("Volume")
