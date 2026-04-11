@@ -46,13 +46,7 @@ def run_step(cmd):
         raise subprocess.CalledProcessError(return_code, cmd)
 
 
-def print_pipeline_progress(current_step, total_steps, label):
-    width = 32
-    ratio = min(max(current_step / total_steps, 0.0), 1.0)
-    filled = int(width * ratio)
-    bar = "#" * filled + "-" * (width - filled)
-    percent = int(ratio * 100)
-    print(f"[pipeline] [{bar}] {percent:>3}% ({current_step}/{total_steps}) {label}")
+
 
 
 def print_pipeline_progress(current_step, total_steps, label):
@@ -66,7 +60,7 @@ def print_pipeline_progress(current_step, total_steps, label):
 
 def main():
     parser = argparse.ArgumentParser(description="Weekend recalibration pipeline")
-    parser.add_argument("--top-n", type=int, default=80, help="How many high-volatility symbols to keep")
+    parser.add_argument("--top-n", type=int, default=0, help="How many high-volatility symbols to keep (<=0 keeps all symbols)")
     parser.add_argument("--train", action="store_true", help="Run full retraining pipeline")
     parser.add_argument("--target-daily-return", type=float, default=0.002, help="Optimization target for expected daily return.")
     parser.add_argument("--target-accuracy", type=float, default=0.56, help="Optimization target for validation accuracy.")
@@ -101,6 +95,8 @@ def main():
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "symbols_input": len(symbols),
         "symbols_retained": len(prioritized),
+        "top_n_requested": args.top_n,
+        "top_n_applied": effective_top_n,
         "volatile_symbols_file": str(VOL_SYMBOLS_FILE.relative_to(ROOT)),
         "target_daily_return": args.target_daily_return,
         "target_accuracy": args.target_accuracy,

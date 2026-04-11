@@ -92,6 +92,7 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
 
     checkpoint = torch.load(DATA_PATH, weights_only=False)
     X, y = checkpoint['X'], checkpoint['y']
+    logger.info("📦 Dataset loaded: samples=%d, sequence_len=%d, features=%d", X.shape[0], X.shape[1], X.shape[2])
     future_returns = checkpoint.get('future_returns', torch.zeros(len(y), dtype=torch.float32))
     target_annual = float(target_annual_return if target_annual_return is not None else checkpoint.get('target_annual_return', TARGET_ANNUAL_RETURN))
 
@@ -101,13 +102,16 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
 
     train_ds = TensorDataset(X[:split], y[:split], train_idx)
     val_ds = TensorDataset(X[split:], y[split:], val_idx)
+    logger.info("🧪 Train/validation split: %d / %d", len(train_ds), len(val_ds))
 
     pin_memory = DEVICE.type == 'cuda'
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=pin_memory)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=pin_memory)
+    logger.info("⚙️ Dataloaders ready: train_batches=%d, val_batches=%d", len(train_loader), len(val_loader))
 
     input_dim = X.shape[2]
     model = MegaStrategyNet(input_size=input_dim, hidden_size=256, num_layers=3, num_classes=4).to(DEVICE)
+    logger.info("🧠 Model initialized. Starting optimization...")
 
     criterion = build_weighted_loss(y[:split])
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -120,8 +124,10 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
     for epoch in range(EPOCHS):
         model.train()
         running = 0.0
+        total_batches = max(1, len(train_loader))
+        progress_interval = max(1, total_batches // 10)
 
-        for b_x, b_y, _ in train_loader:
+        for batch_idx, (b_x, b_y, _) in enumerate(train_loader, start=1):
             b_x, b_y = b_x.to(DEVICE), b_y.to(DEVICE)
             optimizer.zero_grad(set_to_none=True)
 
@@ -135,6 +141,10 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
             scaler.step(optimizer)
             scaler.update()
             running += loss.item()
+
+            if batch_idx % progress_interval == 0 or batch_idx == total_batches:
+                pct = int((batch_idx / total_batches) * 100)
+                logger.info("⏱️ Epoch %03d progress: %d%% (%d/%d batches)", epoch + 1, pct, batch_idx, total_batches)
 
         scheduler.step(epoch + 1)
 
