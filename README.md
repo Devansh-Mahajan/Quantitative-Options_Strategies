@@ -164,6 +164,27 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 
 ---
 
+
+### Portfolio History UI (Date-Parameterized)
+
+`run-strategy` can print account equity history over a specific date window for operator review and audit trails:
+
+```bash
+run-strategy --history-start 2025-01-01 --history-end 2025-12-31 --history-timeframe 1D --history-only
+```
+
+Useful variants:
+
+- Pull history then continue normal strategy execution:
+
+  ```bash
+  run-strategy --history-start 2026-01-01 --history-end 2026-03-31 --strat-log
+  ```
+
+- Supported timeframes: `1Min`, `5Min`, `15Min`, `1H`, `1D`.
+
+This prints summary P/L and the latest equity datapoints in a terminal-friendly dashboard format.
+
 ### Movement Predictor Backtesting
 
 You can now backtest the movement predictor for multiple windows including **10 years, 5 years, 1 year, 6 months, and 3 months**:
@@ -479,3 +500,11 @@ run-strategy
 Targets (including aggressive targets like 5% daily or fixed annual returns) are optimization objectives only.
 No live strategy can guarantee returns; all trading can lose capital.
 Use strict risk limits, paper trade first, and validate before any production deployment.
+
+
+## Professional Expectations and Limits
+
+This project now includes stronger operational/reporting primitives, but **no trading system can be guaranteed to be “highly profitable.”** Real hedge funds continuously adapt models, execution, risk, and capital allocation based on live performance and market regime changes.
+
+Use this repo as a disciplined research and execution framework, validate every change in paper trading, and treat target returns as optimization goals rather than promises.
+
