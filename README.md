@@ -5,6 +5,57 @@ This script is designed to help you trade the classic ["wheel" options strategy]
 
 ---
 
+## Documentation Index
+
+Use this index when operating or maintaining the system:
+
+- **Quick Start**: setup + first run in ~10 minutes (below).
+- **Strategy Logic**: wheel lifecycle and AI overlays (below).
+- **Runbook / Operations Guide**: full deployment, monitoring, incident handling, and maintenance checklists in [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.md).
+- **Configuration Reference**: primary runtime controls in `config/params.py`.
+- **Execution Entrypoint**: orchestration in `scripts/run_strategy.py`.
+
+---
+
+## Setup Requirements
+
+### Broker & Account
+
+- Alpaca account with options permissions enabled.
+- API key/secret with trading permissions.
+- Paper trading strongly recommended for first deployment and all strategy changes.
+
+### System Requirements
+
+- Python **3.11+**.
+- Linux/macOS shell environment (Windows works via WSL or PowerShell with minor command adjustments).
+- Recommended: 4+ CPU cores, 8GB+ RAM for model/scanner workloads.
+
+### Python Dependencies
+
+Install dependencies from `pyproject.toml` using `uv`:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+### Required Secrets
+
+Create `.env` in repository root:
+
+```env
+ALPACA_API_KEY=your_public_key
+ALPACA_SECRET_KEY=your_private_key
+IS_PAPER=true
+```
+
+Optional but recommended:
+- Discord webhook URL for alerts (`DISCORD_WEBHOOK_URL` in `config/params.py`).
+
+---
+
 ## Strategy Logic
 
 Here's the basic idea:
@@ -106,8 +157,10 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 * Checks your current positions to identify any assignments and sells covered calls on those.
 * Filters your chosen stocks based on buying power (you must be able to afford 100 shares per put).
 * Scores put options using `core.strategy.score_options()`, which ranks by annualized return discounted by the probability of assignment.
+* Applies tighter execution-quality filters (relative spread + open-interest weighting) so contracts with poor fill quality are deprioritized.
 * Places trades for the top-ranked options.
 * Runs a stock movement predictor (`core/movement_predictor.py`) and derives target portfolio Greeks (`core/greeks_targeting.py`) so directional trades can adapt toward bullish/bearish/neutral delta bias.
+* Dynamically throttles new trade count and risk deployment when model confidence is weak or macro-regime conviction falls.
 
 ---
 
@@ -191,6 +244,51 @@ Running the script once will only turn the wheel a single time. To keep it runni
    ```
 
    Replace `/full/path/to/run-strategy` with the output from the `which run-strategy` command above. Also replace `/path/to/logs/` with the directory where you'd like to store log files (create it if needed).
+
+---
+
+## Architecture Overview
+
+The runtime is organized into layers:
+
+- **Orchestration** (`scripts/run_strategy.py`): lifecycle control, risk budgeting, AI gating, and strategy routing.
+- **Trade Selection & Execution** (`core/strategy.py`, `core/execution.py`): contract filtering/scoring + order placement.
+- **Portfolio Management** (`core/manager.py`): active position exits, TP/SL/time-stop handling, dashboarding.
+- **Prediction & Regime Layer** (`core/movement_predictor.py`, `core/regime_detection.py`, `core/greeks_targeting.py`): directional and volatility posture guidance.
+- **State, Logging, Notifications** (`core/state_manager.py`, `logging/*`, `core/notifications.py`): persistence, observability, and operator alerting.
+
+---
+
+## Operations & Maintenance (Summary)
+
+For the full runbook, see [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.md). Core recurring tasks:
+
+1. **Daily**
+   - Verify alerts are flowing (Discord / logs).
+   - Check account status and active positions.
+   - Confirm no stale orders / repeated failures in runtime logs.
+2. **Weekly**
+   - Re-evaluate `config/symbol_list.txt`.
+   - Run model recalibration (`weekend-recalibrate --train ...`) when needed.
+   - Validate risk parameters (`MAX_RISK_PER_SPREAD`, `RISK_ALLOCATION`, confidence guardrails).
+3. **After Code Changes**
+   - Run in paper mode first.
+   - Validate logs and no exception loops.
+   - Promote gradually to live with conservative sizing.
+
+---
+
+## Operator Checklist (First Production Run)
+
+1. Enable paper mode and set credentials.
+2. Populate a conservative symbol universe.
+3. Start with `run-strategy --fresh-start --strat-log --log-level DEBUG`.
+4. Validate:
+   - open/close lifecycle behaves as expected,
+   - dashboard metrics are sensible,
+   - no runaway order retries,
+   - alerts are readable/actionable.
+5. Schedule with cron only after a clean multi-day paper soak.
 
 ---
 

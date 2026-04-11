@@ -10,7 +10,18 @@ from logging.logger_setup import setup_logger
 from core.cli_args import parse_args
 import core.state_manager as state_manager_module
 
-from config.params import RISK_ALLOCATION, MAX_SPREADS_PER_SYMBOL, AVOID_EARNINGS, EXPIRATION_MAX, PROFIT_TARGET, STOP_LOSS, MAX_RISK_PER_SPREAD
+from config.params import (
+    RISK_ALLOCATION,
+    MAX_SPREADS_PER_SYMBOL,
+    AVOID_EARNINGS,
+    EXPIRATION_MAX,
+    PROFIT_TARGET,
+    STOP_LOSS,
+    MAX_RISK_PER_SPREAD,
+    MIN_SIGNAL_CONFIDENCE,
+    LOW_CONFIDENCE_RISK_MULTIPLIER,
+    MAX_NEW_TRADES_PER_CYCLE,
+)
 # --- Dashboard and Alert Tools ---
 from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
 from core.notifications import send_alert
@@ -150,6 +161,12 @@ def main():
         logger.info(f"⏳ PORTFOLIO THETA: ${port_theta:+.2f} / day")
         logger.info(f"🌊 PORTFOLIO VEGA: ${port_vega:+.2f} per 1% IV change")
         logger.info(f"🔮 MACRO REGIME VERDICT: {brain_strategy} ({brain_confidence:.1f}% Confidence)")
+
+        signal_confidence = greek_targets.target_confidence
+        macro_confidence = max(0.0, min(1.0, brain_confidence / 100.0))
+        deployment_scale = signal_confidence * macro_confidence
+        if current_vix >= 28:
+            deployment_scale *= 0.75
         
         # --- DISCORD DASHBOARD ---
         holdings_str = "\n".join([f"• {h}" for h in holding_status]) if holding_status else "No open positions."
@@ -182,6 +199,16 @@ def main():
     # ==========================================================
     if not args.manage_only:
         if buying_power >= 50:
+            if signal_confidence < MIN_SIGNAL_CONFIDENCE:
+                dynamic_max_risk *= LOW_CONFIDENCE_RISK_MULTIPLIER
+                buying_power *= LOW_CONFIDENCE_RISK_MULTIPLIER
+                logger.warning(
+                    "🧩 LOW-CONFIDENCE REGIME: signal confidence %.2f below %.2f. Cutting risk and fresh deployment by %.0f%%.",
+                    signal_confidence,
+                    MIN_SIGNAL_CONFIDENCE,
+                    (1.0 - LOW_CONFIDENCE_RISK_MULTIPLIER) * 100.0,
+                )
+
             logger.info(f"Step 2: Hunting for new setups with ${buying_power:.2f} BP (Total Equity: ${total_equity:.2f})...")
             
             # --- 0A. THE DOOMSDAY PROTOCOL ---
@@ -202,6 +229,18 @@ def main():
             vega_candidates  = [sym for sym in ai_targets['VEGA'] if sym in allowed_symbols]
             bull_candidates  = [sym for sym in ai_targets['BULL'] if sym in allowed_symbols]
             bear_candidates  = [sym for sym in ai_targets['BEAR'] if sym in allowed_symbols]
+
+            throttle_n = max(
+                1,
+                min(
+                    MAX_NEW_TRADES_PER_CYCLE,
+                    int(round(MAX_NEW_TRADES_PER_CYCLE * max(0.25, deployment_scale)))
+                ),
+            )
+            theta_candidates = theta_candidates[:throttle_n]
+            vega_candidates = vega_candidates[:throttle_n]
+            bull_candidates = bull_candidates[:throttle_n]
+            bear_candidates = bear_candidates[:throttle_n]
             
             logger.info(f"📊 NEURAL TARGETS ALIGNED WITH RISK: Theta(Condors): {len(theta_candidates)} | Vega(Straddles): {len(vega_candidates)} | Bull(Puts): {len(bull_candidates)} | Bear(Calls): {len(bear_candidates)}")
 
