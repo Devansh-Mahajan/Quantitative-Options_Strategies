@@ -21,7 +21,13 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
     resolved_map = {_resolve_symbol(sym): sym for sym in symbols}
     resolved_symbols = list(resolved_map.keys())
 
-    data = yf.download(resolved_symbols, period=period, progress=False, auto_adjust=False)
+    data = yf.download(
+        resolved_symbols,
+        period=period,
+        progress=False,
+        auto_adjust=False,
+        threads=False,
+    )
     close = data.get('Close', pd.DataFrame())
     volume = data.get('Volume', pd.DataFrame())
 
@@ -34,7 +40,13 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
     missing = [s for s in resolved_symbols if s not in close.columns]
     for resolved in missing:
         try:
-            single = yf.download(resolved, period=period, progress=False, auto_adjust=False)
+            single = yf.download(
+                resolved,
+                period=period,
+                progress=False,
+                auto_adjust=False,
+                threads=False,
+            )
             single_close = single.get("Close")
             single_volume = single.get("Volume")
             if single_close is not None and not single_close.empty:
