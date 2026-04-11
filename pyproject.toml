@@ -17,12 +17,18 @@ dependencies = [
     "pandas>=1.5",
     "numpy>=1.23",
     "requests>=2.28",
-    "alpaca-py"
+    "alpaca-py",
+    "yfinance",
+    "torch",
+    "scikit-learn",
+    "hmmlearn",
+    "joblib"
 ]
 
 [project.scripts]
 run-strategy = "scripts.run_strategy:main"
-# (optional) lets users just type `run-strategy` in the terminal
+weekend-recalibrate = "scripts.weekend_recalibration:main"
+# (optional) lets users run strategy/recalibration from CLI
 
 [tool.setuptools.packages.find]
 where = ["."]

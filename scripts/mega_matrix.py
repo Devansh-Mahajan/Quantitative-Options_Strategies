@@ -99,6 +99,7 @@ def build():
     
     all_sequences = []
     all_labels = []
+    all_future_returns = []
     
     logger.info("🧬 Fusing HMM Probabilities with Individual Tickers...")
     
@@ -113,40 +114,55 @@ def build():
         df['Ret'] = np.log(df['Close'] / df['Close'].shift(1))
         df['Vol_20'] = df['Ret'].rolling(20).std() * np.sqrt(252)
         df['SMA_50_Dist'] = (df['Close'] / df['Close'].rolling(50).mean()) - 1
-        
+
         # Merge Commodities/Rates
         df = df.join(macro_returns, how='left')
         # MERGE HMM PROBABILITIES (This is the magic)
         df = df.join(hmm_probs, how='left').dropna()
-        
+
+        # Hidden-correlation features between stock and macro flows
+        correlation_windows = [10, 20]
+        for macro_col in MACRO_TICKERS.values():
+            for window in correlation_windows:
+                feature_name = f"Corr_{macro_col}_{window}"
+                df[feature_name] = df['Ret'].rolling(window).corr(df[macro_col]).clip(-1, 1)
+
         # Label Generation (Forward Looking 10 Days)
         future_return = np.log(df['Close'].shift(-FORWARD_LOOK) / df['Close'])
-        
+
         labels = []
         for val in future_return:
             if pd.isna(val):
                 labels.append(np.nan)
-            elif val > 0.04:
-                labels.append(2) # Bull
-            elif val < -0.04:
-                labels.append(3) # Bear
             elif abs(val) > 0.07:
-                labels.append(1) # Vega 
+                labels.append(1)  # Vega: large directional move either way
+            elif val > 0.03:
+                labels.append(2)  # Bull
+            elif val < -0.03:
+                labels.append(3)  # Bear
             else:
-                labels.append(0) # Theta
-                
+                labels.append(0)  # Theta
+
         df['Label'] = labels
+        df['Future_Return_10d'] = future_return
         df = df.dropna()
-        
+
         # Define the dynamic feature columns so PyTorch knows how wide the tensor is
-        feature_cols = ['Ret', 'Vol_20', 'SMA_50_Dist'] + list(MACRO_TICKERS.values()) + [f'HMM_State_{i}' for i in range(4)]
+        corr_cols = [
+            f"Corr_{macro_col}_{window}"
+            for macro_col in MACRO_TICKERS.values()
+            for window in correlation_windows
+        ]
+        feature_cols = ['Ret', 'Vol_20', 'SMA_50_Dist'] + list(MACRO_TICKERS.values()) + [f'HMM_State_{i}' for i in range(4)] + corr_cols
         
         X_raw = df[feature_cols].values
         y_raw = df['Label'].values
         
         for i in range(len(X_raw) - SEQ_LENGTH):
             all_sequences.append(X_raw[i : i + SEQ_LENGTH])
-            all_labels.append(y_raw[i + SEQ_LENGTH - 1])
+            label_idx = i + SEQ_LENGTH - 1
+            all_labels.append(y_raw[label_idx])
+            all_future_returns.append(df['Future_Return_10d'].iloc[label_idx])
 
     logger.info("⚖️ Normalizing massive dataset...")
     
@@ -161,6 +177,7 @@ def build():
     logger.info("💾 Packing HMM-Infused Tensors for the RTX 5090...")
     X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
     y_tensor = torch.tensor(np.array(all_labels), dtype=torch.long)
+    r_tensor = torch.tensor(np.array(all_future_returns), dtype=torch.float32)
     
     logger.info(f"✅ FINAL SHAPE: X={X_tensor.shape}, y={y_tensor.shape}")
     
@@ -168,7 +185,9 @@ def build():
         'X': X_tensor,
         'y': y_tensor,
         'scaler': scaler,
-        'features_list': feature_cols
+        'features_list': feature_cols,
+        'future_returns': r_tensor,
+        'target_annual_return': 0.05,
     }, TENSOR_PATH)
 
 if __name__ == "__main__":
