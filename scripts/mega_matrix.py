@@ -30,18 +30,34 @@ TICKERS = [
     "MDT", "SYK", "BSX", "EW", "ZTS", "CVS", "CI", "ELV", "HUM", "BMY", "DXCM", "HD", "LOW", 
     "MCD", "SBUX", "NKE", "LULU", "CMG", "DPZ", "WMT", "TGT", "COST", "TJX", "ROST", "AZO", 
     "ORLY", "TSCO", "BBY", "BKNG", "EXPE", "MAR", "HLT", "DIS", "NFLX", "SPOT", "ROKU", "PG", 
-    "KO", "PEP", "PM", "MO", "CL", "KMB", "STZ", "MDLZ", "HSY", "GIS", "K", "SYY", "BA", "CAT", 
+    "KO", "PEP", "PM", "MO", "CL", "KMB", "STZ", "MDLZ", "HSY", "GIS", "KHC", "SYY", "BA", "CAT", 
     "DE", "GE", "HON", "MMM", "UPS", "FDX", "LMT", "NOC", "GD", "RTX", "WM", "RSG", "UNP", 
     "CSX", "NSC", "ETN", "PH", "ITW", "XOM", "CVX", "COP", "EOG", "SLB", "HAL", "MPC", "PSX", 
     "VLO", "OXY", "DVN", "FCX", "NEM", "NUE", "DOW", "APD", "LIN", "SHW", "CTVA", "VZ", "T", 
     "TMUS", "NEE", "DUK", "SO", "D", "AEP", "EXC", "SRE", "PEG", "AWK", "AMT", "PLD", "CCI", 
-    "EQIX", "PSA", "O", "SPG", "WY", "BABA", "PDD", "JD", "BIDU", "MELI", "SE", "U", "RBLX"
+    "EQIX", "PSA", "O", "SPG", "WY", "PDD", "JD", "BIDU", "MELI", "SE", "U", "RBLX"
 ]
 
 MACRO_TICKERS = {'CL=F': 'Crude_Oil', 'ZS=F': 'Soybeans', 'GC=F': 'Gold', '^TNX': 'Treasury_10Y', 'DX-Y.NYB': 'DXY_Dollar', '^VIX': 'VIX'}
 
 SEQ_LENGTH = 60
 FORWARD_LOOK = 10 
+
+def _download_close(symbols, period: str, progress: bool = False) -> pd.DataFrame:
+    data = yf.download(
+        symbols,
+        period=period,
+        progress=progress,
+        auto_adjust=False,
+        threads=False,
+    )
+    if data is None or data.empty:
+        return pd.DataFrame()
+    close = data.get('Close', pd.DataFrame())
+    if isinstance(close, pd.Series):
+        name = symbols[0] if isinstance(symbols, (list, tuple)) else symbols
+        close = close.to_frame(name=name)
+    return close.dropna(how='all')
 
 def get_hmm_probabilities():
     """Loads the pre-trained HMM and generates historical daily probabilities for the 4 regimes."""
@@ -57,7 +73,7 @@ def get_hmm_probabilities():
     
     # 1. Fetch exactly what the HMM was trained on
     tickers = {'SPY': 'SPY', '^VIX': 'VIX', '^TNX': 'TNX', 'DX-Y.NYB': 'DXY', 'HYG': 'HYG', 'LQD': 'LQD'}
-    raw = yf.download(list(tickers.keys()), period="10y", progress=False)['Close']
+    raw = _download_close(list(tickers.keys()), period="10y", progress=False)
     raw.rename(columns=tickers, inplace=True)
     raw = raw.dropna()
 
@@ -93,12 +109,12 @@ def get_hmm_probabilities():
 
 def get_data():
     logger.info("🌍 Downloading Raw Commodities & Global Macro Backdrop...")
-    macro_data = yf.download(list(MACRO_TICKERS.keys()), period="10y", progress=False)['Close']
+    macro_data = _download_close(list(MACRO_TICKERS.keys()), period="10y", progress=False)
     macro_data.rename(columns=MACRO_TICKERS, inplace=True)
     macro_returns = np.log(macro_data / macro_data.shift(1)).fillna(0)
     
     logger.info(f"📈 Downloading 10 years of data for {len(TICKERS)} Universe Stocks...")
-    stock_data = yf.download(TICKERS, period="10y", progress=True)['Close']
+    stock_data = _download_close(TICKERS, period="10y", progress=True)
     
     return stock_data, macro_returns
 
@@ -175,6 +191,9 @@ def build(target_annual_return: float = 0.05):
             label_idx = i + SEQ_LENGTH - 1
             all_labels.append(y_raw[label_idx])
             all_future_returns.append(df['Future_Return_10d'].iloc[label_idx])
+
+    if not all_sequences:
+        raise RuntimeError("No valid sequences built from market data; verify ticker feed availability.")
 
     logger.info("⚖️ Normalizing massive dataset...")
     

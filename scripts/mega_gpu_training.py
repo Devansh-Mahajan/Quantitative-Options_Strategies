@@ -112,7 +112,7 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
     criterion = build_weighted_loss(y[:split])
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=15, T_mult=2)
-    scaler = torch.cuda.amp.GradScaler(enabled=(DEVICE.type == 'cuda'))
+    scaler = torch.amp.GradScaler(device="cuda", enabled=(DEVICE.type == 'cuda'))
 
     best_score = -float('inf')
     patience, stale = 10, 0
@@ -125,7 +125,7 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
             b_x, b_y = b_x.to(DEVICE), b_y.to(DEVICE)
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.cuda.amp.autocast(enabled=(DEVICE.type == 'cuda')):
+            with torch.amp.autocast(device_type="cuda", enabled=(DEVICE.type == 'cuda')):
                 logits = model(b_x)
                 loss = criterion(logits, b_y)
 

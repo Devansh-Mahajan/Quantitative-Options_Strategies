@@ -57,12 +57,24 @@ def _infer(confidence_threshold=75.0):
     model.eval()
 
     logger.info("📥 Downloading live data + HMM probabilities...")
-    macro_data = yf.download(list(MACRO_TICKERS.keys()), period="6mo", progress=False)['Close']
+    macro_data = yf.download(
+        list(MACRO_TICKERS.keys()),
+        period="6mo",
+        progress=False,
+        auto_adjust=False,
+        threads=False,
+    )['Close']
     macro_data.rename(columns=MACRO_TICKERS, inplace=True)
     macro_returns = np.log(macro_data / macro_data.shift(1)).fillna(0)
     hmm_probs = get_hmm_probabilities().tail(180)
 
-    stock_data = yf.download(TICKERS, period="6mo", progress=False)['Close']
+    stock_data = yf.download(
+        TICKERS,
+        period="6mo",
+        progress=False,
+        auto_adjust=False,
+        threads=False,
+    )['Close']
 
     valid_sequences, valid_tickers = [], []
     for ticker in TICKERS:
