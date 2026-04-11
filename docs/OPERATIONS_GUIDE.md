@@ -180,7 +180,11 @@ Daily:
 Weekly:
 - refresh symbol universe,
 - review per-strategy outcomes,
-- run recalibration if using model retraining workflows.
+- run recalibration if using model retraining workflows (`weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56`).
+
+Recalibration notes:
+- weekend recalibration now keeps the full symbol universe by default.
+- `--top-n` is deprecated and ignored.
 
 Monthly:
 - parameter review and stress test assumptions,
@@ -223,4 +227,3 @@ After every code change:
 ## 12) Disclaimer
 
 This software does not guarantee profits and can lose money. Test thoroughly in paper mode and use position sizes appropriate for your risk tolerance.
-

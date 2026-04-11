@@ -210,7 +210,7 @@ This produces `reports/massive_backtest_report.json` with per-run and aggregate 
 To retrain all major models with configurable return/accuracy objectives:
 
 ```bash
-weekend-recalibrate --train --top-n 80 --target-daily-return 0.002 --target-accuracy 0.56
+weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56
 ```
 
 This pipeline runs, in order:
@@ -440,15 +440,15 @@ This repository now includes a multi-layer research/training pipeline designed t
 
 - detect latent market regimes with Hidden Markov Models,
 - train sequence models on macro + cross-asset + hidden-correlation features,
-- prioritize high-volatility symbols and institutional-flow proxies,
+- prioritize the full symbol universe using volatility + institutional-flow proxies,
 - recalibrate models weekly for current market structure.
 
 ### Core Components
 
-- **`scripts/train_hmm.py`**: trains the macro HMM regime model with cross-market correlation channels.
+- **`scripts/train_hmm.py`**: trains the macro HMM regime model with validation-based model selection across candidate state counts/seeds.
 - **`scripts/mega_matrix.py`**: builds the deep-learning tensor dataset (including HMM state probabilities and rolling hidden correlations).
 - **`scripts/mega_gpu_training.py`**: trains the main Mixture-of-Experts sequence model with robust GPU training controls.
-- **`scripts/weekend_recalibration.py`**: weekend job that ranks high-vol symbols, updates `config/volatile_symbols.txt`, and can run full retraining.
+- **`scripts/weekend_recalibration.py`**: weekend job that reprioritizes the full symbol universe, updates `config/volatile_symbols.txt`, and can run full retraining.
 - **`core/market_intelligence.py`**: volatility ranking + institutional-flow proxy scoring.
 - **`core/state_manager.py`**: now stores model snapshots in `config/model_state.json` for auditability.
 
@@ -457,14 +457,16 @@ This repository now includes a multi-layer research/training pipeline designed t
 Run every weekend (e.g. Saturday pre-open):
 
 ```bash
-python scripts/weekend_recalibration.py --top-n 80 --train
+python scripts/weekend_recalibration.py --train
 ```
 
-If you only want to refresh high-volatility symbols without retraining:
+If you only want to refresh symbol prioritization without retraining:
 
 ```bash
-python scripts/weekend_recalibration.py --top-n 80
+python scripts/weekend_recalibration.py
 ```
+
+> Note: `--top-n` is deprecated and ignored. Weekend recalibration now keeps all symbols.
 
 ### Daily Trading Workflow
 
@@ -507,4 +509,3 @@ Use strict risk limits, paper trade first, and validate before any production de
 This project now includes stronger operational/reporting primitives, but **no trading system can be guaranteed to be “highly profitable.”** Real hedge funds continuously adapt models, execution, risk, and capital allocation based on live performance and market regime changes.
 
 Use this repo as a disciplined research and execution framework, validate every change in paper trading, and treat target returns as optimization goals rather than promises.
-
