@@ -24,8 +24,8 @@ TICKERS = [
     "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO", "AMD", "QCOM", "TXN", "INTC", "MU", 
     "AMAT", "LRCX", "KLAC", "ASML", "TSM", "CRM", "ADBE", "ORCL", "IBM", "CSCO", "NOW", "PLTR", 
     "SNOW", "CRWD", "PANW", "FTNT", "TEAM", "DDOG", "MDB", "NET", "ZS", "OKTA", "SHOP", "UBER", 
-    "ABNB", "DASH", "JPM", "BAC", "C", "WFC", "GS", "MS", "V", "MA", "AXP", "PYPL", "SQ", "SOFI", 
-    "HOOD", "COIN", "BLK", "SCHW", "CME", "ICE", "NDAQ", "SPGI", "DFS", "SYF", "COF", "USB", 
+    "ABNB", "DASH", "JPM", "BAC", "C", "WFC", "GS", "MS", "V", "MA", "AXP", "PYPL", "XYZ", "SOFI", 
+    "HOOD", "COIN", "BLK", "SCHW", "CME", "ICE", "NDAQ", "SPGI", "SYF", "COF", "USB", 
     "PNC", "JNJ", "UNH", "LLY", "ABBV", "MRK", "PFE", "AMGN", "GILD", "VRTX", "REGN", "ISRG", 
     "MDT", "SYK", "BSX", "EW", "ZTS", "CVS", "CI", "ELV", "HUM", "BMY", "DXCM", "HD", "LOW", 
     "MCD", "SBUX", "NKE", "LULU", "CMG", "DPZ", "WMT", "TGT", "COST", "TJX", "ROST", "AZO", 
@@ -69,7 +69,18 @@ def get_hmm_probabilities():
     features['VIX_lvl'] = raw['VIX']
     features['Credit_Risk_Ratio'] = raw['HYG'] / raw['LQD']
     features['Credit_Risk_Momentum'] = np.log(features['Credit_Risk_Ratio'] / features['Credit_Risk_Ratio'].shift(5))
+    # Keep feature engineering in lock-step with scripts/train_hmm.py
+    features['Corr_SPY_VIX_20'] = features['SPY_ret'].rolling(20).corr(np.log(raw['VIX'] / raw['VIX'].shift(1))).clip(-1, 1)
+    features['Corr_SPY_DXY_20'] = features['SPY_ret'].rolling(20).corr(features['DXY_ret']).clip(-1, 1)
+    features['Corr_SPY_TNX_20'] = features['SPY_ret'].rolling(20).corr(features['TNX_ret']).clip(-1, 1)
     features = features.dropna()
+
+    missing = [col for col in features_list if col not in features.columns]
+    if missing:
+        raise ValueError(
+            "HMM feature mismatch. Missing columns in mega_matrix recreation: "
+            + ", ".join(missing)
+        )
     features = features[features_list] # Ensure exact column order
 
     # 3. Generate the Probabilities
