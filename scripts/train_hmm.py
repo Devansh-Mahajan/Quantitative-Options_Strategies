@@ -61,6 +61,11 @@ def discover_ticker_patterns() -> dict:
         return {}
 
     returns = np.log(ticker_close / ticker_close.shift(1)).replace([np.inf, -np.inf], np.nan)
+    # yfinance can occasionally return duplicate ticker columns (e.g., symbol aliases);
+    # collapse duplicates deterministically to keep all downstream series selections 1-D.
+    if returns.columns.has_duplicates:
+        returns = returns.T.groupby(level=0).mean().T
+
     valid_cols = returns.columns[returns.notna().mean() > 0.80]
     returns = returns[valid_cols].dropna(how='all').ffill().dropna(axis=1, how='any')
     if returns.shape[1] < 10 or len(returns) < 200:
@@ -136,8 +141,15 @@ def discover_ticker_patterns() -> dict:
         pair_df = returns[[a, b]].dropna()
         if len(pair_df) < 120:
             continue
-        corr_a_leads_b = pair_df[a].shift(1).corr(pair_df[b])
-        corr_b_leads_a = pair_df[b].shift(1).corr(pair_df[a])
+        series_a = pair_df[a].squeeze()
+        series_b = pair_df[b].squeeze()
+        if isinstance(series_a, pd.DataFrame):
+            series_a = series_a.iloc[:, 0]
+        if isinstance(series_b, pd.DataFrame):
+            series_b = series_b.iloc[:, 0]
+
+        corr_a_leads_b = series_a.shift(1).corr(series_b)
+        corr_b_leads_a = series_b.shift(1).corr(series_a)
         if pd.isna(corr_a_leads_b) or pd.isna(corr_b_leads_a):
             continue
         if abs(corr_a_leads_b) >= abs(corr_b_leads_a):
