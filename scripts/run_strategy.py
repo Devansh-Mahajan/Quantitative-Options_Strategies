@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+import os
 from core.broker_client import BrokerClient
 from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
 from core.state_manager import update_state, calculate_risk
@@ -18,6 +19,7 @@ from core.sentiment import get_market_sentiment, get_vix_level
 # 🧠 THE AI INFERENCE ENGINES
 from core.regime_detection import get_brain_prediction # Macro market mood
 from scripts.mega_screener import get_mega_brain_targets
+from core.market_intelligence import estimate_institutional_flow
 def main():
     args = parse_args()
     
@@ -25,9 +27,11 @@ def main():
     logger = setup_logger(level=args.log_level, to_file=args.log_to_file)
     strat_logger.set_fresh_start(args.fresh_start)
 
-    SYMBOLS_FILE = Path(__file__).parent.parent / "config" / "symbol_list.txt"
-    with open(SYMBOLS_FILE, 'r') as file:
-        SYMBOLS = [line.strip() for line in file.readlines()]
+    symbols_file = Path(__file__).parent.parent / "config" / "symbol_list.txt"
+    weekend_symbols_file = Path(__file__).parent.parent / "config" / "volatile_symbols.txt"
+    chosen_file = weekend_symbols_file if weekend_symbols_file.exists() else symbols_file
+    with open(chosen_file, 'r') as file:
+        SYMBOLS = [line.strip() for line in file.readlines() if line.strip()]
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
 
@@ -71,6 +75,10 @@ def main():
                 allowed_symbols.append(sym)
         else:
             logger.info(f"Skipping {sym}: Maximum allocation ({MAX_SPREADS_PER_SYMBOL} spread) reached.")
+
+    # Hedge-fund flow proxy: prioritize candidates with persistent momentum + volume surprise
+    flow_map = estimate_institutional_flow(allowed_symbols) if allowed_symbols else {}
+    allowed_symbols = sorted(allowed_symbols, key=lambda s: flow_map.get(s, 0.0), reverse=True)
 
     account = client.trade_client.get_account()
     total_equity = float(account.portfolio_value)

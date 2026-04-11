@@ -273,3 +273,72 @@ Securities brokerage services are provided by Alpaca Securities LLC ("Alpaca Sec
 
 This is not an offer, solicitation of an offer, or advice to buy or sell securities or open a brokerage account in any jurisdiction where Alpaca Securities is not registered or licensed, as applicable.
 </div>
+
+---
+
+## Advanced AI Stack (Deep Learning + HMM + Weekly Recalibration)
+
+This repository now includes a multi-layer research/training pipeline designed to:
+
+- detect latent market regimes with Hidden Markov Models,
+- train sequence models on macro + cross-asset + hidden-correlation features,
+- prioritize high-volatility symbols and institutional-flow proxies,
+- recalibrate models weekly for current market structure.
+
+### Core Components
+
+- **`scripts/train_hmm.py`**: trains the macro HMM regime model with cross-market correlation channels.
+- **`scripts/mega_matrix.py`**: builds the deep-learning tensor dataset (including HMM state probabilities and rolling hidden correlations).
+- **`scripts/mega_gpu_training.py`**: trains the main Mixture-of-Experts sequence model with robust GPU training controls.
+- **`scripts/weekend_recalibration.py`**: weekend job that ranks high-vol symbols, updates `config/volatile_symbols.txt`, and can run full retraining.
+- **`core/market_intelligence.py`**: volatility ranking + institutional-flow proxy scoring.
+- **`core/state_manager.py`**: now stores model snapshots in `config/model_state.json` for auditability.
+
+### Weekend Recalibration Workflow
+
+Run every weekend (e.g. Saturday pre-open):
+
+```bash
+python scripts/weekend_recalibration.py --top-n 80 --train
+```
+
+If you only want to refresh high-volatility symbols without retraining:
+
+```bash
+python scripts/weekend_recalibration.py --top-n 80
+```
+
+### Daily Trading Workflow
+
+1. Ensure models are trained and available in `config/`.
+2. Run strategy:
+
+```bash
+run-strategy
+```
+
+`run-strategy` automatically:
+- loads `config/volatile_symbols.txt` if present,
+- applies institutional-flow prioritization,
+- queries macro regime inference,
+- routes trades to Theta / Vega / Bull / Bear strategy engines.
+
+### Operations & Maintenance Checklist
+
+- **Daily**
+  - verify broker/API connectivity,
+  - verify latest model files exist,
+  - check log output and open position risk.
+- **Weekly**
+  - run weekend recalibration,
+  - inspect `config/model_state.json` snapshots,
+  - validate regime confidence and transition stability metrics.
+- **Monthly**
+  - review symbol universe quality and remove structurally illiquid names,
+  - evaluate out-of-sample performance and drift.
+
+### Important Risk Reality
+
+Targets (including aggressive targets like 5% daily or fixed annual returns) are optimization objectives only.
+No live strategy can guarantee returns; all trading can lose capital.
+Use strict risk limits, paper trade first, and validate before any production deployment.

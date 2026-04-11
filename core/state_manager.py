@@ -10,6 +10,36 @@ logger = logging.getLogger(f"strategy.{__name__}")
 # --- METADATA TRACKER FOR EARNINGS DATES ---
 STRADDLE_META_FILE = "straddles_meta.json"
 
+MODEL_STATE_FILE = "config/model_state.json"
+
+
+def _safe_read_json(path):
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
+    return {}
+
+
+def register_model_snapshot(model_name, metadata):
+    """Persist model metadata for audit + weekend recalibration state."""
+    data = _safe_read_json(MODEL_STATE_FILE)
+    data[model_name] = metadata
+    os.makedirs(os.path.dirname(MODEL_STATE_FILE), exist_ok=True)
+    with open(MODEL_STATE_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def get_model_snapshot(model_name):
+    return _safe_read_json(MODEL_STATE_FILE).get(model_name)
+
+
+def get_all_model_snapshots():
+    return _safe_read_json(MODEL_STATE_FILE)
+
+
 def register_straddle(symbol, call_sym, put_sym, earnings_date):
     """Saves the straddle's earnings date so manager.py knows when to exit."""
     data = {}
