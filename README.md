@@ -157,10 +157,14 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 * Checks your current positions to identify any assignments and sells covered calls on those.
 * Filters your chosen stocks based on buying power (you must be able to afford 100 shares per put).
 * Scores put options using `core.strategy.score_options()`, which ranks by annualized return discounted by the probability of assignment.
-* Applies tighter execution-quality filters (relative spread + open-interest weighting) so contracts with poor fill quality are deprioritized.
+* Applies tighter execution-quality filters and a lightweight transaction-cost model (spread/slippage/liquidity penalty) so poor-fill contracts are deprioritized.
 * Places trades for the top-ranked options.
 * Runs a stock movement predictor (`core/movement_predictor.py`) and derives target portfolio Greeks (`core/greeks_targeting.py`) so directional trades can adapt toward bullish/bearish/neutral delta bias.
 * Dynamically throttles new trade count and risk deployment when model confidence is weak or macro-regime conviction falls.
+* Adds an HMM-driven **pairs mean-reversion overlay** (`core/pairs_trading.py`) that injects bullish/bearish directional candidates when historically correlated pairs diverge materially with confidence gating.
+* Uses an optional **Platinum sizing layer** (`core/portfolio_optimizer.py`) that applies conservative Kelly-style deployment scaling from signal quality, macro confidence, pair confidence, and VIX.
+
+> **Important:** Aggressive goals like 5% daily return are stretch targets, not guarantees. Always validate via out-of-sample backtests and paper trading before risking capital.
 
 ---
 
@@ -215,9 +219,10 @@ weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56
 
 This pipeline runs, in order:
 1. `scripts/train_hmm.py` (macro Hidden Markov model),
-2. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
-3. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
-4. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
+2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
+3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
+4. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
+5. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
 
 Use higher values only as optimization goals, **not guarantees**.
 

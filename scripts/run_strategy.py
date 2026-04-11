@@ -22,6 +22,15 @@ from config.params import (
     MIN_SIGNAL_CONFIDENCE,
     LOW_CONFIDENCE_RISK_MULTIPLIER,
     MAX_NEW_TRADES_PER_CYCLE,
+    ENABLE_PAIRS_TRADING,
+    PAIR_MAX_SIGNALS,
+    PAIR_ENTRY_ZSCORE,
+    PAIR_LOOKBACK_DAYS,
+    PAIR_MIN_CORRELATION,
+    PAIR_MIN_CONFIDENCE,
+    PLATINUM_MODE,
+    TARGET_DAILY_RETURN_GOAL,
+    MAX_KELLY_FRACTION,
 )
 # --- Dashboard and Alert Tools ---
 from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
@@ -34,6 +43,8 @@ from core.greeks_targeting import derive_portfolio_greek_targets
 from core.regime_detection import get_brain_prediction # Macro market mood
 from scripts.mega_screener import get_mega_brain_targets
 from core.market_intelligence import estimate_institutional_flow
+from core.pairs_trading import generate_pairs_trading_signals
+from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
 
 
 def _validate_date(date_str):
@@ -219,6 +230,8 @@ def main():
         deployment_scale = signal_confidence * macro_confidence
         if current_vix >= 28:
             deployment_scale *= 0.75
+
+        pair_overlay_cache = {"signals": []}
         
         # --- DISCORD DASHBOARD ---
         holdings_str = "\n".join([f"• {h}" for h in holding_status]) if holding_status else "No open positions."
@@ -281,6 +294,46 @@ def main():
             vega_candidates  = [sym for sym in ai_targets['VEGA'] if sym in allowed_symbols]
             bull_candidates  = [sym for sym in ai_targets['BULL'] if sym in allowed_symbols]
             bear_candidates  = [sym for sym in ai_targets['BEAR'] if sym in allowed_symbols]
+
+            if ENABLE_PAIRS_TRADING:
+                pair_overlay = generate_pairs_trading_signals(
+                    allowed_symbols=allowed_symbols,
+                    max_signals=PAIR_MAX_SIGNALS,
+                    entry_zscore=PAIR_ENTRY_ZSCORE,
+                    lookback_days=PAIR_LOOKBACK_DAYS,
+                    min_pair_corr=PAIR_MIN_CORRELATION,
+                    min_confidence=PAIR_MIN_CONFIDENCE,
+                )
+                pair_bulls = pair_overlay.get("bull_symbols", [])
+                pair_bears = pair_overlay.get("bear_symbols", [])
+                pair_overlay_cache = pair_overlay
+                if pair_bulls or pair_bears:
+                    bull_candidates = list(dict.fromkeys(pair_bulls + bull_candidates))
+                    bear_candidates = list(dict.fromkeys(pair_bears + bear_candidates))
+                    logger.info(
+                        "🧩 Pair overlay injected %d bullish + %d bearish symbols from HMM pair divergences.",
+                        len(pair_bulls),
+                        len(pair_bears),
+                    )
+
+            if PLATINUM_MODE:
+                pair_confidence = estimate_pair_overlay_confidence(pair_overlay_cache.get("signals", []))
+                deploy_fraction = recommend_deployment_fraction(
+                    signal_confidence=signal_confidence,
+                    macro_confidence=macro_confidence,
+                    pair_confidence=pair_confidence,
+                    vix_level=current_vix,
+                    target_daily_return=TARGET_DAILY_RETURN_GOAL,
+                    max_kelly_fraction=MAX_KELLY_FRACTION,
+                )
+                deployment_scale *= deploy_fraction
+                dynamic_max_risk *= deploy_fraction
+                logger.info(
+                    "🧮 Platinum sizing active | deploy_fraction=%.2f pair_conf=%.2f risk/trade=$%.2f",
+                    deploy_fraction,
+                    pair_confidence,
+                    dynamic_max_risk,
+                )
 
             throttle_n = max(
                 1,

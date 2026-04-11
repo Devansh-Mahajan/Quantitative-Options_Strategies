@@ -72,6 +72,7 @@ def main():
     if args.train:
         train_steps = [
             ["python", "scripts/train_hmm.py"],
+            ["python", "scripts/train_correlation_alpha.py"],
             ["python", "scripts/mega_matrix.py", "--target-annual-return", str(args.target_daily_return * 252)],
             ["python", "scripts/mega_gpu_training.py", "--target-annual-return", str(args.target_daily_return * 252), "--target-accuracy", str(args.target_accuracy)],
             ["python", "scripts/train_regime_movement_models.py", "--target-accuracy", str(args.target_accuracy)],
