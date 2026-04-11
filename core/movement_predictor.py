@@ -19,6 +19,7 @@ LOOKBACK_MAP = {
     "6mo": 182,
     "3mo": 91,
 }
+LOOKBACK_PERIOD_FALLBACKS = ["1y", "2y", "5y", "10y", "max"]
 
 
 @dataclass
@@ -39,6 +40,27 @@ def _download_prices(symbol: str, period: str) -> pd.Series:
     return close.dropna()
 
 
+def _download_prices_with_warmup(symbol: str, lookback: str, warmup_days: int = 252) -> pd.Series:
+    """
+    Download enough history to compute rolling features while still evaluating the requested lookback.
+    Falls back to progressively larger periods when Yahoo returns sparse data.
+    """
+    lookback_days = LOOKBACK_MAP.get(lookback, LOOKBACK_MAP["5y"])
+
+    close = pd.Series(dtype=float)
+    for period in LOOKBACK_PERIOD_FALLBACKS:
+        candidate = _download_prices(symbol, period=period)
+        if not candidate.empty:
+            close = candidate
+            if len(candidate) >= lookback_days + warmup_days:
+                break
+
+    if close.empty:
+        return close
+
+    return close.tail(lookback_days + warmup_days)
+
+
 def _feature_frame(close: pd.Series) -> pd.DataFrame:
     df = pd.DataFrame(index=close.index)
     ret = np.log(close / close.shift(1))
@@ -54,8 +76,7 @@ def _feature_frame(close: pd.Series) -> pd.DataFrame:
 
 
 def fit_symbol_movement_model(symbol: str, lookback: str = "5y") -> tuple[Pipeline | None, pd.DataFrame]:
-    period = lookback if lookback in LOOKBACK_MAP else "5y"
-    close = _download_prices(symbol, period=period)
+    close = _download_prices_with_warmup(symbol, lookback=lookback)
     features = _feature_frame(close)
 
     if len(features) < 150:
@@ -103,11 +124,15 @@ def aggregate_movement_signals(symbols: Iterable[str], lookback: str = "5y") -> 
 
 def backtest_symbol_movement(symbol: str, lookback: str = "5y") -> dict:
     """Walk-forward next-day direction backtest."""
-    period = lookback if lookback in LOOKBACK_MAP else "5y"
-    close = _download_prices(symbol, period=period)
+    close = _download_prices_with_warmup(symbol, lookback=lookback)
     features = _feature_frame(close)
-    if len(features) < 250:
-        return {"symbol": symbol, "lookback": lookback, "error": "insufficient_data"}
+    if len(features) < 120:
+        return {
+            "symbol": symbol,
+            "lookback": lookback,
+            "error": "insufficient_data",
+            "available_rows": int(len(features)),
+        }
 
     split_idx = int(len(features) * 0.7)
     train, test = features.iloc[:split_idx], features.iloc[split_idx:]

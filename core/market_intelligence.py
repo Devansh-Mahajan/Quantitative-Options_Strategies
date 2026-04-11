@@ -7,16 +7,46 @@ import yfinance as yf
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
+SYMBOL_ALIASES = {
+    # Block Inc. renamed ticker on NYSE from SQ -> XYZ.
+    "SQ": "XYZ",
+}
+
+
+def _resolve_symbol(symbol: str) -> str:
+    return SYMBOL_ALIASES.get(symbol, symbol)
+
 
 def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple[pd.DataFrame, pd.DataFrame]:
-    data = yf.download(symbols, period=period, progress=False, auto_adjust=False)
+    resolved_map = {_resolve_symbol(sym): sym for sym in symbols}
+    resolved_symbols = list(resolved_map.keys())
+
+    data = yf.download(resolved_symbols, period=period, progress=False, auto_adjust=False)
     close = data.get('Close', pd.DataFrame())
     volume = data.get('Volume', pd.DataFrame())
 
     if isinstance(close, pd.Series):
-        close = close.to_frame(name=symbols[0])
+        close = close.to_frame(name=resolved_symbols[0])
     if isinstance(volume, pd.Series):
-        volume = volume.to_frame(name=symbols[0])
+        volume = volume.to_frame(name=resolved_symbols[0])
+
+    # Retry any symbols that were omitted in the bulk request.
+    missing = [s for s in resolved_symbols if s not in close.columns]
+    for resolved in missing:
+        try:
+            single = yf.download(resolved, period=period, progress=False, auto_adjust=False)
+            single_close = single.get("Close")
+            single_volume = single.get("Volume")
+            if single_close is not None and not single_close.empty:
+                close[resolved] = single_close.squeeze()
+            if single_volume is not None and not single_volume.empty:
+                volume[resolved] = single_volume.squeeze()
+        except Exception as exc:  # best-effort fallback
+            logger.warning("Symbol download failed for %s: %s", resolved, exc)
+
+    # Map back to original symbol names so downstream config remains stable.
+    close = close.rename(columns=resolved_map)
+    volume = volume.rename(columns=resolved_map)
 
     return close.dropna(how='all'), volume.dropna(how='all')
 
