@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "last_updated_utc": null,
+  "lookback": 30,
+  "daily_returns": [],
+  "confidence_samples": [],
+  "risk_multiplier": 1.0,
+  "deployment_multiplier": 1.0,
+  "trade_intensity_multiplier": 1.0,
+  "regime": "neutral",
+  "notes": "Adaptive controls are optimization levers, not profit guarantees."
+}
