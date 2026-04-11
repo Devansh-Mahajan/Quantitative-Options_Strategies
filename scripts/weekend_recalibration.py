@@ -32,6 +32,15 @@ def run_step(cmd):
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
+def print_pipeline_progress(current_step, total_steps, label):
+    width = 32
+    ratio = min(max(current_step / total_steps, 0.0), 1.0)
+    filled = int(width * ratio)
+    bar = "#" * filled + "-" * (width - filled)
+    percent = int(ratio * 100)
+    print(f"[pipeline] [{bar}] {percent:>3}% ({current_step}/{total_steps}) {label}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Weekend recalibration pipeline")
     parser.add_argument("--top-n", type=int, default=80, help="How many high-volatility symbols to keep")
@@ -40,8 +49,29 @@ def main():
     parser.add_argument("--target-accuracy", type=float, default=0.56, help="Optimization target for validation accuracy.")
     args = parser.parse_args()
 
+    base_step_count = 4  # load -> prioritize -> persist -> snapshot
+
+    train_steps = []
+    if args.train:
+        train_steps = [
+            ["python", "scripts/train_hmm.py"],
+            ["python", "scripts/mega_matrix.py", "--target-annual-return", str(args.target_daily_return * 252)],
+            ["python", "scripts/mega_gpu_training.py", "--target-annual-return", str(args.target_daily_return * 252), "--target-accuracy", str(args.target_accuracy)],
+            ["python", "scripts/train_regime_movement_models.py", "--target-accuracy", str(args.target_accuracy)],
+        ]
+
+    total_steps = base_step_count + len(train_steps)
+    step_idx = 1
+
+    print_pipeline_progress(step_idx, total_steps, "Loading symbols")
     symbols = load_symbols()
+
+    step_idx += 1
+    print_pipeline_progress(step_idx, total_steps, f"Prioritizing top {args.top_n} symbols")
     prioritized = prioritize_symbols(symbols, top_n=args.top_n)
+
+    step_idx += 1
+    print_pipeline_progress(step_idx, total_steps, "Writing volatile symbol list")
     save_symbols(prioritized)
 
     snapshot = {
@@ -53,16 +83,21 @@ def main():
         "target_accuracy": args.target_accuracy,
         "note": "Target is an optimization objective, not a guarantee.",
     }
+    step_idx += 1
+    print_pipeline_progress(step_idx, total_steps, "Saving recalibration snapshot")
     register_model_snapshot("weekend_recalibration", snapshot)
 
-    if args.train:
-        run_step(["python", "scripts/train_hmm.py"])
-        run_step(["python", "scripts/mega_matrix.py", "--target-annual-return", str(args.target_daily_return * 252)])
-        run_step(["python", "scripts/mega_gpu_training.py", "--target-annual-return", str(args.target_daily_return * 252), "--target-accuracy", str(args.target_accuracy)])
-        run_step(["python", "scripts/train_regime_movement_models.py", "--target-accuracy", str(args.target_accuracy)])
+    for cmd in train_steps:
+        step_idx += 1
+        print_pipeline_progress(step_idx, total_steps, f"Running {' '.join(cmd[1:])}")
+        run_step(cmd)
 
     print(json.dumps(snapshot, indent=2))
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[recalibration] interrupted by user; exiting cleanly.")
+        raise SystemExit(130)
