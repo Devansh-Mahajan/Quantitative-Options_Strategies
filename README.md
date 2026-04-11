@@ -107,6 +107,45 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 * Filters your chosen stocks based on buying power (you must be able to afford 100 shares per put).
 * Scores put options using `core.strategy.score_options()`, which ranks by annualized return discounted by the probability of assignment.
 * Places trades for the top-ranked options.
+* Runs a stock movement predictor (`core/movement_predictor.py`) and derives target portfolio Greeks (`core/greeks_targeting.py`) so directional trades can adapt toward bullish/bearish/neutral delta bias.
+
+---
+
+### Movement Predictor Backtesting
+
+You can now backtest the movement predictor for multiple windows including **10 years, 5 years, 1 year, 6 months, and 3 months**:
+
+```bash
+backtest-movement --symbols SPY QQQ NVDA --lookbacks 10y 5y 1y 6mo 3mo
+```
+
+This writes a JSON report to `reports/movement_predictor_backtest.json` by default.
+
+For a larger target-aware batch backtest engine:
+
+```bash
+massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 1y 6mo 3mo --target-daily-return 0.002 --target-accuracy 0.56
+```
+
+This produces `reports/massive_backtest_report.json` with per-run and aggregate hit-rate metrics.
+
+---
+
+### Full Model Recalibration (HMM + Deep Learning + Regime Models)
+
+To retrain all major models with configurable return/accuracy objectives:
+
+```bash
+weekend-recalibrate --train --top-n 80 --target-daily-return 0.002 --target-accuracy 0.56
+```
+
+This pipeline runs, in order:
+1. `scripts/train_hmm.py` (macro Hidden Markov model),
+2. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
+3. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
+4. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
+
+Use higher values only as optimization goals, **not guarantees**.
 
 ---
 
