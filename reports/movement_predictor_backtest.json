@@ -1,0 +1,107 @@
+[
+  {
+    "symbol": "SPY",
+    "lookback": "10y",
+    "n_train": 1718,
+    "n_test": 737,
+    "accuracy": 0.5508819538670285,
+    "hit_ratio": 0.9647218453188603,
+    "strategy_return": -0.2799134281146971,
+    "buy_hold_return": 0.7186125091605882
+  },
+  {
+    "symbol": "SPY",
+    "lookback": "5y",
+    "n_train": 837,
+    "n_test": 359,
+    "accuracy": 0.5153203342618384,
+    "hit_ratio": 0.8272980501392758,
+    "strategy_return": 0.24067526218132262,
+    "buy_hold_return": 0.21629916729472343
+  },
+  {
+    "symbol": "SPY",
+    "lookback": "1y",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "SPY",
+    "lookback": "6mo",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "SPY",
+    "lookback": "3mo",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "QQQ",
+    "lookback": "10y",
+    "n_train": 1718,
+    "n_test": 737,
+    "accuracy": 0.5658073270013568,
+    "hit_ratio": 0.9592944369063772,
+    "strategy_return": -0.25187693620546003,
+    "buy_hold_return": 0.9472387748219311
+  },
+  {
+    "symbol": "QQQ",
+    "lookback": "5y",
+    "n_train": 837,
+    "n_test": 359,
+    "accuracy": 0.5487465181058496,
+    "hit_ratio": 0.8551532033426184,
+    "strategy_return": 0.9710344946643605,
+    "buy_hold_return": 0.27298773189136094
+  },
+  {
+    "symbol": "QQQ",
+    "lookback": "1y",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "QQQ",
+    "lookback": "6mo",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "QQQ",
+    "lookback": "3mo",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "NVDA",
+    "lookback": "10y",
+    "n_train": 1718,
+    "n_test": 737,
+    "accuracy": 0.5291723202170964,
+    "hit_ratio": 0.8710990502035278,
+    "strategy_return": -0.9965950141320399,
+    "buy_hold_return": 5.692555492853363
+  },
+  {
+    "symbol": "NVDA",
+    "lookback": "5y",
+    "n_train": 837,
+    "n_test": 359,
+    "accuracy": 0.5041782729805014,
+    "hit_ratio": 0.8969359331476323,
+    "strategy_return": 3.7290382329284952,
+    "buy_hold_return": 0.4213981426013935
+  },
+  {
+    "symbol": "NVDA",
+    "lookback": "1y",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "NVDA",
+    "lookback": "6mo",
+    "error": "insufficient_data"
+  },
+  {
+    "symbol": "NVDA",
+    "lookback": "3mo",
+    "error": "insufficient_data"
+  }
+]

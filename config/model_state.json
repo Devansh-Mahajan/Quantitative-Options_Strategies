@@ -1,0 +1,25 @@
+{
+  "weekend_recalibration": {
+    "timestamp_utc": "2026-04-11T23:17:24.673154+00:00",
+    "symbols_input": 478,
+    "symbols_retained": 467,
+    "top_n_requested": 0,
+    "top_n_applied": 478,
+    "volatile_symbols_file": "config/volatile_symbols.txt",
+    "target_daily_return": 0.02,
+    "target_accuracy": 0.56,
+    "adaptive_profile": {
+      "version": 1,
+      "last_updated_utc": null,
+      "lookback": 30,
+      "daily_returns": [],
+      "confidence_samples": [],
+      "risk_multiplier": 1.0,
+      "deployment_multiplier": 1.0,
+      "trade_intensity_multiplier": 1.0,
+      "regime": "neutral",
+      "notes": "Adaptive controls are optimization levers, not profit guarantees."
+    },
+    "note": "Target is an optimization objective, not a guarantee."
+  }
+}
