@@ -211,19 +211,12 @@ Or run with your configured universe in one command:
 massive-backtest
 ```
 
-Date-range controlled audit:
-
-```bash
-massive-backtest --start-date 2020-01-01 --end-date 2025-12-31 --horizon-days 10 --train-ratio 0.75
-```
-
 This produces `reports/massive_backtest_report.json` with:
 
 - `movement_suite` (direction-prediction accuracy/alpha across windows),
 - `pairs_suite` (historical mean-reversion signal win-rate),
 - `regime_suite` (macro HMM directional risk proxy quality),
 - `strategy_proxy_suite` (BULL/BEAR/THETA/VEGA routing hit-rates),
-- industrial metrics such as Sharpe, Sortino, max drawdown, Calmar/profit-factor proxies, precision/recall/F1/Brier,
 - and a unified `massive_overview.predictive_score`.
 
 ---
