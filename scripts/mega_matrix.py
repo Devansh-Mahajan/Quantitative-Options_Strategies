@@ -1,4 +1,5 @@
 import os
+import argparse
 import torch
 import numpy as np
 import pandas as pd
@@ -90,7 +91,7 @@ def get_data():
     
     return stock_data, macro_returns
 
-def build():
+def build(target_annual_return: float = 0.05):
     # 1. Get the Hidden State Probabilities (The Edge)
     hmm_probs = get_hmm_probabilities()
     
@@ -187,8 +188,11 @@ def build():
         'scaler': scaler,
         'features_list': feature_cols,
         'future_returns': r_tensor,
-        'target_annual_return': 0.05,
+        'target_annual_return': float(target_annual_return),
     }, TENSOR_PATH)
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description="Build mega dataset with configurable targets.")
+    parser.add_argument("--target-annual-return", type=float, default=0.05)
+    args = parser.parse_args()
+    build(target_annual_return=args.target_annual_return)

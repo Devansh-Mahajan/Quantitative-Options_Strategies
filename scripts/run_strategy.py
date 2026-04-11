@@ -15,6 +15,8 @@ from config.params import RISK_ALLOCATION, MAX_SPREADS_PER_SYMBOL, AVOID_EARNING
 from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
 from core.notifications import send_alert
 from core.sentiment import get_market_sentiment, get_vix_level
+from core.movement_predictor import aggregate_movement_signals
+from core.greeks_targeting import derive_portfolio_greek_targets
 
 # 🧠 THE AI INFERENCE ENGINES
 from core.regime_detection import get_brain_prediction # Macro market mood
@@ -92,6 +94,8 @@ def main():
 
     # Grab VIX early so we can scale risk and print it on the dashboard
     current_vix = get_vix_level()
+    predictor_universe = allowed_symbols[:20] if allowed_symbols else SYMBOLS[:20]
+    movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
 
     if daily_pnl_pct <= -10.0:
         logger.critical(f"🔴 KILL SWITCH TRIGGERED 🔴 Daily P/L is {daily_pnl_pct:.2f}% (${daily_pnl_dollars:.2f}). Trading halted.")
@@ -116,6 +120,12 @@ def main():
         port_delta = greeks[0] if len(greeks) > 0 else 0.0
         port_theta = greeks[1] if len(greeks) > 1 else 0.0
         port_vega  = greeks[2] if len(greeks) > 2 else 0.0 
+
+        greek_targets = derive_portfolio_greek_targets(
+            movement_signals=movement_signals,
+            equity=total_equity,
+            vix_level=current_vix,
+        )
         
         if port_delta > 10: bias = "Bullish"
         elif port_delta < -10: bias = "Bearish"
@@ -128,6 +138,15 @@ def main():
         # --- TERMINAL DASHBOARD ---
         logger.info(f"🟢 PORTFOLIO HEALTHY: Daily P/L is {daily_pnl_pct:+.2f}%. VIX: {current_vix:.2f} -> Risk/Trade: ${dynamic_max_risk:.2f}.")
         logger.info(f"📊 PORTFOLIO DELTA: {port_delta:+.2f} ({bias})")
+        logger.info(
+            "🎯 TARGET GREEKS -> Delta: %+.2f Theta: %+.2f Vega: %+.2f Gamma: %+.2f | Bias: %s (Conf: %.1f%%)",
+            greek_targets.target_delta,
+            greek_targets.target_theta,
+            greek_targets.target_vega,
+            greek_targets.target_gamma,
+            greek_targets.movement_bias,
+            greek_targets.target_confidence * 100.0,
+        )
         logger.info(f"⏳ PORTFOLIO THETA: ${port_theta:+.2f} / day")
         logger.info(f"🌊 PORTFOLIO VEGA: ${port_vega:+.2f} per 1% IV change")
         logger.info(f"🔮 MACRO REGIME VERDICT: {brain_strategy} ({brain_confidence:.1f}% Confidence)")
@@ -143,6 +162,7 @@ def main():
             f"**Buying Power:** ${buying_power:.2f}\n"
             f"**VIX Level:** {current_vix:.2f} (Risk Cap: ${dynamic_max_risk:.0f})\n"
             f"**Delta:** {port_delta:+.2f} ({bias})\n"
+            f"**Target Delta Bias:** {greek_targets.movement_bias} ({greek_targets.target_delta:+.2f})\n"
             f"**Theta (Daily Rent):** ${port_theta:+.2f}\n"
             f"**Vega (Vol Risk):** ${port_vega:+.2f}\n"
             f"**🧠 Macro Regime:** {brain_emoji} **{brain_strategy}** ({brain_confidence:.1f}%)\n\n"
@@ -190,6 +210,9 @@ def main():
             deploy_asymmetric_bets(client, theta_candidates, total_equity, positions)
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
+            if greek_targets.target_vega > 0:
+                vega_candidates = ai_targets['VEGA'][:max(3, len(ai_targets['VEGA']) // 2)]
+
             if vega_candidates:
                 logger.info(f"Step 2A: Launching Vega Sniper on {len(vega_candidates)} AI targets.")
                 buying_power = buy_straddles(
@@ -224,6 +247,11 @@ def main():
 
             # --- 2C. DEPLOY DIRECTIONAL EDGE (Bull / Bear Credit Spreads) ---
             if buying_power >= 50:
+                if greek_targets.movement_bias == "bullish":
+                    bear_candidates = bear_candidates[: max(1, len(bear_candidates) // 4)]
+                elif greek_targets.movement_bias == "bearish":
+                    bull_candidates = bull_candidates[: max(1, len(bull_candidates) // 4)]
+
                 if brain_strategy == "TAIL_HEDGE" or brain_strategy == "VEGA_SNIPER":
                     logger.warning("🟡 MACRO AI GATE: Market is too volatile for directional short premium. Skipping Put/Call Spreads.")
                 elif current_vix >= 15.0:
