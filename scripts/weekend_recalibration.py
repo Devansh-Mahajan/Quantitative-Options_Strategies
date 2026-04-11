@@ -60,7 +60,7 @@ def print_pipeline_progress(current_step, total_steps, label):
 
 def main():
     parser = argparse.ArgumentParser(description="Weekend recalibration pipeline")
-    parser.add_argument("--top-n", type=int, default=0, help="How many high-volatility symbols to keep (<=0 keeps all symbols)")
+    parser.add_argument("--top-n", type=int, default=0, help="Deprecated: universe pruning is disabled and all symbols are always kept.")
     parser.add_argument("--train", action="store_true", help="Run full retraining pipeline")
     parser.add_argument("--target-daily-return", type=float, default=0.002, help="Optimization target for expected daily return.")
     parser.add_argument("--target-accuracy", type=float, default=0.56, help="Optimization target for validation accuracy.")
@@ -83,9 +83,13 @@ def main():
     print_pipeline_progress(step_idx, total_steps, "Loading symbols")
     symbols = load_symbols()
 
+    effective_top_n = len(symbols)
+    if args.top_n > 0:
+        print(f"[recalibration] ignoring --top-n {args.top_n}; using all {effective_top_n} symbols.")
+
     step_idx += 1
-    print_pipeline_progress(step_idx, total_steps, f"Prioritizing top {args.top_n} symbols")
-    prioritized = prioritize_symbols(symbols, top_n=args.top_n)
+    print_pipeline_progress(step_idx, total_steps, f"Prioritizing all {effective_top_n} symbols")
+    prioritized = prioritize_symbols(symbols, top_n=effective_top_n)
 
     step_idx += 1
     print_pipeline_progress(step_idx, total_steps, "Writing volatile symbol list")
