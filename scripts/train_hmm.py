@@ -48,6 +48,30 @@ def load_universe_symbols(max_symbols: int = 100) -> list[str]:
     return deduped[:max_symbols]
 
 
+def _collapse_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    if isinstance(df.columns, pd.MultiIndex):
+        flattened = []
+        for col in df.columns:
+            if isinstance(col, tuple):
+                flattened.append(next((part for part in reversed(col) if part not in ("", None)), col[0]))
+            else:
+                flattened.append(col)
+        df = df.copy()
+        df.columns = flattened
+    if df.columns.has_duplicates:
+        return df.T.groupby(level=0).mean().T
+    return df
+
+
+def _safe_symbol_series(df: pd.DataFrame, symbol: str) -> pd.Series:
+    selected = df.loc[:, df.columns == symbol]
+    if selected.empty:
+        raise KeyError(f"Missing symbol column: {symbol}")
+    series = selected.iloc[:, 0]
+    series.name = symbol
+    return series
+
+
 def discover_ticker_patterns() -> dict:
     symbols = load_universe_symbols(max_symbols=90)
     if len(symbols) < 12:
@@ -61,6 +85,10 @@ def discover_ticker_patterns() -> dict:
         return {}
 
     returns = np.log(ticker_close / ticker_close.shift(1)).replace([np.inf, -np.inf], np.nan)
+    # yfinance can occasionally emit duplicate or multi-indexed symbol columns;
+    # normalize to a single 1-D series per symbol for downstream pair operations.
+    returns = _collapse_duplicate_columns(returns)
+
     valid_cols = returns.columns[returns.notna().mean() > 0.80]
     returns = returns[valid_cols].dropna(how='all').ffill().dropna(axis=1, how='any')
     if returns.shape[1] < 10 or len(returns) < 200:
@@ -133,11 +161,20 @@ def discover_ticker_patterns() -> dict:
     lead_lag_pairs = []
     for pair in top_positive_pairs[:20]:
         a, b = pair['pair'].split('/')
-        pair_df = returns[[a, b]].dropna()
+        try:
+            series_a = _safe_symbol_series(returns, a)
+            series_b = _safe_symbol_series(returns, b)
+        except KeyError:
+            continue
+
+        pair_df = pd.concat([series_a, series_b], axis=1).dropna()
         if len(pair_df) < 120:
             continue
-        corr_a_leads_b = pair_df[a].shift(1).corr(pair_df[b])
-        corr_b_leads_a = pair_df[b].shift(1).corr(pair_df[a])
+        series_a = pair_df.iloc[:, 0]
+        series_b = pair_df.iloc[:, 1]
+
+        corr_a_leads_b = series_a.shift(1).corr(series_b)
+        corr_b_leads_a = series_b.shift(1).corr(series_a)
         if pd.isna(corr_a_leads_b) or pd.isna(corr_b_leads_a):
             continue
         if abs(corr_a_leads_b) >= abs(corr_b_leads_a):
