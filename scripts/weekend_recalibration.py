@@ -46,6 +46,9 @@ def run_step(cmd):
         raise subprocess.CalledProcessError(return_code, cmd)
 
 
+
+
+
 def print_pipeline_progress(current_step, total_steps, label):
     width = 32
     ratio = min(max(current_step / total_steps, 0.0), 1.0)
@@ -79,11 +82,10 @@ def main():
 
     print_pipeline_progress(step_idx, total_steps, "Loading symbols")
     symbols = load_symbols()
-    effective_top_n = len(symbols) if args.top_n <= 0 else min(args.top_n, len(symbols))
 
     step_idx += 1
-    print_pipeline_progress(step_idx, total_steps, f"Prioritizing top {effective_top_n} symbols")
-    prioritized = prioritize_symbols(symbols, top_n=effective_top_n)
+    print_pipeline_progress(step_idx, total_steps, f"Prioritizing top {args.top_n} symbols")
+    prioritized = prioritize_symbols(symbols, top_n=args.top_n)
 
     step_idx += 1
     print_pipeline_progress(step_idx, total_steps, "Writing volatile symbol list")
