@@ -29,7 +29,30 @@ def save_symbols(symbols):
 
 def run_step(cmd):
     print(f"[recalibration] running: {' '.join(cmd)}")
-    subprocess.run(cmd, cwd=ROOT, check=True)
+    process = subprocess.Popen(cmd, cwd=ROOT)
+    try:
+        return_code = process.wait()
+    except KeyboardInterrupt:
+        print("\n[recalibration] interrupt received, stopping current step...")
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+        raise
+
+    if return_code != 0:
+        raise subprocess.CalledProcessError(return_code, cmd)
+
+
+def print_pipeline_progress(current_step, total_steps, label):
+    width = 32
+    ratio = min(max(current_step / total_steps, 0.0), 1.0)
+    filled = int(width * ratio)
+    bar = "#" * filled + "-" * (width - filled)
+    percent = int(ratio * 100)
+    print(f"[pipeline] [{bar}] {percent:>3}% ({current_step}/{total_steps}) {label}")
 
 
 def print_pipeline_progress(current_step, total_steps, label):
