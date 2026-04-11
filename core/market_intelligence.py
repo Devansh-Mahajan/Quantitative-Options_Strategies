@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, List
 
 import numpy as np
@@ -21,13 +22,31 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
     resolved_map = {_resolve_symbol(sym): sym for sym in symbols}
     resolved_symbols = list(resolved_map.keys())
 
-    data = yf.download(
-        resolved_symbols,
-        period=period,
-        progress=False,
-        auto_adjust=False,
-        threads=False,
-    )
+    data = pd.DataFrame()
+    for attempt in range(3):
+        try:
+            data = yf.download(
+                resolved_symbols,
+                period=period,
+                progress=False,
+                auto_adjust=False,
+                threads=False,
+                timeout=20,
+            )
+            break
+        except Exception as exc:
+            if attempt == 2:
+                logger.warning("Bulk symbol download failed after retries: %s", exc)
+                data = pd.DataFrame()
+            else:
+                sleep_seconds = attempt + 1
+                logger.warning(
+                    "Bulk symbol download attempt %d/3 failed: %s. Retrying in %ds.",
+                    attempt + 1,
+                    exc,
+                    sleep_seconds,
+                )
+                time.sleep(sleep_seconds)
     close = data.get('Close', pd.DataFrame())
     volume = data.get('Volume', pd.DataFrame())
 
@@ -46,6 +65,7 @@ def _download_close_and_volume(symbols: List[str], period: str = "6mo") -> tuple
                 progress=False,
                 auto_adjust=False,
                 threads=False,
+                timeout=20,
             )
             single_close = single.get("Close")
             single_volume = single.get("Volume")
