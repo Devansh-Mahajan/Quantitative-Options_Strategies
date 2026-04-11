@@ -56,5 +56,16 @@ def parse_args():
         action="store_true",
         help="Only fetch and print the portfolio history range.",
     )
+    parser.add_argument(
+        "--disable-adaptive-recalibration",
+        action="store_true",
+        help="Disable online adaptive risk/deployment tuning for this run.",
+    )
+    parser.add_argument(
+        "--adaptive-lookback",
+        type=int,
+        default=30,
+        help="Rolling window (days) used by the adaptive calibration profile.",
+    )
 
     return parser.parse_args()

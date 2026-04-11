@@ -15,6 +15,7 @@ from core.state_manager import register_model_snapshot
 ROOT = Path(__file__).resolve().parent.parent
 SYMBOLS_FILE = ROOT / "config" / "symbol_list.txt"
 VOL_SYMBOLS_FILE = ROOT / "config" / "volatile_symbols.txt"
+ADAPTIVE_PROFILE_FILE = ROOT / "config" / "adaptive_profile.json"
 
 
 def load_symbols():
@@ -25,6 +26,16 @@ def load_symbols():
 def save_symbols(symbols):
     with open(VOL_SYMBOLS_FILE, 'w') as f:
         f.write("\n".join(symbols) + "\n")
+
+
+def load_adaptive_profile():
+    if not ADAPTIVE_PROFILE_FILE.exists():
+        return {}
+    try:
+        with open(ADAPTIVE_PROFILE_FILE, "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
 
 
 def run_step(cmd):
@@ -103,6 +114,7 @@ def main():
         "volatile_symbols_file": str(VOL_SYMBOLS_FILE.relative_to(ROOT)),
         "target_daily_return": args.target_daily_return,
         "target_accuracy": args.target_accuracy,
+        "adaptive_profile": load_adaptive_profile(),
         "note": "Target is an optimization objective, not a guarantee.",
     }
     step_idx += 1
