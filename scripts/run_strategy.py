@@ -45,6 +45,7 @@ from scripts.mega_screener import get_mega_brain_targets
 from core.market_intelligence import estimate_institutional_flow
 from core.pairs_trading import generate_pairs_trading_signals
 from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
+from core.adaptive_recalibration import AdaptiveRecalibrationEngine
 
 
 def _validate_date(date_str):
@@ -231,6 +232,27 @@ def main():
         if current_vix >= 28:
             deployment_scale *= 0.75
 
+        if args.disable_adaptive_recalibration:
+            adaptive_profile = None
+            logger.info("🧭 Adaptive recalibration disabled for this run.")
+        else:
+            adaptive_engine = AdaptiveRecalibrationEngine(lookback=args.adaptive_lookback)
+            adaptive_profile = adaptive_engine.update(
+                daily_return_pct=daily_pnl_pct,
+                signal_confidence=signal_confidence,
+                macro_confidence=macro_confidence,
+                vix_level=current_vix,
+            )
+            dynamic_max_risk *= adaptive_profile["risk_multiplier"]
+            deployment_scale *= adaptive_profile["deployment_multiplier"]
+            logger.info(
+                "🧭 Adaptive recalibration: regime=%s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f",
+                adaptive_profile["regime"],
+                adaptive_profile["risk_multiplier"],
+                adaptive_profile["deployment_multiplier"],
+                adaptive_profile["trade_intensity_multiplier"],
+            )
+
         pair_overlay_cache = {"signals": []}
         
         # --- DISCORD DASHBOARD ---
@@ -342,6 +364,14 @@ def main():
                     int(round(MAX_NEW_TRADES_PER_CYCLE * max(0.25, deployment_scale)))
                 ),
             )
+            if adaptive_profile:
+                throttle_n = max(
+                    1,
+                    min(
+                        MAX_NEW_TRADES_PER_CYCLE,
+                        int(round(throttle_n * adaptive_profile["trade_intensity_multiplier"])),
+                    ),
+                )
             theta_candidates = theta_candidates[:throttle_n]
             vega_candidates = vega_candidates[:throttle_n]
             bull_candidates = bull_candidates[:throttle_n]

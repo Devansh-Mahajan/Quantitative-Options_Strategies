@@ -199,13 +199,25 @@ backtest-movement --symbols SPY QQQ NVDA --lookbacks 10y 5y 1y 6mo 3mo
 
 This writes a JSON report to `reports/movement_predictor_backtest.json` by default.
 
-For a larger target-aware batch backtest engine:
+For a larger **all-in-one predictive audit engine** (movement + regime + pairs + strategy-routing proxies):
 
 ```bash
-massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 1y 6mo 3mo --target-daily-return 0.002 --target-accuracy 0.56
+massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 1y 6mo 3mo --target-daily-return 0.002 --target-accuracy 0.56 --horizon-days 5
 ```
 
-This produces `reports/massive_backtest_report.json` with per-run and aggregate hit-rate metrics.
+Or run with your configured universe in one command:
+
+```bash
+massive-backtest
+```
+
+This produces `reports/massive_backtest_report.json` with:
+
+- `movement_suite` (direction-prediction accuracy/alpha across windows),
+- `pairs_suite` (historical mean-reversion signal win-rate),
+- `regime_suite` (macro HMM directional risk proxy quality),
+- `strategy_proxy_suite` (BULL/BEAR/THETA/VEGA routing hit-rates),
+- and a unified `massive_overview.predictive_score`.
 
 ---
 
@@ -218,6 +230,34 @@ weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56
 ```
 
 This pipeline runs, in order:
+
+### Online Adaptive Recalibration (Self-Tuning Runtime Controls)
+
+Each `run-strategy` cycle now writes and updates `config/adaptive_profile.json` to self-tune:
+
+- Per-trade risk cap scaling (`risk_multiplier`)
+- Capital deployment intensity (`deployment_multiplier`)
+- Number of fresh setups attempted (`trade_intensity_multiplier`)
+
+The adaptive profile uses a rolling window of recent daily returns and model confidence, then shifts between defensive/balanced/offensive regimes automatically.
+
+Use defaults:
+
+```bash
+run-strategy
+```
+
+Tune the rolling memory window:
+
+```bash
+run-strategy --adaptive-lookback 45
+```
+
+Disable adaptive scaling for a single run:
+
+```bash
+run-strategy --disable-adaptive-recalibration
+```
 1. `scripts/train_hmm.py` (macro Hidden Markov model),
 2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
 3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
