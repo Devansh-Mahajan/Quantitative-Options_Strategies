@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from hmmlearn.hmm import GaussianHMM
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
@@ -16,6 +17,8 @@ logger = logging.getLogger("train_hmm_macro")
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'hmm_macro_model.pkl')
 TARGET_ANNUAL_RETURN = 0.05
 RANDOM_SEED = 42
+OVERFIT_GAP_THRESHOLD = 0.12
+SYMBOL_LIST_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'symbol_list.txt')
 
 
 def build_macro_features(raw_data: pd.DataFrame) -> pd.DataFrame:
@@ -34,6 +37,110 @@ def build_macro_features(raw_data: pd.DataFrame) -> pd.DataFrame:
     features['Corr_SPY_TNX_20'] = features['SPY_ret'].rolling(20).corr(features['TNX_ret']).clip(-1, 1)
 
     return features.dropna()
+
+
+def load_universe_symbols(max_symbols: int = 100) -> list[str]:
+    if not os.path.exists(SYMBOL_LIST_PATH):
+        return []
+    with open(SYMBOL_LIST_PATH, "r", encoding="utf-8") as handle:
+        symbols = [line.strip().upper() for line in handle if line.strip()]
+    deduped = list(dict.fromkeys(symbols))
+    return deduped[:max_symbols]
+
+
+def discover_ticker_patterns() -> dict:
+    symbols = load_universe_symbols(max_symbols=90)
+    if len(symbols) < 12:
+        logger.warning("Skipping ticker pattern discovery due to insufficient symbol universe.")
+        return {}
+
+    logger.info("🕸️ Discovering cross-ticker correlation and pairs patterns...")
+    ticker_close = yf.download(symbols, period="10y", progress=False)['Close']
+    if ticker_close is None or ticker_close.empty:
+        logger.warning("Ticker download returned no data; skipping pairs discovery.")
+        return {}
+
+    returns = np.log(ticker_close / ticker_close.shift(1)).replace([np.inf, -np.inf], np.nan)
+    valid_cols = returns.columns[returns.notna().mean() > 0.80]
+    returns = returns[valid_cols].dropna(how='all').ffill().dropna(axis=1, how='any')
+    if returns.shape[1] < 10 or len(returns) < 200:
+        logger.warning("Skipping ticker pattern discovery due to sparse returns matrix.")
+        return {}
+
+    corr = returns.corr().clip(-1, 1)
+    corr_values = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool)).stack().sort_values()
+    top_negative = corr_values.head(8)
+    top_positive = corr_values.tail(8).sort_values(ascending=False)
+
+    top_positive_pairs = [
+        {'pair': f"{a}/{b}", 'correlation': float(val)}
+        for (a, b), val in top_positive.items()
+    ]
+    top_negative_pairs = [
+        {'pair': f"{a}/{b}", 'correlation': float(val)}
+        for (a, b), val in top_negative.items()
+    ]
+
+    standardized = (returns - returns.mean()) / returns.std().replace(0, 1)
+    pca = PCA(n_components=min(3, standardized.shape[1]))
+    pcs = pca.fit_transform(standardized.values)
+
+    pattern_features = pd.DataFrame(index=returns.index)
+    pattern_features['Universe_Mean_Return'] = returns.mean(axis=1)
+    pattern_features['Universe_Dispersion'] = returns.std(axis=1)
+    pattern_features['Breadth_Positive'] = (returns > 0).mean(axis=1)
+    pattern_features['PC1'] = pcs[:, 0]
+    pattern_features['PC2'] = pcs[:, 1] if pcs.shape[1] > 1 else 0.0
+
+    feature_scaler = StandardScaler()
+    pattern_scaled = feature_scaler.fit_transform(pattern_features.values)
+
+    best_model = None
+    best_meta = None
+    for seed in [7, 13, 21, 42]:
+        candidate = GaussianHMM(
+            n_components=3,
+            covariance_type="full",
+            n_iter=1500,
+            random_state=seed,
+            min_covar=1e-4,
+            tol=1e-4,
+        )
+        candidate.fit(pattern_scaled)
+        score = candidate.score(pattern_scaled) / max(len(pattern_scaled), 1)
+        if best_meta is None or score > best_meta['score']:
+            best_model = candidate
+            best_meta = {'seed': seed, 'score': float(score)}
+
+    states = best_model.predict(pattern_scaled)
+    probs = best_model.predict_proba(pattern_scaled)
+    pattern_features['Ticker_HMM_State'] = states
+    pattern_prob_df = pd.DataFrame(
+        probs,
+        index=pattern_features.index,
+        columns=[f'Ticker_HMM_State_{idx}' for idx in range(probs.shape[1])],
+    )
+
+    logger.info(
+        "🔗 Ticker-pattern HMM trained | symbols=%d best_seed=%d score=%.6f",
+        returns.shape[1],
+        best_meta['seed'],
+        best_meta['score'],
+    )
+    logger.info("🔝 Top positive pairs: %s", ", ".join(p['pair'] for p in top_positive_pairs[:5]))
+    logger.info("🔻 Top negative pairs: %s", ", ".join(p['pair'] for p in top_negative_pairs[:5]))
+
+    return {
+        'symbols_used': list(returns.columns),
+        'top_positive_pairs': top_positive_pairs,
+        'top_negative_pairs': top_negative_pairs,
+        'pattern_features': pattern_features.drop(columns=['Ticker_HMM_State']),
+        'pattern_probabilities': pattern_prob_df,
+        'hmm_state_series': pattern_features['Ticker_HMM_State'],
+        'hmm_seed': int(best_meta['seed']),
+        'hmm_score': best_meta['score'],
+        'explained_variance': pca.explained_variance_ratio_.tolist(),
+    }
 
 
 def train_and_save_macro_hmm():
@@ -66,38 +173,64 @@ def train_and_save_macro_hmm():
     X_valid = X_scaled[split_idx:]
 
     candidate_states = [3, 4, 5]
-    candidate_seeds = [11, 21, 42, 84, 168]
+    candidate_seeds = [11, 21, 42, 84, 168, 336]
+    candidate_covars = [1e-5, 5e-5, 1e-4]
     best_model = None
     best_score = -np.inf
     best_n_states = None
     best_seed = None
+    best_meta = None
 
     for n_states in candidate_states:
         for seed in candidate_seeds:
-            try:
-                candidate = GaussianHMM(
-                    n_components=n_states,
-                    covariance_type="full",
-                    n_iter=3000,
-                    random_state=seed,
-                    tol=1e-4,
-                    min_covar=1e-5,
-                )
-                candidate.fit(X_train)
-                valid_score = candidate.score(X_valid) / max(len(X_valid), 1)
-                logger.info(
-                    "🧪 Candidate HMM | states=%d seed=%d valid_loglike_per_step=%.6f",
-                    n_states,
-                    seed,
-                    valid_score,
-                )
-                if valid_score > best_score:
-                    best_score = valid_score
-                    best_model = candidate
-                    best_n_states = n_states
-                    best_seed = seed
-            except Exception as exc:
-                logger.warning("Candidate training failed (states=%d seed=%d): %s", n_states, seed, exc)
+            for min_covar in candidate_covars:
+                try:
+                    candidate = GaussianHMM(
+                        n_components=n_states,
+                        covariance_type="full",
+                        n_iter=3000,
+                        random_state=seed,
+                        tol=1e-4,
+                        min_covar=min_covar,
+                    )
+                    candidate.fit(X_train)
+                    train_score = candidate.score(X_train) / max(len(X_train), 1)
+                    valid_score = candidate.score(X_valid) / max(len(X_valid), 1)
+                    overfit_gap = train_score - valid_score
+                    penalty = 0.03 * (n_states - 3)
+                    objective = valid_score - penalty
+                    if overfit_gap > OVERFIT_GAP_THRESHOLD:
+                        objective -= overfit_gap * 0.75
+                    logger.info(
+                        "🧪 Candidate HMM | states=%d seed=%d min_covar=%g train=%.6f valid=%.6f gap=%.6f objective=%.6f",
+                        n_states,
+                        seed,
+                        min_covar,
+                        train_score,
+                        valid_score,
+                        overfit_gap,
+                        objective,
+                    )
+                    if objective > best_score:
+                        best_score = objective
+                        best_model = candidate
+                        best_n_states = n_states
+                        best_seed = seed
+                        best_meta = {
+                            'min_covar': float(min_covar),
+                            'train_loglike_per_step': float(train_score),
+                            'valid_loglike_per_step': float(valid_score),
+                            'overfit_gap': float(overfit_gap),
+                            'selection_objective': float(objective),
+                        }
+                except Exception as exc:
+                    logger.warning(
+                        "Candidate training failed (states=%d seed=%d min_covar=%g): %s",
+                        n_states,
+                        seed,
+                        min_covar,
+                        exc,
+                    )
 
     if best_model is None:
         raise RuntimeError("No viable HMM candidate could be trained.")
@@ -105,10 +238,12 @@ def train_and_save_macro_hmm():
     model = best_model
     n_states = best_n_states
     logger.info(
-        "🏆 Selected HMM: states=%d seed=%d valid_loglike_per_step=%.6f",
+        "🏆 Selected HMM: states=%d seed=%d min_covar=%g valid_loglike_per_step=%.6f train_valid_gap=%.6f",
         n_states,
         best_seed,
-        best_score,
+        best_meta['min_covar'],
+        best_meta['valid_loglike_per_step'],
+        best_meta['overfit_gap'],
     )
 
     hidden_states = model.predict(X_scaled)
@@ -153,6 +288,7 @@ def train_and_save_macro_hmm():
         logger.info(f"   -> State {state_id} = {tag}")
 
     logger.info("🔒 Avg state confidence: %.2f%% | Transition stability: %.2f%%", state_confidence * 100, transition_stability * 100)
+    ticker_patterns = discover_ticker_patterns()
 
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     joblib.dump(
@@ -164,9 +300,14 @@ def train_and_save_macro_hmm():
             'target_annual_return': TARGET_ANNUAL_RETURN,
             'state_confidence': state_confidence,
             'transition_stability': transition_stability,
-            'validation_loglike_per_step': float(best_score),
+            'validation_loglike_per_step': best_meta['valid_loglike_per_step'],
+            'train_loglike_per_step': best_meta['train_loglike_per_step'],
+            'train_valid_loglike_gap': best_meta['overfit_gap'],
+            'selection_objective': best_meta['selection_objective'],
             'selected_n_states': int(n_states),
             'selected_seed': int(best_seed),
+            'selected_min_covar': best_meta['min_covar'],
+            'ticker_patterns': ticker_patterns,
         },
         MODEL_PATH,
     )

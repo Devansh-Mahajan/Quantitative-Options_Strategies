@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import yfinance as yf
+import joblib
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.mega_neural_brain import MegaStrategyNet
@@ -18,15 +19,27 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("mega_screener")
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'mega_universe_dataset.pt')
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'mega_brain_weights.pth')
+MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'trading_model.pth')
+HMM_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'hmm_macro_model.pkl')
 
 
-def _build_feature_frame(df: pd.DataFrame, macro_returns: pd.DataFrame, hmm_probs: pd.DataFrame, feature_cols):
+def _build_feature_frame(
+    df: pd.DataFrame,
+    macro_returns: pd.DataFrame,
+    hmm_probs: pd.DataFrame,
+    feature_cols,
+    ticker_prob: pd.DataFrame | None = None,
+    ticker_feat: pd.DataFrame | None = None,
+):
     df['Ret'] = np.log(df['Close'] / df['Close'].shift(1))
     df['Vol_20'] = df['Ret'].rolling(20).std() * np.sqrt(252)
     df['SMA_50_Dist'] = (df['Close'] / df['Close'].rolling(50).mean()) - 1
     df = df.join(macro_returns, how='left')
     df = df.join(hmm_probs, how='left')
+    if isinstance(ticker_prob, pd.DataFrame):
+        df = df.join(ticker_prob, how='left')
+    if isinstance(ticker_feat, pd.DataFrame):
+        df = df.join(ticker_feat, how='left')
 
     corr_pattern = re.compile(r"^Corr_(.+)_(\d+)$")
     for col in feature_cols:
@@ -52,8 +65,28 @@ def _infer(confidence_threshold=75.0):
     scaler = dataset['scaler']
     feature_cols = dataset['features_list']
 
-    model = MegaStrategyNet(input_size=len(feature_cols), hidden_size=256, num_layers=3, num_classes=4).to(device)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=True))
+    checkpoint = torch.load(MODEL_PATH, map_location=device, weights_only=False)
+    if "model_state_dict" in checkpoint:
+        model_state = checkpoint["model_state_dict"]
+        input_size = checkpoint.get("input_size", len(feature_cols))
+        hidden_size = checkpoint.get("hidden_size", 256)
+        num_layers = checkpoint.get("num_layers", 3)
+        dropout = checkpoint.get("dropout", 0.35)
+    else:
+        model_state = checkpoint
+        input_size = len(feature_cols)
+        hidden_size = 256
+        num_layers = 3
+        dropout = 0.35
+
+    model = MegaStrategyNet(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        num_classes=4,
+        dropout=dropout,
+    ).to(device)
+    model.load_state_dict(model_state)
     model.eval()
 
     logger.info("📥 Downloading live data + HMM probabilities...")
@@ -67,6 +100,14 @@ def _infer(confidence_threshold=75.0):
     macro_data.rename(columns=MACRO_TICKERS, inplace=True)
     macro_returns = np.log(macro_data / macro_data.shift(1)).fillna(0)
     hmm_probs = get_hmm_probabilities().tail(180)
+    hmm_data = joblib.load(HMM_PATH) if os.path.exists(HMM_PATH) else {}
+    ticker_patterns = hmm_data.get('ticker_patterns', {})
+    ticker_prob = ticker_patterns.get('pattern_probabilities')
+    ticker_feat = ticker_patterns.get('pattern_features')
+    if isinstance(ticker_prob, pd.DataFrame):
+        ticker_prob = ticker_prob.tail(180)
+    if isinstance(ticker_feat, pd.DataFrame):
+        ticker_feat = ticker_feat.tail(180)
 
     stock_data = yf.download(
         TICKERS,
@@ -84,7 +125,14 @@ def _infer(confidence_threshold=75.0):
         if len(df) < 60:
             continue
 
-        feat_df = _build_feature_frame(df, macro_returns, hmm_probs, feature_cols)
+        feat_df = _build_feature_frame(
+            df,
+            macro_returns,
+            hmm_probs,
+            feature_cols,
+            ticker_prob=ticker_prob,
+            ticker_feat=ticker_feat,
+        )
         last_60 = feat_df[feature_cols].iloc[-60:]
         if len(last_60) == 60:
             valid_sequences.append(last_60.values)

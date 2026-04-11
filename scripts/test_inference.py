@@ -32,6 +32,7 @@ def run_live_test(ticker="NVDA"):
         hidden_size=checkpoint['hidden_size'],
         num_layers=checkpoint['num_layers'],
         num_classes=4,
+        dropout=checkpoint.get('dropout', 0.35),
     ).to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -59,7 +60,11 @@ def run_live_test(ticker="NVDA"):
 
     hmm_scaled = hmm_data['scaler'].transform(hmm_features.values)
     current_regime_probs = hmm_data['model'].predict_proba(hmm_scaled)
-    prob_df = pd.DataFrame(current_regime_probs, index=hmm_features.index, columns=[f'HMM_State_{i}' for i in range(4)])
+    prob_df = pd.DataFrame(
+        current_regime_probs,
+        index=hmm_features.index,
+        columns=[f'HMM_State_{i}' for i in range(current_regime_probs.shape[1])],
+    )
 
     # 4. Final Feature Fusion
     stock = yf.download(ticker, period="90d", progress=False)['Close']

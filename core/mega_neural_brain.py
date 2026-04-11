@@ -3,7 +3,15 @@ import torch.nn as nn
 
 
 class MegaStrategyNet(nn.Module):
-    def __init__(self, input_size, hidden_size=256, num_layers=3, num_classes=4):
+    def __init__(
+        self,
+        input_size,
+        hidden_size=256,
+        num_layers=3,
+        num_classes=4,
+        dropout=0.35,
+        expert_dropout=0.25,
+    ):
         super().__init__()
 
         self.lstm = nn.LSTM(
@@ -11,7 +19,7 @@ class MegaStrategyNet(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
-            dropout=0.35,
+            dropout=dropout if num_layers > 1 else 0.0,
         )
 
         self.temporal_attention = nn.Sequential(
@@ -24,7 +32,7 @@ class MegaStrategyNet(nn.Module):
             nn.Linear(hidden_size, 128),
             nn.LayerNorm(128),
             nn.GELU(),
-            nn.Dropout(0.35),
+            nn.Dropout(dropout),
             nn.Linear(128, num_classes),
             nn.Softmax(dim=1),
         )
@@ -32,25 +40,25 @@ class MegaStrategyNet(nn.Module):
         self.expert_theta = nn.Sequential(
             nn.Linear(hidden_size, 96),
             nn.GELU(),
-            nn.Dropout(0.25),
+            nn.Dropout(expert_dropout),
             nn.Linear(96, num_classes),
         )
         self.expert_vega = nn.Sequential(
             nn.Linear(hidden_size, 96),
             nn.GELU(),
-            nn.Dropout(0.25),
+            nn.Dropout(expert_dropout),
             nn.Linear(96, num_classes),
         )
         self.expert_bull = nn.Sequential(
             nn.Linear(hidden_size, 96),
             nn.GELU(),
-            nn.Dropout(0.25),
+            nn.Dropout(expert_dropout),
             nn.Linear(96, num_classes),
         )
         self.expert_bear = nn.Sequential(
             nn.Linear(hidden_size, 96),
             nn.GELU(),
-            nn.Dropout(0.25),
+            nn.Dropout(expert_dropout),
             nn.Linear(96, num_classes),
         )
 
