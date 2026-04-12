@@ -23,18 +23,13 @@ DEFAULT_REPORT_PATH = ROOT / "reports" / "quant_foundry_report.json"
 DEFAULT_PACK_PATH = ROOT / "config" / "quant_strategy_pack.json"
 DEFAULT_SYMBOLS_PATH = ROOT / "config" / "symbol_list.txt"
 ADAPTIVE_PROFILE_PATH = ROOT / "config" / "adaptive_profile.json"
+DEFAULT_MODEL_CONFIG_PATH = ROOT / "config" / "foundry_last_model_config.json"
 
 
-MODEL_SPECS = {
-    "logreg": lambda: LogisticRegression(max_iter=400, solver="lbfgs"),
-    "rf": lambda: RandomForestClassifier(
-        n_estimators=220,
-        max_depth=8,
-        min_samples_leaf=10,
-        random_state=42,
-        n_jobs=-1,
-    ),
-    "mlp": lambda: MLPClassifier(hidden_layer_sizes=(64, 32), learning_rate_init=8e-4, max_iter=260, random_state=42),
+DEFAULT_MODEL_PARAMS = {
+    "logreg": {"max_iter": 400, "solver": "lbfgs", "random_state": 42},
+    "rf": {"n_estimators": 220, "max_depth": 8, "min_samples_leaf": 10, "random_state": 42, "n_jobs": -1},
+    "mlp": {"hidden_layer_sizes": [64, 32], "learning_rate_init": 8e-4, "max_iter": 260, "random_state": 42},
 }
 
 
@@ -58,6 +53,12 @@ def parse_args():
     parser.add_argument("--max-symbols", type=int, default=35)
     parser.add_argument("--report-path", default=str(DEFAULT_REPORT_PATH))
     parser.add_argument("--pack-path", default=str(DEFAULT_PACK_PATH))
+    parser.add_argument("--model-config-path", default=str(DEFAULT_MODEL_CONFIG_PATH))
+    parser.add_argument(
+        "--disable-model-warm-start",
+        action="store_true",
+        help="Ignore previously saved model params and train from defaults.",
+    )
     return parser.parse_args()
 
 
@@ -83,11 +84,9 @@ def build_feature_matrix(close: pd.DataFrame, horizon_days: int) -> tuple[pd.Dat
     market_vol = market_ret.rolling(20).std()
 
     frames = []
-    targets = []
     for sym in close.columns:
         feature_df = pd.DataFrame(
             {
-                "symbol": sym,
                 "ret_1": returns_1[sym],
                 "ret_5": returns_5[sym],
                 "ret_20": returns_20[sym],
@@ -100,13 +99,13 @@ def build_feature_matrix(close: pd.DataFrame, horizon_days: int) -> tuple[pd.Dat
             }
         )
         forward_return = close[sym].shift(-horizon_days) / close[sym] - 1.0
-        target = (forward_return > 0).astype(float)
-        frames.append(feature_df)
-        targets.append(target.rename("target"))
+        target = (forward_return > 0).astype(int)
+        sym_frame = feature_df.assign(symbol=sym, target=target)
+        sym_frame.index.name = "date"
+        sym_frame = sym_frame.reset_index().set_index(["date", "symbol"])
+        frames.append(sym_frame)
 
-    X = pd.concat(frames, axis=0).dropna()
-    y = pd.concat(targets, axis=0).reindex(X.index).astype(int)
-    joined = X.join(y, how="inner")
+    joined = pd.concat(frames, axis=0).dropna()
     return joined.drop(columns=["target"]), joined["target"]
 
 
@@ -116,13 +115,42 @@ def annual_to_daily(annual_return: float) -> float:
     return float((1 + annual_return) ** (1 / 252) - 1)
 
 
-def fit_models(X: pd.DataFrame, y: pd.Series) -> dict:
+def _sanitize_model_params(raw_params: dict | None) -> dict:
+    merged = json.loads(json.dumps(DEFAULT_MODEL_PARAMS))
+    if not isinstance(raw_params, dict):
+        return merged
+    for model_name in ("logreg", "rf", "mlp"):
+        raw_model_params = raw_params.get(model_name)
+        if not isinstance(raw_model_params, dict):
+            continue
+        merged[model_name].update(raw_model_params)
+    return merged
+
+
+def load_last_model_params(path: Path) -> dict:
+    if not path.exists():
+        return _sanitize_model_params(None)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return _sanitize_model_params(None)
+    return _sanitize_model_params(payload.get("model_params"))
+
+
+def fit_models(X: pd.DataFrame, y: pd.Series, model_params: dict) -> dict:
+    X = pd.get_dummies(X, columns=["symbol"], dtype=float)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     model_rows = {}
+    model_params = _sanitize_model_params(model_params)
+    constructors = {
+        "logreg": lambda cfg: LogisticRegression(**cfg),
+        "rf": lambda cfg: RandomForestClassifier(**cfg),
+        "mlp": lambda cfg: MLPClassifier(**cfg),
+    }
 
-    for name, constructor in MODEL_SPECS.items():
+    for name, constructor in constructors.items():
         try:
-            model = constructor()
+            model = constructor(model_params[name])
             model.fit(X_train, y_train)
             prob = model.predict_proba(X_test)[:, 1]
             pred = (prob >= 0.5).astype(int)
@@ -149,6 +177,7 @@ def fit_models(X: pd.DataFrame, y: pd.Series) -> dict:
         "models": model_rows,
         "ensemble_weights": weights,
         "ensemble_accuracy": ensemble_accuracy,
+        "model_params": model_params,
     }
 
 
@@ -177,6 +206,29 @@ def write_json(path: Path, payload: dict):
         json.dump(payload, handle, indent=2)
 
 
+def to_repo_relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def save_last_model_config(path: Path, model_params: dict, mode: str, symbols: list[str], horizon_days: int, metrics: dict):
+    payload = {
+        "saved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "horizon_days": horizon_days,
+        "symbols": symbols,
+        "model_params": _sanitize_model_params(model_params),
+        "training_summary": {
+            "ensemble_accuracy": metrics.get("ensemble_accuracy"),
+            "ensemble_weights": metrics.get("ensemble_weights"),
+        },
+        "note": "Last successful foundry model parameters for warm-start and overfitting control.",
+    }
+    write_json(path, payload)
+
+
 def update_adaptive_profile_from_pack(pack: dict, mode: str):
     profile = {
         "version": 2,
@@ -201,6 +253,7 @@ def main():
 
     report_path = Path(args.report_path)
     pack_path = Path(args.pack_path)
+    model_config_path = Path(args.model_config_path)
 
     if args.mode == "zero-calibration":
         pack = zero_calibration_pack(symbols, args.target_daily_return, args.target_accuracy)
@@ -225,7 +278,8 @@ def main():
         if len(X) < 600:
             raise SystemExit("Not enough samples for calibration. Increase period or universe.")
 
-        metrics = fit_models(X, y)
+        warm_start_params = None if args.disable_model_warm_start else load_last_model_params(model_config_path)
+        metrics = fit_models(X, y, model_params=warm_start_params)
         est_annual = (metrics["ensemble_accuracy"] - 0.5) * 0.60
         est_daily = annual_to_daily(est_annual)
 
@@ -263,7 +317,16 @@ def main():
                 "note": "Targets are optimization objectives, not guarantees.",
             },
             "model_details": metrics["models"],
+            "model_params_used": metrics["model_params"],
         }
+        save_last_model_config(
+            path=model_config_path,
+            model_params=metrics["model_params"],
+            mode=args.mode,
+            symbols=list(close.columns),
+            horizon_days=args.horizon_days,
+            metrics=metrics,
+        )
 
     write_json(pack_path, pack)
     write_json(report_path, report)
@@ -272,8 +335,8 @@ def main():
     snapshot = {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "mode": args.mode,
-        "pack_path": str(pack_path.relative_to(ROOT)),
-        "report_path": str(report_path.relative_to(ROOT)),
+        "pack_path": to_repo_relative(pack_path),
+        "report_path": to_repo_relative(report_path),
         "symbols": symbols,
         "note": "Research pack for fine-tuning and staged paper-trading rollout.",
     }
