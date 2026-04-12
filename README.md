@@ -219,6 +219,34 @@ This produces `reports/massive_backtest_report.json` with:
 - `strategy_proxy_suite` (BULL/BEAR/THETA/VEGA routing hit-rates),
 - and a unified `massive_overview.predictive_score`.
 
+### Quant Research Foundry (Weekend + Zero-Calibration Modes)
+
+For deeper ensemble research packs that you can plug into your library:
+
+```bash
+quant-foundry --mode weekend-calibrate --target-daily-return 0.002 --target-accuracy 0.56
+```
+
+If you want a **no-fit / no-calibration** prior pack (static robust priors):
+
+```bash
+quant-foundry --mode zero-calibration
+```
+
+Outputs:
+
+- `config/quant_strategy_pack.json` (portable strategy pack),
+- `reports/quant_foundry_report.json` (validation summary),
+- and an audit snapshot in `config/model_state.json`.
+
+You can also chain this into the weekend pipeline:
+
+```bash
+weekend-recalibrate --train --quant-foundry --quant-mode weekend-calibrate
+```
+
+> **Important:** The generated pack is research infrastructure for fine-tuning and paper-trading; it is not a profit guarantee.
+
 ---
 
 ### Full Model Recalibration (HMM + Deep Learning + Regime Models)
