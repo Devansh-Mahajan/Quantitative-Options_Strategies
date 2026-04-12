@@ -4,6 +4,7 @@ import sys
 import logging
 import argparse
 from typing import Optional
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -31,6 +32,10 @@ SEED = 42
 MAX_RESTARTS = 3
 OVERFIT_GAP_THRESHOLD = 0.08
 MIN_GENERALIZATION_RATIO = 0.65
+MAX_DYNAMIC_ADJUSTMENTS = 8
+MAX_LABEL_SMOOTHING = 0.14
+MIN_LEARNING_RATE = 1e-5
+MAX_WEIGHT_DECAY = 1e-2
 
 
 def set_seed(seed: int) -> None:
@@ -117,11 +122,22 @@ def build_training_attempts() -> list[dict]:
     ]
 
 
-def build_weighted_loss_for_attempt(y_train: torch.Tensor, label_smoothing: float) -> nn.Module:
+def build_class_weights(y_train: torch.Tensor) -> torch.Tensor:
     counts = torch.bincount(y_train, minlength=4).float()
     weights = counts.sum() / torch.clamp(counts, min=1.0)
-    weights = weights / weights.mean()
-    return nn.CrossEntropyLoss(weight=weights.to(DEVICE), label_smoothing=label_smoothing)
+    return weights / weights.mean()
+
+
+def build_weighted_loss_for_attempt(
+    y_train: Optional[torch.Tensor] = None,
+    label_smoothing: float = 0.0,
+    class_weights: Optional[torch.Tensor] = None,
+) -> nn.Module:
+    if class_weights is None:
+        if y_train is None:
+            raise ValueError("Either y_train or class_weights must be provided.")
+        class_weights = build_class_weights(y_train)
+    return nn.CrossEntropyLoss(weight=class_weights.to(DEVICE), label_smoothing=label_smoothing)
 
 
 def is_overfitting(train_loss: float, val_loss: float, train_acc: float, val_acc: float) -> bool:
@@ -132,6 +148,81 @@ def is_overfitting(train_loss: float, val_loss: float, train_acc: float, val_acc
         return False
     generalization_ratio = val_acc / train_acc
     return generalization_ratio < MIN_GENERALIZATION_RATIO and (train_acc - val_acc) > 0.06
+
+
+def clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
+
+
+def build_adaptive_attempt(
+    current_attempt: dict,
+    train_loss: float,
+    val_loss: float,
+    train_acc: float,
+    val_acc: float,
+) -> dict:
+    """
+    Generate a stronger-regularization configuration when persistent overfitting is detected.
+    """
+    loss_gap = max(0.0, val_loss - train_loss)
+    acc_gap = max(0.0, train_acc - val_acc)
+    severity = clamp(max(loss_gap / OVERFIT_GAP_THRESHOLD, acc_gap / 0.06), 1.0, 2.5)
+    scale = severity - 1.0
+
+    tuned = deepcopy(current_attempt)
+    tuned['hidden_size'] = max(128, int(round(current_attempt['hidden_size'] * (0.90 - 0.10 * scale))))
+    tuned['num_layers'] = max(2, current_attempt['num_layers'] - (1 if severity >= 1.8 else 0))
+    tuned['dropout'] = clamp(current_attempt['dropout'] + 0.06 + 0.05 * scale, 0.20, 0.60)
+    tuned['lr'] = clamp(current_attempt['lr'] * (0.78 - 0.10 * scale), 1e-5, LEARNING_RATE)
+    tuned['weight_decay'] = clamp(current_attempt['weight_decay'] * (1.4 + 0.5 * scale), 5e-4, 1e-2)
+    tuned['batch_size'] = max(192, int(round(current_attempt['batch_size'] * (0.88 - 0.08 * scale))))
+    tuned['label_smoothing'] = clamp(current_attempt['label_smoothing'] + 0.015 + 0.02 * scale, 0.0, 0.12)
+    tuned['patience'] = max(4, current_attempt['patience'] - 1)
+    tuned['adaptive_from_overfit'] = True
+    tuned['overfit_severity'] = severity
+    return tuned
+
+
+def compute_overfit_pressure(
+    train_loss: float,
+    val_loss: float,
+    train_acc: float,
+    val_acc: float,
+    overfit_streak: int,
+    stale: int,
+) -> float:
+    loss_gap = max(0.0, val_loss - train_loss)
+    acc_gap = max(0.0, train_acc - val_acc)
+    loss_pressure = loss_gap / max(OVERFIT_GAP_THRESHOLD, 1e-6)
+    acc_pressure = acc_gap / 0.06
+    streak_pressure = min(1.5, overfit_streak * 0.35)
+    stale_pressure = min(1.0, stale * 0.10)
+    return clamp(0.45 * loss_pressure + 0.35 * acc_pressure + 0.15 * streak_pressure + 0.05 * stale_pressure, 0.1, 2.0)
+
+
+def apply_dynamic_regularization(
+    optimizer: optim.Optimizer,
+    attempt: dict,
+    class_weights: torch.Tensor,
+    pressure: float,
+) -> nn.Module:
+    lr_mult = clamp(1.0 - 0.12 * pressure, 0.65, 0.98)
+    wd_mult = clamp(1.0 + 0.22 * pressure, 1.03, 1.65)
+    smooth_add = 0.006 + 0.010 * pressure
+
+    attempt['lr'] = clamp(attempt['lr'] * lr_mult, MIN_LEARNING_RATE, LEARNING_RATE)
+    attempt['weight_decay'] = clamp(attempt['weight_decay'] * wd_mult, WEIGHT_DECAY, MAX_WEIGHT_DECAY)
+    attempt['label_smoothing'] = clamp(attempt['label_smoothing'] + smooth_add, 0.0, MAX_LABEL_SMOOTHING)
+    attempt['patience'] = max(4, int(round(attempt['patience'] - pressure * 0.35)))
+
+    for group in optimizer.param_groups:
+        group['lr'] = attempt['lr']
+        group['weight_decay'] = attempt['weight_decay']
+
+    return build_weighted_loss_for_attempt(
+        label_smoothing=attempt['label_smoothing'],
+        class_weights=class_weights,
+    )
 
 
 def train(target_annual_return: Optional[float] = None, target_accuracy: float = TARGET_ACCURACY):
@@ -155,8 +246,23 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
     input_dim = X.shape[2]
     attempts = build_training_attempts()[:MAX_RESTARTS]
     global_best_score = -float('inf')
+    overfit_restart_requested = False
+    last_metrics = None
 
     for attempt_idx, attempt in enumerate(attempts, start=1):
+        if overfit_restart_requested and last_metrics is not None and attempt_idx > 1:
+            adaptive_attempt = build_adaptive_attempt(attempt, *last_metrics)
+            logger.info(
+                "🧪 Adaptive tuning from overfit signal: severity=%.2f dropout=%.2f lr=%.6f wd=%.6f batch=%d",
+                adaptive_attempt['overfit_severity'],
+                adaptive_attempt['dropout'],
+                adaptive_attempt['lr'],
+                adaptive_attempt['weight_decay'],
+                adaptive_attempt['batch_size'],
+            )
+            attempt = adaptive_attempt
+            overfit_restart_requested = False
+
         set_seed(SEED + attempt_idx)
         pin_memory = DEVICE.type == 'cuda'
         train_loader = DataLoader(
@@ -193,7 +299,8 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
             num_classes=4,
             dropout=attempt['dropout'],
         ).to(DEVICE)
-        criterion = build_weighted_loss_for_attempt(y[:split], label_smoothing=attempt['label_smoothing'])
+        class_weights = build_class_weights(y[:split])
+        criterion = build_weighted_loss_for_attempt(class_weights=class_weights, label_smoothing=attempt['label_smoothing'])
         optimizer = optim.AdamW(model.parameters(), lr=attempt['lr'], weight_decay=attempt['weight_decay'])
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=12, T_mult=2)
         scaler = torch.amp.GradScaler(device="cuda", enabled=(DEVICE.type == 'cuda'))
@@ -202,6 +309,7 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
         stale = 0
         best_score_this_attempt = -float('inf')
         overfit_streak = 0
+        dynamic_adjustments = 0
 
         for epoch in range(EPOCHS):
             model.train()
@@ -285,8 +393,38 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
                     epoch + 1,
                     overfit_streak,
                 )
+                if dynamic_adjustments < MAX_DYNAMIC_ADJUSTMENTS:
+                    pressure = compute_overfit_pressure(
+                        train_loss=train_loss,
+                        val_loss=val_loss,
+                        train_acc=train_acc,
+                        val_acc=val_acc,
+                        overfit_streak=overfit_streak,
+                        stale=stale,
+                    )
+                    criterion = apply_dynamic_regularization(
+                        optimizer=optimizer,
+                        attempt=attempt,
+                        class_weights=class_weights,
+                        pressure=pressure,
+                    )
+                    dynamic_adjustments += 1
+                    logger.warning(
+                        "🧭 Dynamic regulation applied (attempt=%d epoch=%d adjust=%d/%d pressure=%.2f lr=%.6f wd=%.6f smooth=%.3f patience=%d).",
+                        attempt_idx,
+                        epoch + 1,
+                        dynamic_adjustments,
+                        MAX_DYNAMIC_ADJUSTMENTS,
+                        pressure,
+                        attempt['lr'],
+                        attempt['weight_decay'],
+                        attempt['label_smoothing'],
+                        attempt['patience'],
+                    )
                 if overfit_streak >= 2:
                     logger.warning("🔁 Restarting with adjusted hyperparameters.")
+                    overfit_restart_requested = True
+                    last_metrics = (train_loss, val_loss, train_acc, val_acc)
                     break
             else:
                 overfit_streak = 0
