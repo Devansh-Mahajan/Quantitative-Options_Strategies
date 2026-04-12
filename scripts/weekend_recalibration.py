@@ -75,6 +75,9 @@ def main():
     parser.add_argument("--train", action="store_true", help="Run full retraining pipeline")
     parser.add_argument("--target-daily-return", type=float, default=0.002, help="Optimization target for expected daily return.")
     parser.add_argument("--target-accuracy", type=float, default=0.56, help="Optimization target for validation accuracy.")
+    parser.add_argument("--quant-foundry", action="store_true", help="Run quant research foundry pack generation.")
+    parser.add_argument("--quant-mode", choices=["weekend-calibrate", "zero-calibration"], default="weekend-calibrate",
+                        help="Foundry mode: fit on weekend or emit a no-fit prior pack.")
     args = parser.parse_args()
 
     base_step_count = 4  # load -> prioritize -> persist -> snapshot
@@ -89,7 +92,16 @@ def main():
             ["python", "scripts/train_regime_movement_models.py", "--target-accuracy", str(args.target_accuracy)],
         ]
 
-    total_steps = base_step_count + len(train_steps)
+    foundry_steps = []
+    if args.quant_foundry:
+        foundry_steps = [[
+            "python", "scripts/quant_research_foundry.py",
+            "--mode", args.quant_mode,
+            "--target-daily-return", str(args.target_daily_return),
+            "--target-accuracy", str(args.target_accuracy),
+        ]]
+
+    total_steps = base_step_count + len(train_steps) + len(foundry_steps)
     step_idx = 1
 
     print_pipeline_progress(step_idx, total_steps, "Loading symbols")
@@ -121,7 +133,7 @@ def main():
     print_pipeline_progress(step_idx, total_steps, "Saving recalibration snapshot")
     register_model_snapshot("weekend_recalibration", snapshot)
 
-    for cmd in train_steps:
+    for cmd in train_steps + foundry_steps:
         step_idx += 1
         print_pipeline_progress(step_idx, total_steps, f"Running {' '.join(cmd[1:])}")
         run_step(cmd)
