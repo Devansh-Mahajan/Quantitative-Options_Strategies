@@ -23,8 +23,8 @@ def parse_args():
     parser.add_argument(
         "--lookbacks",
         nargs="+",
-        default=["10y", "5y", "1y", "6mo", "3mo"],
-        help="Lookback windows. Supported: 10y 5y 1y 6mo 3mo",
+        default=["10y", "5y", "3y", "1y", "6mo", "3mo", "ytd"],
+        help="Lookback windows. Supported: 10y 5y 3y 1y 6mo 3mo ytd",
     )
     parser.add_argument(
         "--output",

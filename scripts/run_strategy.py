@@ -43,6 +43,7 @@ from core.market_intelligence import estimate_institutional_flow
 from core.pairs_trading import generate_pairs_trading_signals
 from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
 from core.adaptive_recalibration import AdaptiveRecalibrationEngine
+from core.runtime_calibration import load_runtime_calibration
 from core.signal_fusion import empty_ai_targets, route_strategy_candidates
 
 
@@ -87,10 +88,23 @@ def _show_portfolio_history(client, logger, start_date, end_date, timeframe):
 
 def main():
     args = parse_args()
+    runtime_calibration = load_runtime_calibration()
     
     strat_logger = StrategyLogger(enabled=args.strat_log)
     logger = setup_logger(level=args.log_level, to_file=args.log_to_file)
     strat_logger.set_fresh_start(args.fresh_start)
+    if runtime_calibration.notes:
+        logger.info(
+            "🗂️ Loaded runtime calibration artifacts: %s",
+            ", ".join(runtime_calibration.notes),
+        )
+    runtime_min_signal_confidence = max(
+        float(MIN_SIGNAL_CONFIDENCE),
+        float(runtime_calibration.min_signal_confidence or 0.0),
+    )
+    router_top_k = max(1, int(args.router_top_k))
+    if runtime_calibration.dynamic_top_k:
+        router_top_k = max(1, min(router_top_k, int(runtime_calibration.dynamic_top_k)))
 
     symbols_file = Path(__file__).parent.parent / "config" / "symbol_list.txt"
     weekend_symbols_file = Path(__file__).parent.parent / "config" / "volatile_symbols.txt"
@@ -252,6 +266,21 @@ def main():
                 adaptive_profile["trade_intensity_multiplier"],
             )
 
+        if runtime_calibration.current_regime:
+            dynamic_max_risk *= runtime_calibration.risk_multiplier
+            deployment_scale *= runtime_calibration.deployment_multiplier
+            logger.info(
+                "🗺️ Weekend regime policy: %s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f | conf=%s",
+                runtime_calibration.current_regime,
+                runtime_calibration.risk_multiplier,
+                runtime_calibration.deployment_multiplier,
+                runtime_calibration.trade_intensity_multiplier,
+                f"{runtime_calibration.regime_confidence:.2f}" if runtime_calibration.regime_confidence is not None else "n/a",
+            )
+        if runtime_calibration.max_symbol_weight:
+            per_symbol_cap = total_equity * float(runtime_calibration.max_symbol_weight)
+            dynamic_max_risk = min(dynamic_max_risk, per_symbol_cap)
+
         pair_overlay_cache = {"signals": []}
         
         # --- DISCORD DASHBOARD ---
@@ -285,13 +314,13 @@ def main():
     # ==========================================================
     if not args.manage_only:
         if buying_power >= 50:
-            if signal_confidence < MIN_SIGNAL_CONFIDENCE:
+            if signal_confidence < runtime_min_signal_confidence:
                 dynamic_max_risk *= LOW_CONFIDENCE_RISK_MULTIPLIER
                 buying_power *= LOW_CONFIDENCE_RISK_MULTIPLIER
                 logger.warning(
                     "🧩 LOW-CONFIDENCE REGIME: signal confidence %.2f below %.2f. Cutting risk and fresh deployment by %.0f%%.",
                     signal_confidence,
-                    MIN_SIGNAL_CONFIDENCE,
+                    runtime_min_signal_confidence,
                     (1.0 - LOW_CONFIDENCE_RISK_MULTIPLIER) * 100.0,
                 )
 
@@ -334,7 +363,7 @@ def main():
                 greek_targets=greek_targets,
                 macro_strategy=brain_strategy,
                 macro_confidence=macro_confidence,
-                top_k=args.router_top_k,
+                top_k=router_top_k,
             )
             deployment_scale *= routing_plan.deployment_multiplier
             theta_candidates = routing_plan.theta_candidates
@@ -345,7 +374,9 @@ def main():
                 {
                     "mega_confidence_threshold": args.mega_confidence_threshold,
                     "predictor_universe_cap": predictor_cap,
-                    "router_top_k": args.router_top_k,
+                    "router_top_k": router_top_k,
+                    "min_signal_confidence": runtime_min_signal_confidence,
+                    "runtime_regime_policy": runtime_calibration.current_regime,
                     "consensus_score": routing_plan.consensus_score,
                     "deployment_multiplier": routing_plan.deployment_multiplier,
                     "diagnostics": routing_plan.diagnostics,
@@ -395,6 +426,13 @@ def main():
                         int(round(throttle_n * adaptive_profile["trade_intensity_multiplier"])),
                     ),
                 )
+            throttle_n = max(
+                1,
+                min(
+                    MAX_NEW_TRADES_PER_CYCLE,
+                    int(round(throttle_n * runtime_calibration.trade_intensity_multiplier)),
+                ),
+            )
             theta_candidates = theta_candidates[:throttle_n]
             vega_candidates = vega_candidates[:throttle_n]
             bull_candidates = bull_candidates[:throttle_n]

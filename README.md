@@ -105,7 +105,7 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 
 5. **Choose your symbols:**
 
-   The strategy trades only the symbols listed in `config/symbol_list.txt`. Edit this file to include the tickers you want the automation stack to consider, one symbol per line. Choose liquid names you are comfortable holding and hedging.
+   The strategy trades only the symbols listed in `config/symbol_list.txt`. Edit this file to include the tickers you want the automation stack to consider, one symbol per line. The weekend pipeline now automatically deduplicates this list, resolves Yahoo aliases like `BRK.B -> BRK-B` for research downloads, and removes symbols that repeatedly fail validation.
 
 6. **Configure trading parameters:**
 
@@ -222,7 +222,7 @@ This writes a JSON report to `reports/movement_predictor_backtest.json` by defau
 For a larger **all-in-one predictive audit engine** (movement + regime + pairs + strategy-routing proxies):
 
 ```bash
-massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 1y 6mo 3mo --target-daily-return 0.002 --target-accuracy 0.56 --horizon-days 5
+massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 3y 1y 6mo 3mo ytd --target-daily-return 0.002 --target-accuracy 0.56 --horizon-days 5
 ```
 
 Or run with your configured universe in one command:
@@ -262,7 +262,7 @@ Outputs:
 You can also chain this into the weekend pipeline:
 
 ```bash
-weekend-recalibrate --train --quant-foundry --quant-mode weekend-calibrate
+weekend-recalibrate --quant-mode weekend-calibrate
 ```
 
 > **Important:** The generated pack is research infrastructure for fine-tuning and paper-trading; it is not a profit guarantee.
@@ -274,15 +274,20 @@ weekend-recalibrate --train --quant-foundry --quant-mode weekend-calibrate
 To retrain all major models with configurable return/accuracy objectives:
 
 ```bash
-weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56
+weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56
 ```
 
-This pipeline runs, in order:
+By default the weekend pipeline now:
 1. `scripts/train_hmm.py` (macro Hidden Markov model),
 2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
 3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
 4. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
-5. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
+5. `scripts/train_regime_movement_models.py --target-accuracy <target>`,
+6. `scripts/quant_research_foundry.py`,
+7. `scripts/massive_backtest_engine.py` across `10y`, `5y`, `3y`, `1y`, `6mo`, `3mo`, and `ytd`,
+8. writes `reports/universe_validation_report.json`, `reports/weekend_recalibration_report.json`, and `config/market_regime_policy.json`.
+
+If you only want to skip specific pieces, use `--no-train`, `--no-quant-foundry`, `--no-backtest`, or `--no-symbol-maintenance`.
 
 Use higher values only as optimization goals, **not guarantees**.
 
@@ -385,7 +390,7 @@ For the full runbook, see [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.m
    - Confirm no stale orders / repeated failures in runtime logs.
 2. **Weekly**
    - Re-evaluate `config/symbol_list.txt`.
-   - Run model recalibration (`weekend-recalibrate --train ...`) when needed.
+   - Run model recalibration (`weekend-recalibrate ...`) when needed.
    - Validate risk parameters (`MAX_RISK_PER_SPREAD`, `RISK_ALLOCATION`, confidence guardrails).
 3. **After Code Changes**
    - Run in paper mode first.

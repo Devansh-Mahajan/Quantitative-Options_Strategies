@@ -193,7 +193,7 @@ Daily:
 Weekly:
 - refresh symbol universe,
 - review per-strategy outcomes,
-- run recalibration if using model retraining workflows (`weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56`).
+- run recalibration if using model retraining workflows (`weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56`).
 
 Recalibration notes:
 - weekend recalibration now keeps the full symbol universe by default.

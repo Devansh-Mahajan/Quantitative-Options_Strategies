@@ -6,7 +6,6 @@ import sys
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, log_loss
@@ -18,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.state_manager import register_model_snapshot
+from core.universe_maintenance import download_close_matrix, load_symbol_file
 
 DEFAULT_REPORT_PATH = ROOT / "reports" / "quant_foundry_report.json"
 DEFAULT_PACK_PATH = ROOT / "config" / "quant_strategy_pack.json"
@@ -68,10 +68,7 @@ def load_symbols(cli_symbols: list[str] | None, max_symbols: int) -> list[str]:
     if not DEFAULT_SYMBOLS_PATH.exists():
         return ["SPY", "QQQ", "IWM", "NVDA", "AAPL", "MSFT"]
 
-    with DEFAULT_SYMBOLS_PATH.open("r", encoding="utf-8") as handle:
-        symbols = [line.strip().upper() for line in handle if line.strip()]
-    symbols = list(dict.fromkeys(symbols))
-    return symbols[: max(1, max_symbols)]
+    return load_symbol_file(DEFAULT_SYMBOLS_PATH)[: max(1, max_symbols)]
 
 
 def build_feature_matrix(close: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFrame, pd.Series]:
@@ -219,13 +216,9 @@ def main():
             },
         }
     else:
-        raw = yf.download(symbols, period=args.period, auto_adjust=True, progress=False)
-        close = raw.get("Close") if isinstance(raw, pd.DataFrame) else None
+        close = download_close_matrix(symbols, period=args.period, auto_adjust=True, progress=False)
         if close is None or close.empty:
             raise SystemExit("Failed to download prices for foundry calibration.")
-        if isinstance(close, pd.Series):
-            close = close.to_frame(name=symbols[0])
-        close.columns = [str(c).upper() for c in close.columns]
         close = close.dropna(how="all").ffill().dropna(axis=1, how="all")
 
         X, y = build_feature_matrix(close, args.horizon_days)

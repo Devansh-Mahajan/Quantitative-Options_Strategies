@@ -6,16 +6,12 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+from core.universe_maintenance import resolve_download_symbol
+
 logger = logging.getLogger(f"strategy.{__name__}")
 
-SYMBOL_ALIASES = {
-    # Block Inc. renamed ticker on NYSE from SQ -> XYZ.
-    "SQ": "XYZ",
-}
-
-
 def _resolve_symbol(symbol: str) -> str:
-    return SYMBOL_ALIASES.get(symbol, symbol)
+    return resolve_download_symbol(symbol)
 
 
 def _print_progress(stage: str, current: int, total: int) -> None:

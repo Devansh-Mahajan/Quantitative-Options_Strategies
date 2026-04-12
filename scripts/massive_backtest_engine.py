@@ -14,10 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.movement_predictor import LOOKBACK_MAP, backtest_symbol_movement
+from core.movement_predictor import LOOKBACK_MAP, backtest_symbol_movement, lookback_days
+from core.universe_maintenance import download_close_matrix, load_symbol_file
 from scripts.train_hmm import build_macro_features
 
-DEFAULT_LOOKBACKS = ["10y", "5y", "1y", "6mo", "3mo"]
+DEFAULT_LOOKBACKS = ["10y", "5y", "3y", "1y", "6mo", "3mo", "ytd"]
 DEFAULT_OUTPUT = "reports/massive_backtest_report.json"
 SYMBOL_LIST_PATH = ROOT / "config" / "symbol_list.txt"
 HMM_MODEL_PATH = ROOT / "config" / "hmm_macro_model.pkl"
@@ -41,11 +42,7 @@ def parse_args():
 
 
 def load_default_symbols(max_symbols: int) -> list[str]:
-    if not SYMBOL_LIST_PATH.exists():
-        return []
-    with SYMBOL_LIST_PATH.open("r", encoding="utf-8") as handle:
-        symbols = [line.strip().upper() for line in handle if line.strip()]
-    symbols = list(dict.fromkeys(symbols))
+    symbols = load_symbol_file(SYMBOL_LIST_PATH)
     return symbols[: max(1, max_symbols)]
 
 
@@ -91,6 +88,16 @@ def run_movement_suite(symbols: list[str], lookbacks: list[str], workers: int, t
 
     results = sorted(results, key=lambda x: (x.get("symbol", ""), x.get("lookback", "")))
     valid = [row for row in results if "error" not in row]
+    by_lookback = {}
+    for lookback in lookbacks:
+        lb_rows = [row for row in valid if row.get("lookback") == lookback]
+        by_lookback[lookback] = {
+            "valid_runs": len(lb_rows),
+            "avg_accuracy": safe_mean([row.get("accuracy", 0.0) for row in lb_rows]),
+            "avg_strategy_daily_return": safe_mean([row.get("strategy_daily_return", 0.0) for row in lb_rows]),
+            "avg_alpha_daily": safe_mean([row.get("alpha_daily", 0.0) for row in lb_rows]),
+            "hit_rate": safe_mean([1.0 if row.get("meets_targets") else 0.0 for row in lb_rows]),
+        }
 
     summary = {
         "total_runs": len(results),
@@ -99,26 +106,35 @@ def run_movement_suite(symbols: list[str], lookbacks: list[str], workers: int, t
         "avg_accuracy": safe_mean([row.get("accuracy", 0.0) for row in valid]),
         "avg_strategy_daily_return": safe_mean([row.get("strategy_daily_return", 0.0) for row in valid]),
         "avg_alpha_daily": safe_mean([row.get("alpha_daily", 0.0) for row in valid]),
+        "by_lookback": by_lookback,
     }
     return {"results": results, "summary": summary}
 
 
 def download_close(symbols: list[str], period: str = "10y") -> pd.DataFrame:
-    if not symbols:
-        return pd.DataFrame()
-    data = yf.download(symbols, period=period, auto_adjust=True, progress=False)
-    close = data.get("Close") if isinstance(data, pd.DataFrame) else None
-    if close is None or close.empty:
-        return pd.DataFrame()
-    if isinstance(close, pd.Series):
-        close = close.to_frame(name=symbols[0])
-    close = close.dropna(how="all").ffill().dropna(axis=1, how="all")
-    close.columns = [str(col).upper() for col in close.columns]
-    return close
+    return download_close_matrix(symbols, period=period, auto_adjust=True, progress=False).ffill().dropna(axis=1, how="all")
 
 
-def run_pairs_suite(symbols: list[str], entry_z: float, exit_z: float, horizon_days: int):
-    close = download_close(symbols, period="10y")
+def _slice_frame_to_lookback(frame: pd.DataFrame | pd.Series, lookback: str):
+    if frame is None or getattr(frame, "empty", True):
+        return frame
+    if lookback == "ytd":
+        cutoff = pd.Timestamp(datetime.now(timezone.utc).year, 1, 1)
+    else:
+        cutoff = pd.Timestamp(datetime.now(timezone.utc).date()) - pd.Timedelta(days=lookback_days(lookback))
+    return frame.loc[frame.index >= cutoff]
+
+
+def _window_summary(results_by_lookback: dict[str, dict], metric_key: str) -> dict[str, float]:
+    out = {}
+    for lookback, result in results_by_lookback.items():
+        summary = result.get("summary", {})
+        if metric_key in summary:
+            out[lookback] = float(summary.get(metric_key, 0.0))
+    return out
+
+
+def _run_pairs_suite_from_close(close: pd.DataFrame, entry_z: float, exit_z: float, horizon_days: int):
     if close.empty or close.shape[1] < 2:
         return {
             "pair_results": [],
@@ -200,6 +216,35 @@ def run_pairs_suite(symbols: list[str], entry_z: float, exit_z: float, horizon_d
     return {"pair_results": pair_results, "summary": summary}
 
 
+def run_pairs_suite(symbols: list[str], lookbacks: list[str], entry_z: float, exit_z: float, horizon_days: int):
+    close = download_close(symbols, period="10y")
+    results_by_lookback = {}
+    for lookback in lookbacks:
+        window_close = _slice_frame_to_lookback(close, lookback)
+        results_by_lookback[lookback] = _run_pairs_suite_from_close(window_close, entry_z, exit_z, horizon_days)
+
+    valid_win_rates = [
+        result.get("summary", {}).get("win_rate", 0.0)
+        for result in results_by_lookback.values()
+        if "error" not in result
+    ]
+    valid_trade_returns = [
+        result.get("summary", {}).get("avg_trade_return", 0.0)
+        for result in results_by_lookback.values()
+        if "error" not in result
+    ]
+    summary = {
+        "by_lookback": {
+            lookback: result.get("summary", {})
+            for lookback, result in results_by_lookback.items()
+        },
+        "win_rate": safe_mean(valid_win_rates),
+        "avg_trade_return": safe_mean(valid_trade_returns),
+        "valid_windows": sum(1 for result in results_by_lookback.values() if "error" not in result),
+    }
+    return {"results_by_lookback": results_by_lookback, "summary": summary}
+
+
 def _load_hmm_payload():
     if not HMM_MODEL_PATH.exists():
         return None
@@ -209,7 +254,7 @@ def _load_hmm_payload():
         return None
 
 
-def run_regime_suite(horizon_days: int):
+def run_regime_suite(horizon_days: int, lookbacks: list[str]):
     payload = _load_hmm_payload()
     if not payload:
         return {"error": "hmm_model_missing_or_unreadable", "summary": {"n_samples": 0}}
@@ -246,45 +291,72 @@ def run_regime_suite(horizon_days: int):
     spy_forward = np.log(close["SPY"].shift(-horizon_days) / close["SPY"]).reindex(features.index)
     vix_forward = np.log(close["VIX"].shift(-horizon_days) / close["VIX"]).reindex(features.index)
 
-    rows = []
-    for state_id in sorted(set(states.tolist())):
-        mask = states == state_id
-        idx = features.index[mask]
-        spy_slice = spy_forward.reindex(idx).dropna()
-        vix_slice = vix_forward.reindex(idx).dropna()
-        rows.append(
-            {
-                "state_id": int(state_id),
-                "state_label": state_map.get(int(state_id), f"STATE_{state_id}"),
-                "samples": int(mask.sum()),
-                "avg_spy_forward_return": float(spy_slice.mean()) if not spy_slice.empty else 0.0,
-                "downside_prob": float((spy_slice < 0).mean()) if not spy_slice.empty else 0.0,
-                "avg_vix_forward_change": float(vix_slice.mean()) if not vix_slice.empty else 0.0,
+    results_by_lookback = {}
+    for lookback in lookbacks:
+        window_features = _slice_frame_to_lookback(features, lookback)
+        if window_features is None or window_features.empty or len(window_features) < 120:
+            results_by_lookback[lookback] = {
+                "error": "insufficient_macro_features",
+                "summary": {"n_samples": int(len(window_features) if window_features is not None else 0)},
             }
-        )
+            continue
 
-    inferred_risk_off = sorted(rows, key=lambda r: (r["avg_spy_forward_return"], -r["avg_vix_forward_change"]))[:1]
-    risk_off_state = inferred_risk_off[0]["state_id"] if inferred_risk_off else None
+        window_states = model.predict(scaler.transform(window_features.values))
+        window_spy_forward = spy_forward.reindex(window_features.index)
+        window_vix_forward = vix_forward.reindex(window_features.index)
 
-    directional_hits = []
-    if risk_off_state is not None:
-        for i in range(len(states) - horizon_days):
-            pred = -1 if states[i] == risk_off_state else 1
-            realized = -1 if spy_forward.iloc[i] < 0 else 1
-            directional_hits.append(1.0 if pred == realized else 0.0)
+        rows = []
+        for state_id in sorted(set(window_states.tolist())):
+            mask = window_states == state_id
+            idx = window_features.index[mask]
+            spy_slice = window_spy_forward.reindex(idx).dropna()
+            vix_slice = window_vix_forward.reindex(idx).dropna()
+            rows.append(
+                {
+                    "state_id": int(state_id),
+                    "state_label": state_map.get(int(state_id), f"STATE_{state_id}"),
+                    "samples": int(mask.sum()),
+                    "avg_spy_forward_return": float(spy_slice.mean()) if not spy_slice.empty else 0.0,
+                    "downside_prob": float((spy_slice < 0).mean()) if not spy_slice.empty else 0.0,
+                    "avg_vix_forward_change": float(vix_slice.mean()) if not vix_slice.empty else 0.0,
+                }
+            )
+
+        inferred_risk_off = sorted(rows, key=lambda r: (r["avg_spy_forward_return"], -r["avg_vix_forward_change"]))[:1]
+        risk_off_state = inferred_risk_off[0]["state_id"] if inferred_risk_off else None
+
+        directional_hits = []
+        if risk_off_state is not None:
+            for i in range(len(window_states) - horizon_days):
+                pred = -1 if window_states[i] == risk_off_state else 1
+                realized = -1 if window_spy_forward.iloc[i] < 0 else 1
+                directional_hits.append(1.0 if pred == realized else 0.0)
+
+        results_by_lookback[lookback] = {
+            "summary": {
+                "n_samples": int(len(window_features)),
+                "horizon_days": int(horizon_days),
+                "state_breakdown": rows,
+                "risk_off_state_inferred": risk_off_state,
+                "directional_accuracy_proxy": safe_mean(directional_hits),
+            }
+        }
 
     summary = {
-        "n_samples": int(len(features)),
-        "horizon_days": int(horizon_days),
-        "state_breakdown": rows,
-        "risk_off_state_inferred": risk_off_state,
-        "directional_accuracy_proxy": safe_mean(directional_hits),
+        "by_lookback": {lookback: result.get("summary", {}) for lookback, result in results_by_lookback.items()},
+        "directional_accuracy_proxy": safe_mean(
+            [
+                result.get("summary", {}).get("directional_accuracy_proxy", 0.0)
+                for result in results_by_lookback.values()
+                if "error" not in result
+            ]
+        ),
+        "valid_windows": sum(1 for result in results_by_lookback.values() if "error" not in result),
     }
-    return {"summary": summary}
+    return {"results_by_lookback": results_by_lookback, "summary": summary}
 
 
-def run_strategy_proxy_suite(symbols: list[str], horizon_days: int):
-    close = download_close(symbols, period="10y")
+def _run_strategy_proxy_suite_from_close(close: pd.DataFrame, vix_close: pd.Series, horizon_days: int):
     if close.empty:
         return {"error": "no_price_data", "summary": {"samples": 0}}
 
@@ -294,10 +366,6 @@ def run_strategy_proxy_suite(symbols: list[str], horizon_days: int):
     vol_trend = realized_vol20.diff(5)
     mom20 = market / market.rolling(20).mean() - 1.0
 
-    vix = yf.download("^VIX", period="10y", auto_adjust=True, progress=False)
-    vix_close = vix.get("Close") if isinstance(vix, pd.DataFrame) else None
-    if isinstance(vix_close, pd.DataFrame):
-        vix_close = vix_close.squeeze()
     if vix_close is None or vix_close.empty:
         vix_close = pd.Series(index=market.index, data=np.nan).ffill().fillna(20.0)
 
@@ -361,6 +429,36 @@ def run_strategy_proxy_suite(symbols: list[str], horizon_days: int):
     return {"summary": summary}
 
 
+def run_strategy_proxy_suite(symbols: list[str], lookbacks: list[str], horizon_days: int):
+    close = download_close(symbols, period="10y")
+    vix = download_close(["^VIX"], period="10y")
+    vix_close = None
+    if not vix.empty:
+        if "^VIX" in vix.columns:
+            vix_close = vix["^VIX"]
+        elif "VIX" in vix.columns:
+            vix_close = vix["VIX"]
+
+    results_by_lookback = {}
+    for lookback in lookbacks:
+        window_close = _slice_frame_to_lookback(close, lookback)
+        window_vix = _slice_frame_to_lookback(vix_close, lookback) if vix_close is not None else None
+        results_by_lookback[lookback] = _run_strategy_proxy_suite_from_close(window_close, window_vix, horizon_days)
+
+    summary = {
+        "by_lookback": {lookback: result.get("summary", {}) for lookback, result in results_by_lookback.items()},
+        "overall_hit_rate": safe_mean(
+            [
+                result.get("summary", {}).get("overall_hit_rate", 0.0)
+                for result in results_by_lookback.values()
+                if "error" not in result
+            ]
+        ),
+        "valid_windows": sum(1 for result in results_by_lookback.values() if "error" not in result),
+    }
+    return {"results_by_lookback": results_by_lookback, "summary": summary}
+
+
 def main():
     args = parse_args()
 
@@ -395,9 +493,9 @@ def main():
         target_accuracy=args.target_accuracy,
         target_daily_return=args.target_daily_return,
     )
-    pairs = run_pairs_suite(symbols=symbols, entry_z=args.pairs_entry_z, exit_z=args.pairs_exit_z, horizon_days=args.horizon_days)
-    regime = run_regime_suite(horizon_days=args.horizon_days)
-    strategy_proxy = run_strategy_proxy_suite(symbols=symbols, horizon_days=args.horizon_days)
+    pairs = run_pairs_suite(symbols=symbols, lookbacks=lookbacks, entry_z=args.pairs_entry_z, exit_z=args.pairs_exit_z, horizon_days=args.horizon_days)
+    regime = run_regime_suite(horizon_days=args.horizon_days, lookbacks=lookbacks)
+    strategy_proxy = run_strategy_proxy_suite(symbols=symbols, lookbacks=lookbacks, horizon_days=args.horizon_days)
 
     report["movement_suite"] = movement
     report["pairs_suite"] = pairs
@@ -416,6 +514,10 @@ def main():
         "pairs_win_rate": pairs.get("summary", {}).get("win_rate", 0.0),
         "regime_directional_accuracy_proxy": regime.get("summary", {}).get("directional_accuracy_proxy", 0.0),
         "strategy_router_hit_rate": strategy_proxy.get("summary", {}).get("overall_hit_rate", 0.0),
+        "window_movement_accuracy": movement["summary"].get("by_lookback", {}),
+        "window_pairs_win_rate": _window_summary(pairs.get("results_by_lookback", {}), "win_rate"),
+        "window_regime_accuracy": _window_summary(regime.get("results_by_lookback", {}), "directional_accuracy_proxy"),
+        "window_strategy_hit_rate": _window_summary(strategy_proxy.get("results_by_lookback", {}), "overall_hit_rate"),
         "note": "Proxy framework focuses on predictive quality. It is not a direct options PnL backtest.",
     }
 

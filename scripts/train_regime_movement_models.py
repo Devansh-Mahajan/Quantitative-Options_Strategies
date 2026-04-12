@@ -4,10 +4,11 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
+
+from core.universe_maintenance import download_close_matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 HMM_PATH = ROOT / "config" / "hmm_macro_model.pkl"
@@ -37,7 +38,7 @@ def load_hmm_probabilities():
     model = hmm_data["model"]
     scaler = hmm_data["scaler"]
 
-    raw = yf.download(["SPY", "^VIX", "^TNX", "DX-Y.NYB", "HYG", "LQD"], period="10y", progress=False)["Close"].dropna()
+    raw = download_close_matrix(["SPY", "^VIX", "^TNX", "DX-Y.NYB", "HYG", "LQD"], period="10y", auto_adjust=False, progress=False).dropna()
     raw = raw.rename(columns={"^VIX": "VIX", "^TNX": "TNX", "DX-Y.NYB": "DXY"})
 
     feat = _build_macro_features(raw)
@@ -59,7 +60,10 @@ def load_hmm_probabilities():
 
 def train(args):
     reg = load_hmm_probabilities()
-    prices = yf.download(args.symbol, period="10y", progress=False, auto_adjust=True)["Close"].dropna()
+    prices = download_close_matrix([args.symbol], period="10y", auto_adjust=True, progress=False)
+    if prices.empty or args.symbol not in prices.columns:
+        raise SystemExit(f"Failed to download prices for {args.symbol}.")
+    prices = prices[args.symbol].dropna()
     df = pd.DataFrame({"close": prices}).join(reg, how="inner").dropna()
     df["ret_1d"] = np.log(df["close"] / df["close"].shift(1))
     df["ret_5d"] = np.log(df["close"] / df["close"].shift(5))

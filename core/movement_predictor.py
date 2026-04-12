@@ -1,13 +1,15 @@
 import logging
+from datetime import date, timedelta
 from dataclasses import dataclass
 from typing import Iterable, List
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+from core.universe_maintenance import download_close_matrix
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
@@ -15,11 +17,22 @@ logger = logging.getLogger(f"strategy.{__name__}")
 LOOKBACK_MAP = {
     "10y": 3650,
     "5y": 1825,
+    "3y": 1095,
     "1y": 365,
     "6mo": 182,
     "3mo": 91,
+    "ytd": None,
 }
-LOOKBACK_PERIOD_FALLBACKS = ["1y", "2y", "5y", "10y", "max"]
+LOOKBACK_PERIOD_FALLBACKS = ["6mo", "1y", "2y", "5y", "10y", "max"]
+MIN_ROWS_BY_LOOKBACK = {
+    "3mo": 45,
+    "6mo": 70,
+    "ytd": 50,
+    "1y": 110,
+    "3y": 140,
+    "5y": 150,
+    "10y": 150,
+}
 
 
 @dataclass
@@ -31,13 +44,23 @@ class MovementSignal:
 
 
 def _download_prices(symbol: str, period: str) -> pd.Series:
-    data = yf.download(symbol, period=period, auto_adjust=True, progress=False)
-    close = data.get("Close")
-    if close is None or close.empty:
+    close = download_close_matrix([symbol], period=period, auto_adjust=True, progress=False)
+    if close.empty or symbol not in close.columns:
         return pd.Series(dtype=float)
-    if isinstance(close, pd.DataFrame):
-        close = close.squeeze()
-    return close.dropna()
+    return close[symbol].dropna()
+
+
+def lookback_days(lookback: str) -> int:
+    if lookback == "ytd":
+        today = date.today()
+        return max(1, (today - date(today.year, 1, 1)).days + 1)
+    return LOOKBACK_MAP.get(lookback, LOOKBACK_MAP["5y"])
+
+
+def _lookback_cutoff(lookback: str) -> pd.Timestamp:
+    if lookback == "ytd":
+        return pd.Timestamp(date.today().year, 1, 1)
+    return pd.Timestamp(date.today() - timedelta(days=lookback_days(lookback)))
 
 
 def _download_prices_with_warmup(symbol: str, lookback: str, warmup_days: int = 252) -> pd.Series:
@@ -45,20 +68,32 @@ def _download_prices_with_warmup(symbol: str, lookback: str, warmup_days: int = 
     Download enough history to compute rolling features while still evaluating the requested lookback.
     Falls back to progressively larger periods when Yahoo returns sparse data.
     """
-    lookback_days = LOOKBACK_MAP.get(lookback, LOOKBACK_MAP["5y"])
+    required_days = lookback_days(lookback)
 
     close = pd.Series(dtype=float)
     for period in LOOKBACK_PERIOD_FALLBACKS:
         candidate = _download_prices(symbol, period=period)
         if not candidate.empty:
             close = candidate
-            if len(candidate) >= lookback_days + warmup_days:
+            if len(candidate) >= required_days + warmup_days:
                 break
 
     if close.empty:
         return close
 
-    return close.tail(lookback_days + warmup_days)
+    return close
+
+
+def _slice_features_to_lookback(features: pd.DataFrame, lookback: str) -> pd.DataFrame:
+    if features.empty:
+        return features
+    cutoff = _lookback_cutoff(lookback)
+    sliced = features.loc[features.index >= cutoff]
+    return sliced.dropna().copy()
+
+
+def _min_rows_required(lookback: str) -> int:
+    return MIN_ROWS_BY_LOOKBACK.get(lookback, 150)
 
 
 def _feature_frame(close: pd.Series) -> pd.DataFrame:
@@ -77,9 +112,9 @@ def _feature_frame(close: pd.Series) -> pd.DataFrame:
 
 def fit_symbol_movement_model(symbol: str, lookback: str = "5y") -> tuple[Pipeline | None, pd.DataFrame]:
     close = _download_prices_with_warmup(symbol, lookback=lookback)
-    features = _feature_frame(close)
+    features = _slice_features_to_lookback(_feature_frame(close), lookback)
 
-    if len(features) < 150:
+    if len(features) < _min_rows_required(lookback):
         logger.warning("Insufficient data for movement model on %s.", symbol)
         return None, pd.DataFrame()
 
@@ -125,16 +160,25 @@ def aggregate_movement_signals(symbols: Iterable[str], lookback: str = "5y") -> 
 def backtest_symbol_movement(symbol: str, lookback: str = "5y") -> dict:
     """Walk-forward next-day direction backtest."""
     close = _download_prices_with_warmup(symbol, lookback=lookback)
-    features = _feature_frame(close)
-    if len(features) < 120:
+    features = _slice_features_to_lookback(_feature_frame(close), lookback)
+    min_rows = _min_rows_required(lookback)
+    if len(features) < min_rows:
         return {
             "symbol": symbol,
             "lookback": lookback,
             "error": "insufficient_data",
             "available_rows": int(len(features)),
+            "required_rows": int(min_rows),
         }
 
     split_idx = int(len(features) * 0.7)
+    if split_idx < 30 or (len(features) - split_idx) < 15:
+        return {
+            "symbol": symbol,
+            "lookback": lookback,
+            "error": "insufficient_split",
+            "available_rows": int(len(features)),
+        }
     train, test = features.iloc[:split_idx], features.iloc[split_idx:]
 
     model = Pipeline(

@@ -5,7 +5,8 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import yfinance as yf
+
+from core.universe_maintenance import download_close_matrix, load_symbol_file
 
 ROOT = Path(__file__).resolve().parents[1]
 SYMBOLS_PATH = ROOT / "config" / "symbol_list.txt"
@@ -13,8 +14,7 @@ OUT_PATH = ROOT / "config" / "correlation_alpha_model.pkl"
 
 
 def load_symbols(limit: int = 180) -> list[str]:
-    syms = [s.strip().upper() for s in SYMBOLS_PATH.read_text().splitlines() if s.strip()]
-    return list(dict.fromkeys(syms))[:limit]
+    return load_symbol_file(SYMBOLS_PATH)[:limit]
 
 
 def zscore(series: pd.Series, lookback: int = 120) -> pd.Series:
@@ -85,12 +85,9 @@ def evaluate_pair(log_a: pd.Series, log_b: pd.Series, entry: float = 1.5, max_ho
 
 def train(symbol_limit: int = 180, min_corr: float = 0.70):
     symbols = load_symbols(limit=symbol_limit)
-    prices = yf.download(symbols, period="5y", progress=False, auto_adjust=True)["Close"]
+    prices = download_close_matrix(symbols, period="5y", auto_adjust=True, progress=False)
     if prices is None or prices.empty:
         raise RuntimeError("No prices returned for correlation alpha training.")
-
-    if isinstance(prices, pd.Series):
-        prices = prices.to_frame()
 
     prices = prices.dropna(axis=1, thresh=int(len(prices) * 0.80)).ffill().dropna()
     logp = np.log(prices.clip(lower=1e-6))

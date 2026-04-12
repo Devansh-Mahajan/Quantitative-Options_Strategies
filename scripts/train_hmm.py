@@ -1,6 +1,7 @@
 import os
 import logging
 import warnings
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -9,6 +10,8 @@ import yfinance as yf
 from hmmlearn.hmm import GaussianHMM
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+
+from core.universe_maintenance import download_close_matrix, load_symbol_file
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -40,12 +43,7 @@ def build_macro_features(raw_data: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_universe_symbols(max_symbols: int = 100) -> list[str]:
-    if not os.path.exists(SYMBOL_LIST_PATH):
-        return []
-    with open(SYMBOL_LIST_PATH, "r", encoding="utf-8") as handle:
-        symbols = [line.strip().upper() for line in handle if line.strip()]
-    deduped = list(dict.fromkeys(symbols))
-    return deduped[:max_symbols]
+    return load_symbol_file(Path(SYMBOL_LIST_PATH))[:max_symbols]
 
 
 def _collapse_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -79,7 +77,7 @@ def discover_ticker_patterns() -> dict:
         return {}
 
     logger.info("🕸️ Discovering cross-ticker correlation and pairs patterns...")
-    ticker_close = yf.download(symbols, period="10y", progress=False)['Close']
+    ticker_close = download_close_matrix(symbols, period="10y", auto_adjust=False, progress=False)
     if ticker_close is None or ticker_close.empty:
         logger.warning("Ticker download returned no data; skipping pairs discovery.")
         return {}
