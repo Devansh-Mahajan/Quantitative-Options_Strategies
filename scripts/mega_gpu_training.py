@@ -20,7 +20,28 @@ logger = logging.getLogger("Mega_Trainer")
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'mega_universe_dataset.pt')
 MODEL_SAVE_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'trading_model.pth')
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def resolve_training_device() -> tuple[torch.device, bool]:
+    try:
+        gpu_available = torch.cuda.is_available()
+    except Exception as exc:
+        logger.error("❌ GPU detection failed (%s). Falling back to CPU.", exc)
+        return torch.device("cpu"), False
+
+    if gpu_available:
+        try:
+            gpu_name = torch.cuda.get_device_name(0)
+        except Exception:
+            gpu_name = "CUDA device"
+        logger.info("✅ GPU detected: %s. Training will run on CUDA.", gpu_name)
+        return torch.device("cuda"), True
+
+    logger.error("❌ No NVIDIA GPU detected. Falling back to CPU training.")
+    return torch.device("cpu"), False
+
+
+DEVICE, CUDA_AVAILABLE = resolve_training_device()
 
 BATCH_SIZE = 512
 EPOCHS = 120
@@ -42,7 +63,7 @@ def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if torch.cuda.is_available():
+    if CUDA_AVAILABLE:
         torch.cuda.manual_seed_all(seed)
 
 
