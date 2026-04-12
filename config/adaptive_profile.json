@@ -1,12 +1,18 @@
 {
   "version": 1,
-  "last_updated_utc": null,
+  "last_updated_utc": "2026-04-12T10:43:20.105318+00:00",
   "lookback": 30,
-  "daily_returns": [],
-  "confidence_samples": [],
-  "risk_multiplier": 1.0,
-  "deployment_multiplier": 1.0,
-  "trade_intensity_multiplier": 1.0,
-  "regime": "neutral",
-  "notes": "Adaptive controls are optimization levers, not profit guarantees."
+  "daily_returns": [
+    -0.13870853815071643
+  ],
+  "confidence_samples": [
+    0.5381771699445796
+  ],
+  "risk_multiplier": 0.8092,
+  "deployment_multiplier": 0.8597,
+  "trade_intensity_multiplier": 0.8597,
+  "regime": "defensive",
+  "notes": "Adaptive controls are optimization levers, not profit guarantees.",
+  "rolling_avg_return_pct": -0.1387,
+  "rolling_avg_confidence": 0.5382
 }

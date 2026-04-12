@@ -1,24 +1,30 @@
 {
   "weekend_recalibration": {
-    "timestamp_utc": "2026-04-11T23:17:24.673154+00:00",
-    "symbols_input": 478,
-    "symbols_retained": 467,
+    "timestamp_utc": "2026-04-12T13:27:41.218097+00:00",
+    "symbols_input": 725,
+    "symbols_retained": 502,
     "top_n_requested": 0,
-    "top_n_applied": 478,
+    "top_n_applied": 725,
     "volatile_symbols_file": "config/volatile_symbols.txt",
     "target_daily_return": 0.02,
     "target_accuracy": 0.56,
     "adaptive_profile": {
       "version": 1,
-      "last_updated_utc": null,
+      "last_updated_utc": "2026-04-12T10:43:20.105318+00:00",
       "lookback": 30,
-      "daily_returns": [],
-      "confidence_samples": [],
-      "risk_multiplier": 1.0,
-      "deployment_multiplier": 1.0,
-      "trade_intensity_multiplier": 1.0,
-      "regime": "neutral",
-      "notes": "Adaptive controls are optimization levers, not profit guarantees."
+      "daily_returns": [
+        -0.13870853815071643
+      ],
+      "confidence_samples": [
+        0.5381771699445796
+      ],
+      "risk_multiplier": 0.8092,
+      "deployment_multiplier": 0.8597,
+      "trade_intensity_multiplier": 0.8597,
+      "regime": "defensive",
+      "notes": "Adaptive controls are optimization levers, not profit guarantees.",
+      "rolling_avg_return_pct": -0.1387,
+      "rolling_avg_confidence": 0.5382
     },
     "note": "Target is an optimization objective, not a guarantee."
   }

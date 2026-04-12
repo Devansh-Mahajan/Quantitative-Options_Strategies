@@ -65,10 +65,11 @@ run-strategy
 High-level flow:
 1. Manage/close existing positions.
 2. Recompute account risk and buying power.
-3. Pull model signals and macro regime posture.
-4. Allocate capital according to risk controls.
-5. Deploy eligible strategy modules.
-6. Log outcomes and emit alerts.
+3. Pull model signals, macro regime posture, and pair-overlay context.
+4. Fuse those signals into Theta / Vega / Bull / Bear candidate buckets.
+5. Allocate capital according to risk controls and deployment multipliers.
+6. Deploy eligible strategy modules.
+7. Log outcomes and emit alerts.
 
 ---
 
@@ -91,6 +92,16 @@ Manage-only mode (no new entries):
 ```bash
 run-strategy --manage-only --strat-log
 ```
+
+Useful model-stack overrides:
+
+```bash
+run-strategy --mega-confidence-threshold 80 --predictor-universe-cap 25 --router-top-k 10
+```
+
+- `--mega-confidence-threshold` raises or lowers how selective the deep screener is.
+- `--predictor-universe-cap` limits how many ranked symbols are sent through the movement predictor.
+- `--router-top-k` controls how many fused candidates are retained per strategy bucket before final trade throttling.
 
 ## 4.2 Suggested Schedule
 
@@ -135,6 +146,7 @@ Core knobs in `config/params.py`:
 Operational interpretation:
 - weak signals => smaller fresh deployment,
 - high volatility => risk scaling down,
+- stack disagreement => lower deployment multiplier,
 - daily drawdown thresholds => kill switch / reduced sizing behavior.
 
 ---
@@ -150,6 +162,7 @@ Daily checks:
 
 Log hotspots:
 - risk gating messages,
+- model fusion / consensus messages,
 - order execution exceptions,
 - market-hours close failures,
 - repeated symbol-specific rejects.
@@ -162,7 +175,7 @@ If behavior looks unsafe:
 1. Switch to `--manage-only` immediately.
 2. Optionally use `--fresh-start` to reset positions (paper first; live only with caution).
 3. Lower `RISK_ALLOCATION` and `MAX_RISK_PER_SPREAD`.
-4. Raise confidence threshold / lower multiplier aggressiveness.
+4. Raise `--mega-confidence-threshold`, reduce `--predictor-universe-cap`, or lower multiplier aggressiveness.
 5. Review logs before reenabling new entries.
 
 If API issues occur:
@@ -218,6 +231,7 @@ After every code change:
 ## 11) Quick Troubleshooting Matrix
 
 - **No trades placed**: check buying power, confidence gates, VIX regime, and symbol eligibility.
+- **Too few names in a bucket**: inspect the `model fusion` log line, Mega Brain threshold, and movement predictor coverage.
 - **Too many rejections**: inspect spread/oi/delta filters and market liquidity.
 - **Unexpected risk-on behavior**: verify confidence and max-trade settings in `config/params.py`.
 - **Orders not closing**: confirm market is open and inspect `safe_close_position` warnings.
@@ -226,4 +240,4 @@ After every code change:
 
 ## 12) Disclaimer
 
-This software does not guarantee profits and can lose money. Test thoroughly in paper mode and use position sizes appropriate for your risk tolerance.
+This software does not guarantee profits and can lose money. Test thoroughly in paper mode, treat model outputs as probabilistic, and use position sizes appropriate for your risk tolerance.

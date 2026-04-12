@@ -21,6 +21,7 @@ logger = logging.getLogger("mega_screener")
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'mega_universe_dataset.pt')
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'trading_model.pth')
 HMM_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'hmm_macro_model.pkl')
+EMPTY_RESULTS = {'THETA': [], 'VEGA': [], 'BULL': [], 'BEAR': []}
 
 
 def _build_feature_frame(
@@ -192,7 +193,16 @@ def scan_market():
 
 
 def get_mega_brain_targets(confidence_threshold=75.0):
-    results = _infer(confidence_threshold=confidence_threshold)
+    missing = [path for path in (DATA_PATH, MODEL_PATH) if not os.path.exists(path)]
+    if missing:
+        logger.warning("Mega Brain artifacts missing: %s", ", ".join(missing))
+        return EMPTY_RESULTS.copy()
+
+    try:
+        results = _infer(confidence_threshold=confidence_threshold)
+    except Exception as exc:
+        logger.exception("Mega Brain inference failed: %s", exc)
+        return EMPTY_RESULTS.copy()
     return {k: [x[0] for x in v] for k, v in results.items()}
 
 

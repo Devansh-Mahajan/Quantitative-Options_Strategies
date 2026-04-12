@@ -67,5 +67,23 @@ def parse_args():
         default=30,
         help="Rolling window (days) used by the adaptive calibration profile.",
     )
+    parser.add_argument(
+        "--mega-confidence-threshold",
+        type=float,
+        default=75.0,
+        help="Minimum Mega Brain confidence required before a symbol is treated as a primary candidate.",
+    )
+    parser.add_argument(
+        "--predictor-universe-cap",
+        type=int,
+        default=20,
+        help="Maximum number of ranked symbols to feed through the movement predictor each cycle.",
+    )
+    parser.add_argument(
+        "--router-top-k",
+        type=int,
+        default=12,
+        help="How many fused candidates per strategy bucket to retain before deployment throttling.",
+    )
 
     return parser.parse_args()

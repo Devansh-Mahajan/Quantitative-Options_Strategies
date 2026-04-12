@@ -48,6 +48,10 @@ class StrategyLogger:
     def set_filtered_symbols(self, symbols: list):
         if self.enabled:
             self.log_entry["filtered_symbols"] = symbols
+
+    def add_model_routing(self, routing_snapshot: dict):
+        if self.enabled:
+            self.log_entry["model_routing"] = routing_snapshot
     
     def log_call_options(self, call_options: list[dict]):
         if self.enabled:

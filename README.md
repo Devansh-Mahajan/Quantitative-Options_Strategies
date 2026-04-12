@@ -1,7 +1,6 @@
-# Automated Wheel Strategy
+# Automated Options Strategy Stack
 
-Welcome to the Wheel Strategy automation project!
-This script is designed to help you trade the classic ["wheel" options strategy](https://alpaca.markets/learn/options-wheel-strategy) with as little manual work as possible using the [Alpaca Trading API](https://docs.alpaca.markets/).
+This repository started as a Wheel automation project and now operates as a broader options strategy stack built on the [Alpaca Trading API](https://docs.alpaca.markets/). The live runner still supports the classic ["wheel" options strategy](https://alpaca.markets/learn/options-wheel-strategy), but it also layers in macro regime detection, deep-model routing, directional spreads, long-volatility trades, and adaptive risk controls.
 
 ---
 
@@ -10,7 +9,7 @@ This script is designed to help you trade the classic ["wheel" options strategy]
 Use this index when operating or maintaining the system:
 
 - **Quick Start**: setup + first run in ~10 minutes (below).
-- **Strategy Logic**: wheel lifecycle and AI overlays (below).
+- **Strategy Logic**: wheel lifecycle, spread engines, and model routing (below).
 - **Runbook / Operations Guide**: full deployment, monitoring, incident handling, and maintenance checklists in [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.md).
 - **Configuration Reference**: primary runtime controls in `config/params.py`.
 - **Execution Entrypoint**: orchestration in `scripts/run_strategy.py`.
@@ -106,7 +105,7 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 
 5. **Choose your symbols:**
 
-   The strategy trades only the symbols listed in `config/symbol_list.txt`. Edit this file to include the tickers you want to run the Wheel strategy on — one symbol per line. Choose stocks you'd be comfortable holding long-term.
+   The strategy trades only the symbols listed in `config/symbol_list.txt`. Edit this file to include the tickers you want the automation stack to consider, one symbol per line. Choose liquid names you are comfortable holding and hedging.
 
 6. **Configure trading parameters:**
 
@@ -137,6 +136,9 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
    * `--strat-log` — Enable strategy JSON logging (always saved to disk).
    * `--log-level LEVEL` — Set runtime logging verbosity (default: INFO).
    * `--log-to-file` — Save runtime logs to file instead of console.
+   * `--mega-confidence-threshold N` — Confidence floor for the deep-learning screener before a symbol is treated as a primary candidate.
+   * `--predictor-universe-cap N` — Maximum number of ranked symbols sent through the movement predictor per run.
+   * `--router-top-k N` — Number of fused symbols retained per strategy bucket before final throttling.
    
    Example:
    
@@ -160,11 +162,29 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 * Applies tighter execution-quality filters and a lightweight transaction-cost model (spread/slippage/liquidity penalty) so poor-fill contracts are deprioritized.
 * Places trades for the top-ranked options.
 * Runs a stock movement predictor (`core/movement_predictor.py`) and derives target portfolio Greeks (`core/greeks_targeting.py`) so directional trades can adapt toward bullish/bearish/neutral delta bias.
-* Dynamically throttles new trade count and risk deployment when model confidence is weak or macro-regime conviction falls.
-* Adds an HMM-driven **pairs mean-reversion overlay** (`core/pairs_trading.py`) that injects bullish/bearish directional candidates when historically correlated pairs diverge materially with confidence gating.
+* Queries the macro HMM/deep regime brain (`core/regime_detection.py`) and the large cross-sectional screener (`scripts/mega_screener.py`) for higher-level trade priors.
+* Adds an HMM-driven **pairs mean-reversion overlay** (`core/pairs_trading.py`) that injects bullish/bearish directional context when historically correlated pairs diverge materially with confidence gating.
+* Fuses deep-model priors, movement signals, pair signals, flow ranking, and macro posture in `core/signal_fusion.py` before capital is routed to Theta, Vega, Bull, and Bear books.
+* Dynamically throttles new trade count and risk deployment when model confidence is weak, the stack disagrees, or macro-regime conviction falls.
 * Uses an optional **Platinum sizing layer** (`core/portfolio_optimizer.py`) that applies conservative Kelly-style deployment scaling from signal quality, macro confidence, pair confidence, and VIX.
+* Stores a routing snapshot in the strategy JSON log so you can audit why a bucket was favored on a given run.
 
 > **Important:** Aggressive goals like 5% daily return are stretch targets, not guarantees. Always validate via out-of-sample backtests and paper trading before risking capital.
+
+---
+
+### Signal Fusion and Routing
+
+`run-strategy` now treats the model stack as one decision system instead of a set of loosely connected heuristics:
+
+1. The symbol universe is concentration-filtered and ranked by institutional-flow proxy.
+2. The movement predictor estimates per-symbol directional bias and feeds target portfolio Greeks.
+3. The macro brain decides whether the environment is closer to premium harvesting, long-volatility, or defense.
+4. The Mega Brain contributes cross-sectional priors for `THETA`, `VEGA`, `BULL`, and `BEAR`.
+5. The pairs overlay adds mean-reversion context when divergences are statistically meaningful.
+6. `core/signal_fusion.py` combines those inputs into ranked candidate buckets and a consensus-based deployment multiplier.
+
+This is much closer to an institutional routing pattern: the stack scales down when signals conflict and only sizes up when multiple layers agree. It is still not a profit guarantee, and no model can be expected to win in every market condition.
 
 ---
 
@@ -258,6 +278,13 @@ weekend-recalibrate --train --target-daily-return 0.002 --target-accuracy 0.56
 ```
 
 This pipeline runs, in order:
+1. `scripts/train_hmm.py` (macro Hidden Markov model),
+2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
+3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
+4. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
+5. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
+
+Use higher values only as optimization goals, **not guarantees**.
 
 ### Online Adaptive Recalibration (Self-Tuning Runtime Controls)
 
@@ -286,13 +313,6 @@ Disable adaptive scaling for a single run:
 ```bash
 run-strategy --disable-adaptive-recalibration
 ```
-1. `scripts/train_hmm.py` (macro Hidden Markov model),
-2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
-3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
-4. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
-5. `scripts/train_regime_movement_models.py --target-accuracy <target>`.
-
-Use higher values only as optimization goals, **not guarantees**.
 
 ---
 
@@ -302,10 +322,11 @@ Use higher values only as optimization goals, **not guarantees**.
 * **One contract per symbol**: To simplify risk management, this implementation trades only one contract at a time per symbol. You can modify this logic in `core/strategy.py` to suit more advanced use cases.
 * The **user agent** for API calls defaults to `OPTIONS-WHEEL` to help Alpaca track usage of runnable algos and improve user experience.  You can opt out by adjusting the `USER_AGENT` variable in `core/user_agent_mixin.py` — though we kindly hope you’ll keep it enabled to support ongoing improvements.  
 * **Want to customize the strategy?** The `core/strategy.py` module is a great place to start exploring and modifying the logic.
+* **No universal edge exists**: the goal is better routing, better risk control, and better research hygiene, not guaranteed profits in all regimes.
 
 ---
 
-## Automating the Wheel
+## Automating the Runtime
 
 Running the script once will only turn the wheel a single time. To keep it running as a long-term income strategy, you'll want to automate it to run several times per day. This can be done with a cron job on Mac or Linux.
 
@@ -345,10 +366,11 @@ Running the script once will only turn the wheel a single time. To keep it runni
 
 The runtime is organized into layers:
 
-- **Orchestration** (`scripts/run_strategy.py`): lifecycle control, risk budgeting, AI gating, and strategy routing.
+- **Orchestration** (`scripts/run_strategy.py`): lifecycle control, risk budgeting, kill switches, and strategy deployment.
 - **Trade Selection & Execution** (`core/strategy.py`, `core/execution.py`): contract filtering/scoring + order placement.
 - **Portfolio Management** (`core/manager.py`): active position exits, TP/SL/time-stop handling, dashboarding.
-- **Prediction & Regime Layer** (`core/movement_predictor.py`, `core/regime_detection.py`, `core/greeks_targeting.py`): directional and volatility posture guidance.
+- **Prediction Layer** (`core/movement_predictor.py`, `core/regime_detection.py`, `scripts/mega_screener.py`, `core/greeks_targeting.py`): symbol-level direction, macro regime posture, and deep-model priors.
+- **Signal Fusion Layer** (`core/signal_fusion.py`, `core/pairs_trading.py`, `core/portfolio_optimizer.py`): combines model outputs into ranked strategy buckets and deployment scaling.
 - **State, Logging, Notifications** (`core/state_manager.py`, `logging/*`, `core/notifications.py`): persistence, observability, and operator alerting.
 
 ---
@@ -437,16 +459,11 @@ The core logic is defined in `core/strategy.py`.
   Put options are filtered by absolute delta, which must lie between `DELTA_MIN` and `DELTA_MAX`, by open interest (`OPEN_INTEREST_MIN`) to ensure liquidity, and by yield (between `YIELD_MIN` and `YIELD_MAX`). For short calls, the strategy applies a minimum strike price filter (`min_strike`) to ensure the strike is above the underlying purchase price. This helps avoid immediate assignment and locks in profit if the call is assigned.
 
 * **Option Scoring:**
-  Options are scored to estimate their attractiveness based on annualized return, adjusted for assignment risk. The score formula is:
+  Options are scored with a composite formula that rewards annualized yield, tighter spreads, better liquidity, safer delta, shorter efficient duration, and lower estimated execution cost. In simplified form:
 
-   `score = (1 - |Δ|) × (250 / (DTE + 5)) × (bid price / strike price)`
+   `score ~= annualized_yield x spread_quality x liquidity_bonus x delta_safety x duration_efficiency x execution_quality`
 
-  Where:
-
-  * $\Delta$ = option delta (a rough proxy for the probability of assignment)
-  * DTE = days to expiration
-  * The factor 250 approximates the number of trading days in a year
-  * Adding 5 days to DTE smooths the score for near-term options
+  This is materially different from the older wheel-only score. See `core/strategy.py` and `core/execution_quality.py` for the exact implementation.
 
 * **Option Selection:**
   From all scored options, the strategy picks the highest-scoring contract per underlying symbol to promote diversification. It filters out options scoring below `SCORE_MIN` and returns either the top N options or all qualifying options.
@@ -484,9 +501,7 @@ The core logic is defined in `core/strategy.py`.
 
 ## Final Notes
 
-This is a great starting point for automating your trading, but always double-check your live trades — no system is completely hands-off.
-
-Happy wheeling! 🚀
+This is a strong foundation for research and automation, but always double-check your live trades. No system is completely hands-off, and no strategy stack should be assumed to be universally profitable.
 
 ---
 <div style="font-size: 0.8em;">

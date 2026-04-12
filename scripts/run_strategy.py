@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 from datetime import datetime
-import os
 from core.broker_client import BrokerClient
 from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
 from core.state_manager import update_state, calculate_risk
@@ -14,8 +13,6 @@ import core.state_manager as state_manager_module
 from config.params import (
     RISK_ALLOCATION,
     MAX_SPREADS_PER_SYMBOL,
-    AVOID_EARNINGS,
-    EXPIRATION_MAX,
     PROFIT_TARGET,
     STOP_LOSS,
     MAX_RISK_PER_SPREAD,
@@ -35,7 +32,7 @@ from config.params import (
 # --- Dashboard and Alert Tools ---
 from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
 from core.notifications import send_alert
-from core.sentiment import get_market_sentiment, get_vix_level
+from core.sentiment import get_vix_level
 from core.movement_predictor import aggregate_movement_signals
 from core.greeks_targeting import derive_portfolio_greek_targets
 
@@ -46,6 +43,7 @@ from core.market_intelligence import estimate_institutional_flow
 from core.pairs_trading import generate_pairs_trading_signals
 from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
 from core.adaptive_recalibration import AdaptiveRecalibrationEngine
+from core.signal_fusion import empty_ai_targets, route_strategy_candidates
 
 
 def _validate_date(date_str):
@@ -169,7 +167,8 @@ def main():
 
     # Grab VIX early so we can scale risk and print it on the dashboard
     current_vix = get_vix_level()
-    predictor_universe = allowed_symbols[:20] if allowed_symbols else SYMBOLS[:20]
+    predictor_cap = max(1, int(args.predictor_universe_cap))
+    predictor_universe = allowed_symbols[:predictor_cap] if allowed_symbols else SYMBOLS[:predictor_cap]
     movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
 
     if daily_pnl_pct <= -10.0:
@@ -208,7 +207,7 @@ def main():
 
         # --- 🧠 ASK THE MACRO BRAIN (Regime Gatekeeper) ---
         logger.info("🧠 Consulting the Macro Regime Gatekeeper...")
-        brain_strategy, brain_confidence, brain_probs = get_brain_prediction()
+        brain_strategy, brain_confidence, _brain_probs = get_brain_prediction()
 
         # --- TERMINAL DASHBOARD ---
         logger.info(f"🟢 PORTFOLIO HEALTHY: Daily P/L is {daily_pnl_pct:+.2f}%. VIX: {current_vix:.2f} -> Risk/Trade: ${dynamic_max_risk:.2f}.")
@@ -307,15 +306,13 @@ def main():
             # =======================================================
             # --- 1. RTX 5090 MEGA BRAIN INTELLIGENCE GATHERING ---
             # =======================================================
-            logger.info("🧠 Awakening the RTX 5090: Scanning 150 tickers for neural setups...")
-            
-            ai_targets = get_mega_brain_targets(confidence_threshold=75.0)
-            
-            # Apply Concentration Risk Gates (Only allow symbols we aren't maxed out on)
-            theta_candidates = [sym for sym in ai_targets['THETA'] if sym in allowed_symbols]
-            vega_candidates  = [sym for sym in ai_targets['VEGA'] if sym in allowed_symbols]
-            bull_candidates  = [sym for sym in ai_targets['BULL'] if sym in allowed_symbols]
-            bear_candidates  = [sym for sym in ai_targets['BEAR'] if sym in allowed_symbols]
+            logger.info("🧠 Awakening the Mega Brain: scanning the trained universe for live strategy priors...")
+
+            ai_targets = empty_ai_targets()
+            try:
+                ai_targets = get_mega_brain_targets(confidence_threshold=args.mega_confidence_threshold)
+            except Exception as exc:
+                logger.error("Mega Brain target scan failed; continuing with non-neural signals only: %s", exc)
 
             if ENABLE_PAIRS_TRADING:
                 pair_overlay = generate_pairs_trading_signals(
@@ -326,17 +323,43 @@ def main():
                     min_pair_corr=PAIR_MIN_CORRELATION,
                     min_confidence=PAIR_MIN_CONFIDENCE,
                 )
-                pair_bulls = pair_overlay.get("bull_symbols", [])
-                pair_bears = pair_overlay.get("bear_symbols", [])
                 pair_overlay_cache = pair_overlay
-                if pair_bulls or pair_bears:
-                    bull_candidates = list(dict.fromkeys(pair_bulls + bull_candidates))
-                    bear_candidates = list(dict.fromkeys(pair_bears + bear_candidates))
-                    logger.info(
-                        "🧩 Pair overlay injected %d bullish + %d bearish symbols from HMM pair divergences.",
-                        len(pair_bulls),
-                        len(pair_bears),
-                    )
+
+            routing_plan = route_strategy_candidates(
+                allowed_symbols=allowed_symbols,
+                ai_targets=ai_targets,
+                movement_signals=movement_signals,
+                flow_map=flow_map,
+                pair_overlay=pair_overlay_cache,
+                greek_targets=greek_targets,
+                macro_strategy=brain_strategy,
+                macro_confidence=macro_confidence,
+                top_k=args.router_top_k,
+            )
+            deployment_scale *= routing_plan.deployment_multiplier
+            theta_candidates = routing_plan.theta_candidates
+            vega_candidates = routing_plan.vega_candidates
+            bull_candidates = routing_plan.bull_candidates
+            bear_candidates = routing_plan.bear_candidates
+            strat_logger.add_model_routing(
+                {
+                    "mega_confidence_threshold": args.mega_confidence_threshold,
+                    "predictor_universe_cap": predictor_cap,
+                    "router_top_k": args.router_top_k,
+                    "consensus_score": routing_plan.consensus_score,
+                    "deployment_multiplier": routing_plan.deployment_multiplier,
+                    "diagnostics": routing_plan.diagnostics,
+                }
+            )
+            logger.info(
+                "🧬 Model fusion | consensus=%.2f deploy x%.2f | Theta=%d Vega=%d Bull=%d Bear=%d",
+                routing_plan.consensus_score,
+                routing_plan.deployment_multiplier,
+                len(theta_candidates),
+                len(vega_candidates),
+                len(bull_candidates),
+                len(bear_candidates),
+            )
 
             if PLATINUM_MODE:
                 pair_confidence = estimate_pair_overlay_confidence(pair_overlay_cache.get("signals", []))
@@ -385,7 +408,9 @@ def main():
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
             if greek_targets.target_vega > 0:
-                vega_candidates = ai_targets['VEGA'][:max(3, len(ai_targets['VEGA']) // 2)]
+                boosted_vega = [sym for sym in ai_targets.get('VEGA', []) if sym in allowed_symbols]
+                vega_candidates = list(dict.fromkeys(vega_candidates + boosted_vega))
+                vega_candidates = vega_candidates[: max(throttle_n, 3)]
 
             if vega_candidates:
                 logger.info(f"Step 2A: Launching Vega Sniper on {len(vega_candidates)} AI targets.")
