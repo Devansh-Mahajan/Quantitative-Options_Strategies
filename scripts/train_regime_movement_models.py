@@ -14,6 +14,23 @@ HMM_PATH = ROOT / "config" / "hmm_macro_model.pkl"
 OUT_PATH = ROOT / "config" / "regime_movement_models.pkl"
 
 
+def _build_macro_features(raw: pd.DataFrame) -> pd.DataFrame:
+    feat = pd.DataFrame(index=raw.index)
+    feat["SPY_ret"] = np.log(raw["SPY"] / raw["SPY"].shift(1))
+    feat["TNX_ret"] = np.log(raw["TNX"] / raw["TNX"].shift(1))
+    feat["DXY_ret"] = np.log(raw["DXY"] / raw["DXY"].shift(1))
+    feat["VIX_lvl"] = raw["VIX"]
+    feat["Credit_Risk_Ratio"] = raw["HYG"] / raw["LQD"]
+    feat["Credit_Risk_Momentum"] = np.log(feat["Credit_Risk_Ratio"] / feat["Credit_Risk_Ratio"].shift(5))
+
+    # Keep this aligned with scripts/train_hmm.py::build_macro_features.
+    vix_ret = np.log(raw["VIX"] / raw["VIX"].shift(1))
+    feat["Corr_SPY_VIX_20"] = feat["SPY_ret"].rolling(20).corr(vix_ret).clip(-1, 1)
+    feat["Corr_SPY_DXY_20"] = feat["SPY_ret"].rolling(20).corr(feat["DXY_ret"]).clip(-1, 1)
+    feat["Corr_SPY_TNX_20"] = feat["SPY_ret"].rolling(20).corr(feat["TNX_ret"]).clip(-1, 1)
+    return feat
+
+
 def load_hmm_probabilities():
     hmm_data = joblib.load(HMM_PATH)
     features_list = hmm_data["features_list"]
@@ -23,14 +40,15 @@ def load_hmm_probabilities():
     raw = yf.download(["SPY", "^VIX", "^TNX", "DX-Y.NYB", "HYG", "LQD"], period="10y", progress=False)["Close"].dropna()
     raw = raw.rename(columns={"^VIX": "VIX", "^TNX": "TNX", "DX-Y.NYB": "DXY"})
 
-    feat = pd.DataFrame(index=raw.index)
-    feat["SPY_ret"] = np.log(raw["SPY"] / raw["SPY"].shift(1))
-    feat["TNX_ret"] = np.log(raw["TNX"] / raw["TNX"].shift(1))
-    feat["DXY_ret"] = np.log(raw["DXY"] / raw["DXY"].shift(1))
-    feat["VIX_lvl"] = raw["VIX"]
-    feat["Credit_Risk_Ratio"] = raw["HYG"] / raw["LQD"]
-    feat["Credit_Risk_Momentum"] = np.log(feat["Credit_Risk_Ratio"] / feat["Credit_Risk_Ratio"].shift(5))
-    feat = feat.dropna()[features_list]
+    feat = _build_macro_features(raw)
+    missing = [col for col in features_list if col not in feat.columns]
+    if missing:
+        raise ValueError(
+            f"HMM model expects unsupported features that are not produced by the current "
+            f"pipeline: {missing}"
+        )
+    feat = feat.replace([np.inf, -np.inf], np.nan).dropna()
+    feat = feat[features_list]
 
     probs = model.predict_proba(scaler.transform(feat.values))
     state = probs.argmax(axis=1)
