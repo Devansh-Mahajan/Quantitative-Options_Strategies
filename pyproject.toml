@@ -31,6 +31,7 @@ weekend-recalibrate = "scripts.weekend_recalibration:main"
 backtest-movement = "scripts.backtest_movement_predictor:main"
 massive-backtest = "scripts.massive_backtest_engine:main"
 quant-foundry = "scripts.quant_research_foundry:main"
+automate-stack = "scripts.automation_controller:main"
 # (optional) lets users run strategy/recalibration from CLI
 
 [tool.setuptools.packages.find]
