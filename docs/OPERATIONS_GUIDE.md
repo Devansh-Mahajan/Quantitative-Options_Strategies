@@ -112,6 +112,88 @@ Weekdays during market hours (example):
 
 Use cron/systemd/Kubernetes schedules based on your infrastructure.
 
+### Always-On Concurrency Controller (Recommended)
+
+If you want PM + risk monitoring to run continuously with concurrent workers, run:
+
+```bash
+automate-stack
+```
+
+That single command now also handles:
+- **pre-open self-check** (default 09:00 ET),
+- **post-close self-evaluation + fine-tuning + backtest** (default 16:20 ET).
+
+What this launches in parallel:
+- **portfolio-manager loop**: full `run-strategy` cycle during market session windows,
+- **risk-monitor loop**: `run-strategy --manage-only` every few minutes (24/7),
+- **regime-rebalance loop**: recurring model-aware rebalance cycle during market hours,
+- **market open/close watcher**: immediate risk sweep when the market session flips,
+- **weekend automation loop**: one-shot recalibration + backtesting + report generation.
+
+You can tune each cadence with `--strategy-interval-seconds`, `--risk-interval-seconds`, and `--regime-interval-seconds`.
+You can tune pre/post market maintenance with:
+- `--pre-open-hour/--pre-open-minute`
+- `--post-close-hour/--post-close-minute`
+- `--post-close-eval-command`
+- `--post-close-tune-command`
+- `--post-close-backtest-command`
+
+### Run 24/7 Without Cron (Recommended)
+
+If you want one command and let it run forever, start:
+
+```bash
+automate-stack --restart-on-failure
+```
+
+This is already a long-running daemon-style process. It knows market open/close windows from your configured timezone and market-hour flags, so you do **not** need per-time cron jobs for intraday loops.
+
+### Optional `crontab -e` Bootstrap
+
+If you still want cron to make sure it launches on reboot, add this line:
+
+```cron
+@reboot cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'source .venv/bin/activate && automate-stack --restart-on-failure >> logs/automate-stack.log 2>&1'
+```
+
+That cron entry only starts the 24/7 controller. The controller itself handles pre-open, market hours, post-close, and weekend schedules.
+
+### 24/7 Fail-Safe Watchdog (every 15 minutes)
+
+If you want blackout/crash protection, use the watchdog script:
+
+```bash
+scripts/ensure_automate_stack.sh
+```
+
+Add this to `crontab -e` for a 15-minute heartbeat:
+
+```cron
+*/15 * * * * cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
+```
+
+Optional wake-up ping:
+- Add `HEALTHCHECK_URL` in your crontab env block (for example, a Healthchecks.io ping URL), and the watchdog will send a ping each run.
+
+### Add Weekend Calibration Next to Run-Bot Times
+
+To place weekend calibration into the same automation service (instead of a separate cron), configure:
+
+```bash
+automate-stack \
+  --weekend-hour 8 \
+  --weekend-minute 0 \
+  --weekend-recalibration-command "weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56" \
+  --weekend-backtest-command "massive-backtest"
+```
+
+This runs the weekend recalibration first, then launches the backtesting engine automatically, and writes a fixed professional report to:
+
+`reports/weekend_professional_report.md`
+
+If you still prefer cron, keep the weekday bot schedule and add a Saturday/Sunday line for the same recalibration + backtest chain.
+
 
 ## 4.3 Portfolio History Review (Date Parameters)
 

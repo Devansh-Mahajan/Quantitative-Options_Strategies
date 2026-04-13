@@ -152,6 +152,44 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
    run-strategy --help
    ```
 
+8. **Run always-on concurrent automation (optional but recommended for 24/7 ops)**
+
+   ```bash
+   automate-stack --restart-on-failure
+   ```
+
+   This launches concurrent loops for:
+   - market-hours portfolio deployment,
+   - always-on risk monitoring,
+   - market-regime rebalance checks,
+   - open/close bell risk sweeps,
+   - pre-open self checks + post-close self-evaluation/fine-tuning/backtesting,
+   - weekend recalibration + automatic backtesting + fixed report generation.
+
+   To add weekend calibration beside your run-bot timings:
+
+   ```bash
+   automate-stack \
+     --weekend-hour 8 \
+     --weekend-minute 0 \
+     --weekend-recalibration-command "weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56" \
+     --weekend-backtest-command "massive-backtest"
+   ```
+
+   The weekend report is written to `reports/weekend_professional_report.md`.
+
+   Optional `crontab -e` bootstrap (launch once on reboot, controller handles timing internally):
+
+   ```cron
+   @reboot cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'source .venv/bin/activate && automate-stack --restart-on-failure >> logs/automate-stack.log 2>&1'
+   ```
+
+   Optional fail-safe watchdog every 15 minutes (restart if down + optional ping):
+
+   ```cron
+   */15 * * * * cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
+   ```
+
 ---
 
 ### What the Script Does
