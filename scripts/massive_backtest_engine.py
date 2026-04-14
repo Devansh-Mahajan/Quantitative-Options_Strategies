@@ -28,7 +28,7 @@ from core.operations_reporting import archive_backtest_artifacts
 from core.quant_models import black_scholes_price, binomial_option_price, monte_carlo_option_price
 from core.resource_profile import load_resource_profile
 from core.strategy_regime import BUCKETS, STRATEGY_PROFILES, classify_market_state, combine_profile_with_state, clamp
-from core.universe_maintenance import download_close_matrix, load_symbol_file
+from core.universe_maintenance import download_close_matrix, load_symbol_file, resolve_download_symbol
 from scripts.train_hmm import build_macro_features
 
 DEFAULT_LOOKBACKS = ["10y", "5y", "3y", "1y", "6mo", "3mo", "ytd"]
@@ -71,6 +71,145 @@ def annual_to_daily(annual_return: float) -> float:
 
 def safe_mean(values):
     return float(sum(values) / len(values)) if values else 0.0
+
+
+def _bootstrap_mean_ci(values, *, n_bootstrap: int = 300, seed: int = 42) -> dict:
+    clean = [float(v) for v in values if v is not None and np.isfinite(v)]
+    if not clean:
+        return {"samples": 0, "mean": 0.0, "p10": 0.0, "p90": 0.0, "dispersion": 0.0}
+
+    arr = np.asarray(clean, dtype=float)
+    rng = np.random.default_rng(seed)
+    if arr.size == 1:
+        return {
+            "samples": int(arr.size),
+            "mean": float(arr[0]),
+            "p10": float(arr[0]),
+            "p90": float(arr[0]),
+            "dispersion": 0.0,
+        }
+
+    draws = np.array([rng.choice(arr, size=arr.size, replace=True).mean() for _ in range(max(50, n_bootstrap))], dtype=float)
+    return {
+        "samples": int(arr.size),
+        "mean": float(arr.mean()),
+        "p10": float(np.percentile(draws, 10)),
+        "p90": float(np.percentile(draws, 90)),
+        "dispersion": float(np.std(arr, ddof=0)),
+    }
+
+
+def _window_metric_summary(metric_map: dict[str, float], *, threshold: float) -> dict:
+    clean = {str(k): float(v) for k, v in (metric_map or {}).items() if v is not None}
+    values = list(clean.values())
+    ci = _bootstrap_mean_ci(values)
+    pass_rate = safe_mean([1.0 if value >= threshold else 0.0 for value in values])
+    stability_score = clamp(1.0 - (ci.get("dispersion", 0.0) * 4.0), 0.0, 1.0)
+    return {
+        "threshold": float(threshold),
+        "valid_windows": int(len(values)),
+        "pass_rate": float(pass_rate),
+        "stability_score": float(stability_score),
+        "confidence_band": ci,
+        "window_values": clean,
+    }
+
+
+def _build_institutional_robustness(report: dict) -> dict:
+    overview = report.get("massive_overview") or {}
+    movement_by_lookback = {
+        str(lookback): float(summary.get("avg_accuracy", 0.0))
+        for lookback, summary in ((report.get("movement_suite") or {}).get("summary") or {}).get("by_lookback", {}).items()
+    }
+    pairs_by_lookback = {
+        str(lookback): float((result.get("summary") or {}).get("win_rate", 0.0))
+        for lookback, result in ((report.get("pairs_suite") or {}).get("results_by_lookback") or {}).items()
+        if isinstance(result, dict) and "error" not in result
+    }
+    regime_by_lookback = {
+        str(lookback): float(summary.get("directional_accuracy_proxy", 0.0))
+        for lookback, summary in ((report.get("regime_suite") or {}).get("summary") or {}).get("by_lookback", {}).items()
+    }
+    strategy_by_lookback = {
+        str(lookback): float((result.get("summary") or {}).get("overall_hit_rate", 0.0))
+        for lookback, result in ((report.get("strategy_proxy_suite") or {}).get("results_by_lookback") or {}).items()
+        if isinstance(result, dict) and "error" not in result
+    }
+
+    movement_summary = _window_metric_summary(movement_by_lookback, threshold=0.52)
+    pairs_summary = _window_metric_summary(pairs_by_lookback, threshold=0.52)
+    regime_summary = _window_metric_summary(regime_by_lookback, threshold=0.52)
+    strategy_summary = _window_metric_summary(strategy_by_lookback, threshold=0.51)
+
+    avg_quote_error = float(overview.get("avg_recent_quote_error_pct", 0.0))
+    option_win_rate = float(overview.get("option_model_ensemble_win_rate", 0.0))
+    ml_alpha_ic = float(overview.get("ml_alpha_information_coefficient", 0.0))
+
+    breadth_score = safe_mean(
+        [
+            movement_summary["pass_rate"],
+            pairs_summary["pass_rate"],
+            regime_summary["pass_rate"],
+            strategy_summary["pass_rate"],
+        ]
+    )
+    stability_score = safe_mean(
+        [
+            movement_summary["stability_score"],
+            pairs_summary["stability_score"],
+            regime_summary["stability_score"],
+            strategy_summary["stability_score"],
+        ]
+    )
+    execution_score = clamp(1.0 - (avg_quote_error * 8.0), 0.0, 1.0)
+    alpha_score = clamp(0.5 + (ml_alpha_ic * 8.0), 0.0, 1.0)
+    option_score = clamp(option_win_rate, 0.0, 1.0)
+
+    institutional_score = round(
+        (
+            0.28 * float(overview.get("predictive_score", 0.0))
+            + 0.22 * breadth_score
+            + 0.20 * stability_score
+            + 0.15 * execution_score
+            + 0.10 * option_score
+            + 0.05 * alpha_score
+        ),
+        6,
+    )
+
+    gates = {
+        "predictive_score": bool(float(overview.get("predictive_score", 0.0)) >= 0.58),
+        "movement_breadth": bool(movement_summary["pass_rate"] >= 0.40),
+        "regime_breadth": bool(regime_summary["pass_rate"] >= 0.50),
+        "strategy_breadth": bool(strategy_summary["pass_rate"] >= 0.40),
+        "execution_quality": bool(avg_quote_error <= 0.08),
+        "option_quality": bool(option_win_rate >= 0.52),
+    }
+
+    if institutional_score >= 0.70 and all(gates.values()):
+        deployment_tier = "institutional_candidate"
+    elif institutional_score >= 0.58 and sum(1 for value in gates.values() if value) >= 4:
+        deployment_tier = "paper_candidate"
+    else:
+        deployment_tier = "research_only"
+
+    return {
+        "institutional_score": institutional_score,
+        "deployment_tier": deployment_tier,
+        "breadth_score": round(breadth_score, 6),
+        "stability_score": round(stability_score, 6),
+        "execution_quality_score": round(execution_score, 6),
+        "option_quality_score": round(option_score, 6),
+        "alpha_quality_score": round(alpha_score, 6),
+        "gates": gates,
+        "windows": {
+            "movement": movement_summary,
+            "pairs": pairs_summary,
+            "regime": regime_summary,
+            "strategy_proxy": strategy_summary,
+        },
+        "note": "Institutional robustness score emphasizes breadth, stability, and execution realism. It is a deployment filter, not a profit guarantee.",
+    }
 
 
 def run_movement_job(symbol: str, lookback: str, target_accuracy: float, target_daily_return: float) -> dict:
@@ -696,7 +835,14 @@ def _load_vectorbt_module():
 
 
 def _download_intraday_close(symbols: list[str], period: str = "60d", interval: str = "15m") -> pd.DataFrame:
-    raw = yf.download(symbols, period=period, interval=interval, auto_adjust=True, progress=False)
+    canonical_symbols = [str(symbol).strip().upper() for symbol in symbols if str(symbol).strip()]
+    if not canonical_symbols:
+        return pd.DataFrame()
+
+    resolved_to_canonical = {resolve_download_symbol(symbol): symbol for symbol in canonical_symbols}
+    requested = list(resolved_to_canonical.keys())
+
+    raw = yf.download(requested, period=period, interval=interval, auto_adjust=True, progress=False)
     if raw is None or raw.empty:
         return pd.DataFrame()
     if isinstance(raw.columns, pd.MultiIndex):
@@ -705,8 +851,10 @@ def _download_intraday_close(symbols: list[str], period: str = "60d", interval: 
         else:
             close = raw.xs("Close", axis=1, level=0, drop_level=True)
     else:
-        close = raw[["Close"]].rename(columns={"Close": symbols[0]})
-    return close.ffill().dropna(how="all")
+        close = raw[["Close"]].rename(columns={"Close": requested[0]})
+
+    close = close.rename(columns=resolved_to_canonical)
+    return close.reindex(columns=[symbol for symbol in canonical_symbols if symbol in close.columns]).ffill().dropna(how="all")
 
 
 def _target_delta_strike(flag: str, spot: float, volatility: float, years_to_expiry: float, risk_free_rate: float) -> float:
@@ -1176,6 +1324,9 @@ def main():
         },
         "note": "Proxy framework focuses on predictive quality. Delay quote analysis and option model suite are theoretical options studies, not full broker-fill backtests.",
     }
+    report["institutional_robustness"] = _build_institutional_robustness(report)
+    report["massive_overview"]["institutional_score"] = report["institutional_robustness"]["institutional_score"]
+    report["massive_overview"]["deployment_tier"] = report["institutional_robustness"]["deployment_tier"]
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

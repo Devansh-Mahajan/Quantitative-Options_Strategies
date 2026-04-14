@@ -1,6 +1,7 @@
 {
-  "timestamp_utc": "2026-04-14T23:00:54.183340+00:00",
+  "saved_at_utc": "2026-04-14T23:00:54.183395+00:00",
   "mode": "weekend-calibrate",
+  "horizon_days": 5,
   "symbols": [
     "WMT",
     "AMZN",
@@ -42,69 +43,7 @@
     "MS",
     "TGT"
   ],
-  "samples": 97032,
-  "summary": {
-    "ensemble_accuracy": 0.523736853936414,
-    "estimated_strategy_daily_return": 0.00052569564257345,
-    "estimated_strategy_annual_return": 0.1424170612668762,
-    "champion_score": 0.631295,
-    "robustness_score": 0.953355970092773,
-    "walk_forward_accuracy": 0.5401195018801158,
-    "walk_forward_daily_return_proxy": 0.00039818155600654875,
-    "generalization_gap": 0.0466440299072271,
-    "meets_accuracy_target": false,
-    "meets_daily_return_target": false,
-    "targets": {
-      "target_accuracy": 0.56,
-      "target_daily_return": 0.002
-    },
-    "note": "Champion selected with walk-forward stability, return-proxy, and anti-overfit penalties. Targets remain optimization objectives, not guarantees."
-  },
-  "model_details": {
-    "logreg": {
-      "accuracy": 0.5216674395836554,
-      "log_loss": 0.6935797269789523,
-      "n_test": 19407,
-      "train_accuracy": 0.5542673107890499,
-      "train_log_loss": 0.6857363135907293,
-      "generalization_gap": 0.03259987120539454,
-      "daily_return_proxy": 0.0004850208595764588,
-      "annualized_return_proxy": 0.129841425304958,
-      "cumulative_return_proxy": 2.7519155948390833e+20,
-      "sharpe_proxy": 0.29272944500750414,
-      "win_rate": 0.5139897974957489,
-      "evaluation_mode": "holdout"
-    },
-    "rf": {
-      "accuracy": 0.5262018859174524,
-      "log_loss": 0.6921237677167634,
-      "n_test": 19407,
-      "train_accuracy": 0.55885346215781,
-      "train_log_loss": 0.6849346673434448,
-      "generalization_gap": 0.03265157624035753,
-      "daily_return_proxy": 0.0007410746475481967,
-      "annualized_return_proxy": 0.20491096080963755,
-      "cumulative_return_proxy": 1.6990011881689627e+31,
-      "sharpe_proxy": 0.44790936392244385,
-      "win_rate": 0.5184727160302983,
-      "evaluation_mode": "holdout"
-    },
-    "mlp": {
-      "accuracy": 0.5233163291595816,
-      "log_loss": 0.7277076002911164,
-      "n_test": 19407,
-      "train_accuracy": 0.5994074074074074,
-      "train_log_loss": 0.6583448390562201,
-      "generalization_gap": 0.0760910782478258,
-      "daily_return_proxy": 0.000341919660760616,
-      "annualized_return_proxy": 0.08990461762305135,
-      "cumulative_return_proxy": 256506284677627.56,
-      "sharpe_proxy": 0.2062398738444873,
-      "win_rate": 0.513319936105529,
-      "evaluation_mode": "holdout"
-    }
-  },
-  "model_params_used": {
+  "model_params": {
     "logreg": {
       "max_iter": 400,
       "solver": "lbfgs",
@@ -129,6 +68,20 @@
       "alpha": 0.0014580000000000003
     }
   },
+  "training_summary": {
+    "ensemble_accuracy": 0.523736853936414,
+    "ensemble_weights": {
+      "logreg": 0.33838590549845526,
+      "rf": 0.33909773785602615,
+      "mlp": 0.3225163566455186
+    },
+    "ensemble_daily_return_proxy": 0.00052569564257345,
+    "robustness_score": 0.953355970092773,
+    "champion_score": 0.631295,
+    "selected_candidate_label": "stability_bias"
+  },
+  "selection_method": "walk_forward_champion_challenger",
+  "candidate_count": 4,
   "candidate_leaderboard": [
     {
       "label": "stability_bias",
@@ -249,48 +202,7 @@
           "alpha": 0.0010800000000000002
         }
       }
-    },
-    {
-      "label": "defaults",
-      "score": 0.606759,
-      "ensemble_accuracy": 0.533059383700585,
-      "ensemble_log_loss": 0.6950330198210268,
-      "ensemble_daily_return_proxy": 0.00031471153712382465,
-      "ensemble_annualized_return_proxy": 0.08968620686963183,
-      "ensemble_sharpe_proxy": 0.2760425792859762,
-      "ensemble_win_rate": 0.5265020368151636,
-      "robustness_score": 0.8412518777211812,
-      "generalization_gap": 0.07671183626061105,
-      "selection_rows": 12000,
-      "walk_forward_folds": 3,
-      "model_errors": {},
-      "model_params": {
-        "logreg": {
-          "max_iter": 400,
-          "solver": "lbfgs",
-          "random_state": 42,
-          "C": 1.0
-        },
-        "rf": {
-          "n_estimators": 220,
-          "max_depth": 8,
-          "min_samples_leaf": 10,
-          "random_state": 42,
-          "n_jobs": -1
-        },
-        "mlp": {
-          "hidden_layer_sizes": [
-            64,
-            32
-          ],
-          "learning_rate_init": 0.0008,
-          "max_iter": 260,
-          "random_state": 42,
-          "alpha": 0.0008
-        }
-      }
     }
   ],
-  "selection_method": "walk_forward_champion_challenger",
-  "selected_candidate_label": "stability_bias"
+  "note": "Last successful foundry model parameters for warm-start and overfitting control."
 }

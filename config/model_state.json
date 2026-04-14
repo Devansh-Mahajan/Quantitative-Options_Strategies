@@ -33,8 +33,8 @@
     "note": "Weekend recalibration prepares the stack automatically, but targets remain optimization objectives, not guarantees."
   },
   "quant_research_foundry": {
-    "timestamp_utc": "2026-04-14T20:20:11.275361+00:00",
-    "mode": "zero-calibration",
+    "timestamp_utc": "2026-04-14T23:00:54.185341+00:00",
+    "mode": "weekend-calibrate",
     "pack_path": "config/quant_strategy_pack.json",
     "report_path": "reports/quant_foundry_report.json",
     "symbols": [
@@ -72,7 +72,11 @@
       "WFC",
       "VLO",
       "CMCSA",
-      "T"
+      "T",
+      "FMCC",
+      "HUM",
+      "MS",
+      "TGT"
     ],
     "note": "Research pack for fine-tuning and staged paper-trading rollout."
   }

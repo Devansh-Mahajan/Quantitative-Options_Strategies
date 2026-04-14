@@ -253,6 +253,9 @@ def _build_readiness_snapshot(
     movement_summary = (backtest_report.get("movement_suite") or {}).get("summary", {})
     foundry_summary = foundry_report.get("summary") or {}
     predictive_score = float((backtest_report.get("massive_overview") or {}).get("predictive_score", 0.0))
+    institutional = backtest_report.get("institutional_robustness") or {}
+    institutional_score = float(institutional.get("institutional_score", predictive_score))
+    deployment_tier = str(institutional.get("deployment_tier", "research_only"))
     consensus_strategy_profile = (backtest_report.get("massive_overview") or {}).get("consensus_strategy_profile")
     consensus_market_state = (backtest_report.get("massive_overview") or {}).get("consensus_market_state")
     avg_accuracy = float(movement_summary.get("avg_accuracy", 0.0))
@@ -263,6 +266,7 @@ def _build_readiness_snapshot(
         [
             len(symbols_after) >= 25,
             predictive_score >= max(0.50, args.target_accuracy - 0.06),
+            institutional_score >= 0.58,
             avg_accuracy >= max(0.50, args.target_accuracy - 0.04),
             foundry_accuracy_ok or not foundry_enabled,
             foundry_return_ok or not foundry_enabled,
@@ -292,6 +296,8 @@ def _build_readiness_snapshot(
         },
         "predictive_summary": {
             "predictive_score": predictive_score,
+            "institutional_score": institutional_score,
+            "deployment_tier": deployment_tier,
             "movement_avg_accuracy": avg_accuracy,
             "consensus_strategy_profile": consensus_strategy_profile,
             "consensus_market_state": consensus_market_state,

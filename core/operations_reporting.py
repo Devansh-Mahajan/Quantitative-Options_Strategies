@@ -27,6 +27,7 @@ def _safe_float(value, default: float = 0.0) -> float:
 
 def _backtest_summary_lines(payload: dict, *, title: str, generated_at: str, source_label: str) -> list[str]:
     overview = payload.get("massive_overview") or {}
+    robustness = payload.get("institutional_robustness") or {}
     movement = (payload.get("movement_suite") or {}).get("summary") or {}
     pairs = (payload.get("pairs_suite") or {}).get("summary") or {}
     regime = (payload.get("regime_suite") or {}).get("summary") or {}
@@ -39,6 +40,8 @@ def _backtest_summary_lines(payload: dict, *, title: str, generated_at: str, sou
         "",
         "## Executive Summary",
         f"- Predictive score: {overview.get('predictive_score', 'n/a')}",
+        f"- Institutional score: {robustness.get('institutional_score', overview.get('institutional_score', 'n/a'))}",
+        f"- Deployment tier: {robustness.get('deployment_tier', overview.get('deployment_tier', 'n/a'))}",
         f"- Consensus market state: {profiles.get('consensus_state') or overview.get('consensus_market_state', 'n/a')}",
         f"- Consensus strategy profile: {profiles.get('consensus_profile') or overview.get('consensus_strategy_profile', 'n/a')}",
         "",
@@ -47,6 +50,7 @@ def _backtest_summary_lines(payload: dict, *, title: str, generated_at: str, sou
         f"- Pairs win-rate: {pairs.get('win_rate', 'n/a')}",
         f"- Regime directional score: {regime.get('directional_accuracy_proxy', 'n/a')}",
         f"- Strategy profile score: {profiles.get('avg_best_profile_score', 'n/a')}",
+        f"- Breadth / stability: {robustness.get('breadth_score', 'n/a')} / {robustness.get('stability_score', 'n/a')}",
         "",
         "## Note",
         "- This report summarizes predictive/backtest diagnostics. It is not a guarantee of future trading performance.",

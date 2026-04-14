@@ -1,0 +1,4577 @@
+{
+  "generated_at_utc": "2026-04-14T22:51:33.200181+00:00",
+  "config": {
+    "symbols": [
+      "WMT",
+      "AMZN",
+      "AAPL",
+      "UNH",
+      "CVS",
+      "BRK.B",
+      "GOOGL",
+      "XOM"
+    ],
+    "lookbacks": [
+      "10y",
+      "5y",
+      "3y",
+      "1y",
+      "6mo",
+      "3mo",
+      "ytd"
+    ],
+    "target_daily_return": 0.002,
+    "target_accuracy": 0.56,
+    "pairs_entry_z": 1.5,
+    "pairs_exit_z": 0.5,
+    "horizon_days": 5
+  },
+  "movement_suite": {
+    "results": [
+      {
+        "symbol": "AAPL",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5185676392572944,
+        "hit_ratio": 0.9190981432360743,
+        "strategy_return": -0.9353686020038602,
+        "buy_hold_return": 0.6329585599274656,
+        "strategy_daily_return": -0.010810408640475333,
+        "buy_hold_daily_return": 0.0019479004003668532,
+        "alpha_daily": -0.012758309040842186,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.48,
+        "hit_ratio": 0.9333333333333333,
+        "strategy_return": 0.13831413053086083,
+        "buy_hold_return": -0.04878768204340145,
+        "strategy_daily_return": 0.0005142128565160942,
+        "buy_hold_daily_return": -0.00019846436594916916,
+        "alpha_daily": 0.0007126772224652633,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.47368421052631576,
+        "hit_ratio": 0.0,
+        "strategy_return": -0.017772248515889544,
+        "buy_hold_return": 0.01809381631605933,
+        "strategy_daily_return": -7.115648160460619e-05,
+        "buy_hold_daily_return": 7.1161545209808e-05,
+        "alpha_daily": -0.0001423180268144142,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.504424778761062,
+        "hit_ratio": 0.8628318584070797,
+        "strategy_return": 1.5086213414987393,
+        "buy_hold_return": 0.24349865194096676,
+        "strategy_daily_return": 0.003656403854567669,
+        "buy_hold_daily_return": 0.0008651712678566792,
+        "alpha_daily": 0.00279123258671099,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5358090185676393,
+        "hit_ratio": 0.843501326259947,
+        "strategy_return": 0.4176111066645656,
+        "buy_hold_return": 0.13501019741772424,
+        "strategy_daily_return": 0.0013857733281699147,
+        "buy_hold_daily_return": 0.0005026724697136942,
+        "alpha_daily": 0.0008831008584562205,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.5,
+        "hit_ratio": 1.0,
+        "strategy_return": -0.020881480627196747,
+        "buy_hold_return": -0.020881480627196747,
+        "strategy_daily_return": -8.373689907315018e-05,
+        "buy_hold_daily_return": -8.373689907315018e-05,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AAPL",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.5238095238095238,
+        "hit_ratio": 0.047619047619047616,
+        "strategy_return": -0.012675582185951662,
+        "buy_hold_return": 0.034823251339811456,
+        "strategy_daily_return": -5.062015828538602e-05,
+        "buy_hold_daily_return": 0.0001358451010380346,
+        "alpha_daily": -0.00018646525932342062,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5437665782493368,
+        "hit_ratio": 0.9084880636604774,
+        "strategy_return": 3.4858004803667377,
+        "buy_hold_return": 1.492193843432791,
+        "strategy_daily_return": 0.0059737920305869,
+        "buy_hold_daily_return": 0.0036302376317174367,
+        "alpha_daily": 0.002343554398869463,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.5333333333333333,
+        "hit_ratio": 0.92,
+        "strategy_return": 0.035452008686437386,
+        "buy_hold_return": 0.07271476232960339,
+        "strategy_daily_return": 0.00013825580546100724,
+        "buy_hold_daily_return": 0.0002785808455263439,
+        "alpha_daily": -0.00014032504006533664,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.47368421052631576,
+        "hit_ratio": 0.7368421052631579,
+        "strategy_return": -0.14725921540601372,
+        "buy_hold_return": 0.15715617009210692,
+        "strategy_daily_return": -0.0006319417661682092,
+        "buy_hold_daily_return": 0.0005793956323623117,
+        "alpha_daily": -0.001211337398530521,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5442477876106194,
+        "hit_ratio": 0.7787610619469026,
+        "strategy_return": -0.43804133900191033,
+        "buy_hold_return": 0.2078967784682333,
+        "strategy_daily_return": -0.002284398640976515,
+        "buy_hold_daily_return": 0.0007498073443503728,
+        "alpha_daily": -0.0030342059853268877,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5358090185676393,
+        "hit_ratio": 0.596816976127321,
+        "strategy_return": 16.329501513178478,
+        "buy_hold_return": 0.34481831146998476,
+        "strategy_daily_return": 0.011383391919555619,
+        "buy_hold_daily_return": 0.0011763219575966488,
+        "alpha_daily": 0.01020706996195897,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.6052631578947368,
+        "hit_ratio": 1.0,
+        "strategy_return": 0.21597740337112104,
+        "buy_hold_return": 0.21597740337112104,
+        "strategy_daily_return": 0.0007762860772768665,
+        "buy_hold_daily_return": 0.0007762860772768665,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "AMZN",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.47619047619047616,
+        "hit_ratio": 0.7619047619047619,
+        "strategy_return": -0.1163393082279649,
+        "buy_hold_return": 0.19911401005491558,
+        "strategy_daily_return": -0.0004906816512219025,
+        "buy_hold_daily_return": 0.0007208269691709734,
+        "alpha_daily": -0.001211508620392876,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5397877984084881,
+        "hit_ratio": 0.9522546419098143,
+        "strategy_return": -0.1594752542296518,
+        "buy_hold_return": 0.5222824034503426,
+        "strategy_daily_return": -0.0006891627548590851,
+        "buy_hold_daily_return": 0.0016688941906859434,
+        "alpha_daily": -0.0023580569455450284,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.41333333333333333,
+        "hit_ratio": 0.8266666666666667,
+        "strategy_return": -0.2510132205182536,
+        "buy_hold_return": -0.04589319049075502,
+        "strategy_daily_return": -0.0011463025978706298,
+        "buy_hold_daily_return": -0.00018640982252782212,
+        "alpha_daily": -0.0009598927753428077,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.42105263157894735,
+        "hit_ratio": 0.3684210526315789,
+        "strategy_return": -0.035429775742627734,
+        "buy_hold_return": -0.03053306759781893,
+        "strategy_daily_return": -0.0001431351532449332,
+        "buy_hold_daily_return": -0.00012304367065552047,
+        "alpha_daily": -2.0091482589412735e-05,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5132743362831859,
+        "hit_ratio": 0.7876106194690266,
+        "strategy_return": 0.4182084845676952,
+        "buy_hold_return": -0.06801460822265959,
+        "strategy_daily_return": 0.0013874475068114123,
+        "buy_hold_daily_return": -0.00027947736145617075,
+        "alpha_daily": 0.001666924868267583,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5145888594164456,
+        "hit_ratio": 0.6657824933687002,
+        "strategy_return": 2.3457667704182765,
+        "buy_hold_return": 0.047466582448232764,
+        "strategy_daily_return": 0.00480394615927926,
+        "buy_hold_daily_return": 0.00018404260879445467,
+        "alpha_daily": 0.004619903550484805,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.42105263157894735,
+        "hit_ratio": 0.9210526315789473,
+        "strategy_return": -0.07213867213069836,
+        "buy_hold_return": -0.043140237768907186,
+        "strategy_daily_return": -0.0002970708995772009,
+        "buy_hold_daily_return": -0.0001749784879329086,
+        "alpha_daily": -0.0001220924116442923,
+        "meets_targets": false
+      },
+      {
+        "symbol": "BRK.B",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.42857142857142855,
+        "hit_ratio": 0.3333333333333333,
+        "strategy_return": -0.04042316232829357,
+        "buy_hold_return": -0.025488215549024695,
+        "strategy_daily_return": -0.00016372820535393018,
+        "buy_hold_daily_return": -0.00010244978059059662,
+        "alpha_daily": -6.127842476333356e-05,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.4920424403183024,
+        "hit_ratio": 0.6525198938992043,
+        "strategy_return": -0.7797326990349691,
+        "buy_hold_return": 0.14251419606715854,
+        "strategy_daily_return": -0.005985639119608588,
+        "buy_hold_daily_return": 0.0005288352966086318,
+        "alpha_daily": -0.00651447441621722,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.5333333333333333,
+        "hit_ratio": 0.76,
+        "strategy_return": -0.009263469907251687,
+        "buy_hold_return": 0.002801569107375501,
+        "strategy_daily_return": -3.6930439765603396e-05,
+        "buy_hold_daily_return": 1.110185538277797e-05,
+        "alpha_daily": -4.8032295148381365e-05,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.47368421052631576,
+        "hit_ratio": 0.6842105263157895,
+        "strategy_return": -0.07522173818176836,
+        "buy_hold_return": 0.037561893860341256,
+        "strategy_daily_return": -0.0003102744230261134,
+        "buy_hold_daily_return": 0.00014633462680424536,
+        "alpha_daily": -0.00045660904983035877,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5132743362831859,
+        "hit_ratio": 0.7079646017699115,
+        "strategy_return": 1.5110399739689067,
+        "buy_hold_return": 0.2704505132815096,
+        "strategy_daily_return": 0.003660241906459305,
+        "buy_hold_daily_return": 0.0009503384779174784,
+        "alpha_daily": 0.0027099034285418266,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5092838196286472,
+        "hit_ratio": 0.6339522546419099,
+        "strategy_return": 12.735347822942646,
+        "buy_hold_return": 0.25079024158753005,
+        "strategy_daily_return": 0.010450950485741961,
+        "buy_hold_daily_return": 0.0008883925809124449,
+        "alpha_daily": 0.009562557904829516,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.4473684210526316,
+        "hit_ratio": 0.868421052631579,
+        "strategy_return": -0.1208694786567196,
+        "buy_hold_return": -0.0016719903976589734,
+        "strategy_daily_return": -0.0005110673917987363,
+        "buy_hold_daily_return": -6.6404134031472495e-06,
+        "alpha_daily": -0.000504426978395589,
+        "meets_targets": false
+      },
+      {
+        "symbol": "CVS",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.42857142857142855,
+        "hit_ratio": 0.7142857142857143,
+        "strategy_return": -0.09125624583210634,
+        "buy_hold_return": 0.019571857965582362,
+        "strategy_daily_return": -0.000379658558866236,
+        "buy_hold_daily_return": 7.69187997069487e-05,
+        "alpha_daily": -0.0004565773585731847,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5464190981432361,
+        "hit_ratio": 0.7148541114058355,
+        "strategy_return": -0.7990915108236177,
+        "buy_hold_return": 2.1861557194599834,
+        "strategy_daily_return": -0.006348436602266139,
+        "buy_hold_daily_return": 0.004609061765436406,
+        "alpha_daily": -0.010957498367702545,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.48,
+        "hit_ratio": 1.0,
+        "strategy_return": 0.05978797041786588,
+        "buy_hold_return": 0.05978797041786588,
+        "strategy_daily_return": 0.00023045853644187986,
+        "buy_hold_daily_return": 0.00023045853644187986,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.47368421052631576,
+        "hit_ratio": 0.10526315789473684,
+        "strategy_return": -0.09663394371875145,
+        "buy_hold_return": 0.07072555411260484,
+        "strategy_daily_return": -0.0004032021436156663,
+        "buy_hold_daily_return": 0.00027121338531976846,
+        "alpha_daily": -0.0006744155289354348,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5353982300884956,
+        "hit_ratio": 0.8230088495575221,
+        "strategy_return": 0.05348505217461175,
+        "buy_hold_return": 1.0059108273227517,
+        "strategy_daily_return": 0.00020678235046411864,
+        "buy_hold_daily_return": 0.0027661132365621732,
+        "alpha_daily": -0.0025593308860980546,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5251989389920424,
+        "hit_ratio": 0.6949602122015915,
+        "strategy_return": 4.637904482366179,
+        "buy_hold_return": 1.0686542922443945,
+        "strategy_daily_return": 0.006886749994615693,
+        "buy_hold_daily_return": 0.002888681267910309,
+        "alpha_daily": 0.003998068726705384,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.6052631578947368,
+        "hit_ratio": 0.34210526315789475,
+        "strategy_return": 0.38134312694131123,
+        "buy_hold_return": 0.09829021321365916,
+        "strategy_daily_return": 0.0012827915432847004,
+        "buy_hold_daily_return": 0.0003721113548418309,
+        "alpha_daily": 0.0009106801884428695,
+        "meets_targets": false
+      },
+      {
+        "symbol": "GOOGL",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.6190476190476191,
+        "hit_ratio": 0.3333333333333333,
+        "strategy_return": 0.23128752669639074,
+        "buy_hold_return": 0.10132990937708852,
+        "strategy_daily_return": 0.0008259774061194491,
+        "buy_hold_daily_return": 0.0003830831118341038,
+        "alpha_daily": 0.0004428942942853453,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5291777188328912,
+        "hit_ratio": 0.8129973474801061,
+        "strategy_return": -0.9729948511498089,
+        "buy_hold_return": -0.36026350086502734,
+        "strategy_daily_return": -0.014230035091913229,
+        "buy_hold_daily_return": -0.0017710445587783008,
+        "alpha_daily": -0.012458990533134928,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.44,
+        "hit_ratio": 0.28,
+        "strategy_return": 0.8076123897096874,
+        "buy_hold_return": -0.025145862935333274,
+        "strategy_daily_return": 0.002351995153964337,
+        "buy_hold_daily_return": -0.00010105609264199344,
+        "alpha_daily": 0.0024530512466063303,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.3157894736842105,
+        "hit_ratio": 0.47368421052631576,
+        "strategy_return": -0.24147450167041185,
+        "buy_hold_return": 0.09256874652847524,
+        "strategy_daily_return": -0.0010961403225369093,
+        "buy_hold_daily_return": 0.000351377480085846,
+        "alpha_daily": -0.0014475178026227553,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5088495575221239,
+        "hit_ratio": 0.3185840707964602,
+        "strategy_return": 3.1732418917702105,
+        "buy_hold_return": 0.022664878418103385,
+        "strategy_daily_return": 0.0056855188856286265,
+        "buy_hold_daily_return": 8.893985262070636e-05,
+        "alpha_daily": 0.00559657903300792,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.506631299734748,
+        "hit_ratio": 0.8673740053050398,
+        "strategy_return": -0.4698740674420939,
+        "buy_hold_return": -0.4491482148349031,
+        "strategy_daily_return": -0.0025152468969735775,
+        "buy_hold_daily_return": -0.0023634308573934337,
+        "alpha_daily": -0.00015181603958014378,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.42105263157894735,
+        "hit_ratio": 0.4473684210526316,
+        "strategy_return": -0.2457730881081449,
+        "buy_hold_return": 0.09865577278391746,
+        "strategy_daily_return": -0.001118667523244743,
+        "buy_hold_daily_return": 0.0003734324378301679,
+        "alpha_daily": -0.0014920999610749108,
+        "meets_targets": false
+      },
+      {
+        "symbol": "UNH",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.2857142857142857,
+        "hit_ratio": 0.47619047619047616,
+        "strategy_return": -0.24504739737370262,
+        "buy_hold_return": 0.1137934932831357,
+        "strategy_daily_return": -0.001114855505702117,
+        "buy_hold_daily_return": 0.00042775713759257705,
+        "alpha_daily": -0.001542612643294694,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.5371352785145889,
+        "hit_ratio": 0.7944297082228117,
+        "strategy_return": -0.9245066611760024,
+        "buy_hold_return": 1.5876836735467084,
+        "strategy_daily_return": -0.010200439852487975,
+        "buy_hold_daily_return": 0.0037799958390458688,
+        "alpha_daily": -0.013980435691533843,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.6133333333333333,
+        "hit_ratio": 0.5733333333333334,
+        "strategy_return": 0.16048843189071627,
+        "buy_hold_return": 0.12990660351903993,
+        "strategy_daily_return": 0.0005908132649019571,
+        "buy_hold_daily_return": 0.0004847800772456168,
+        "alpha_daily": 0.00010603318765634029,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.47368421052631576,
+        "hit_ratio": 0.5263157894736842,
+        "strategy_return": 0.1548928548976447,
+        "buy_hold_return": 0.0018119408891033029,
+        "strategy_daily_return": 0.0005716219379852117,
+        "buy_hold_daily_return": 7.183761138174205e-06,
+        "alpha_daily": 0.0005644381768470375,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5088495575221239,
+        "hit_ratio": 0.7831858407079646,
+        "strategy_return": 0.22124511602145303,
+        "buy_hold_return": 0.2826675139237871,
+        "strategy_daily_return": 0.0007934532096625091,
+        "buy_hold_daily_return": 0.0009883528001515263,
+        "alpha_daily": -0.00019489959048901717,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5384615384615384,
+        "hit_ratio": 0.9098143236074271,
+        "strategy_return": 1.521091828920674,
+        "buy_hold_return": 0.5769449019258079,
+        "strategy_daily_return": 0.003676153526558368,
+        "buy_hold_daily_return": 0.0018091320036071057,
+        "alpha_daily": 0.0018670215229512621,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.5526315789473685,
+        "hit_ratio": 1.0,
+        "strategy_return": -0.010372443613966609,
+        "buy_hold_return": -0.010372443613966609,
+        "strategy_daily_return": -4.1374589711873355e-05,
+        "buy_hold_daily_return": -4.1374589711873355e-05,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "WMT",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.5714285714285714,
+        "hit_ratio": 1.0,
+        "strategy_return": -0.009590214429462618,
+        "buy_hold_return": -0.009590214429462618,
+        "strategy_daily_return": -3.823933504065735e-05,
+        "buy_hold_daily_return": -3.823933504065735e-05,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "10y",
+        "n_train": 1758,
+        "n_test": 754,
+        "accuracy": 0.4920424403183024,
+        "hit_ratio": 0.6458885941644562,
+        "strategy_return": -0.9910838055108088,
+        "buy_hold_return": 0.43293004707285454,
+        "strategy_daily_return": -0.018555395555722054,
+        "buy_hold_daily_return": 0.0014284849168915148,
+        "alpha_daily": -0.01998388047261357,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "1y",
+        "n_train": 175,
+        "n_test": 75,
+        "accuracy": 0.38666666666666666,
+        "hit_ratio": 0.09333333333333334,
+        "strategy_return": -0.2513839233578383,
+        "buy_hold_return": 0.25803676614630233,
+        "strategy_daily_return": -0.0011482648742304757,
+        "buy_hold_daily_return": 0.0009113371732243358,
+        "alpha_daily": -0.0020596020474548116,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "3mo",
+        "n_train": 43,
+        "n_test": 19,
+        "accuracy": 0.5789473684210527,
+        "hit_ratio": 0.9473684210526315,
+        "strategy_return": 0.04641105527921985,
+        "buy_hold_return": -0.06026063983722929,
+        "strategy_daily_return": 0.00018004107340696685,
+        "buy_hold_daily_return": -0.00024660735958315083,
+        "alpha_daily": 0.0004266484329901177,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "3y",
+        "n_train": 525,
+        "n_test": 226,
+        "accuracy": 0.5353982300884956,
+        "hit_ratio": 0.6283185840707964,
+        "strategy_return": 3.2674130833666153,
+        "buy_hold_return": 0.43663941354588065,
+        "strategy_daily_return": 0.0057745764510079844,
+        "buy_hold_daily_return": 0.001438758805803797,
+        "alpha_daily": 0.0043358176452041874,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "5y",
+        "n_train": 877,
+        "n_test": 377,
+        "accuracy": 0.5278514588859416,
+        "hit_ratio": 0.7586206896551724,
+        "strategy_return": 2.979769782523243,
+        "buy_hold_return": 0.2861689073973772,
+        "strategy_daily_return": 0.0054960959380960794,
+        "buy_hold_daily_return": 0.0009991812319336546,
+        "alpha_daily": 0.004496914706162425,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "6mo",
+        "n_train": 86,
+        "n_test": 38,
+        "accuracy": 0.5263157894736842,
+        "hit_ratio": 1.0,
+        "strategy_return": -0.009556591801246128,
+        "buy_hold_return": -0.009556591801246128,
+        "strategy_daily_return": -3.810462739517462e-05,
+        "buy_hold_daily_return": -3.810462739517462e-05,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      },
+      {
+        "symbol": "XOM",
+        "lookback": "ytd",
+        "n_train": 49,
+        "n_test": 21,
+        "accuracy": 0.5238095238095238,
+        "hit_ratio": 1.0,
+        "strategy_return": -0.04406860004613211,
+        "buy_hold_return": -0.04406860004613211,
+        "strategy_daily_return": -0.0001788297456570831,
+        "buy_hold_daily_return": -0.0001788297456570831,
+        "alpha_daily": 0.0,
+        "meets_targets": false
+      }
+    ],
+    "summary": {
+      "total_runs": 56,
+      "valid_runs": 56,
+      "hit_rate": 0.0,
+      "avg_accuracy": 0.5010105448274299,
+      "avg_strategy_daily_return": -4.3382415101963266e-05,
+      "avg_alpha_daily": -0.0006606076630792161,
+      "by_lookback": {
+        "10y": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.524867374005305,
+          "avg_strategy_daily_return": -0.007605715698343188,
+          "avg_alpha_daily": -0.009583511383589982,
+          "hit_rate": 0.0
+        },
+        "5y": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.5242042440318302,
+          "avg_strategy_daily_return": 0.005195976806880415,
+          "avg_alpha_daily": 0.004435352648996055,
+          "hit_rate": 0.0
+        },
+        "3y": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.5204646017699115,
+          "avg_strategy_daily_return": 0.0023600031904531388,
+          "avg_alpha_daily": 0.0014140026374773185,
+          "hit_rate": 0.0
+        },
+        "1y": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.485,
+          "avg_strategy_daily_return": 0.00018677971317732078,
+          "avg_alpha_daily": 7.988687339574585e-06,
+          "hit_rate": 0.0
+        },
+        "6mo": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.5098684210526315,
+          "avg_strategy_daily_return": -3.868038779913929e-06,
+          "avg_alpha_daily": -0.00015099239533399034,
+          "hit_rate": 0.0
+        },
+        "3mo": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.4605263157894737,
+          "avg_strategy_daily_return": -0.00023802340985053239,
+          "avg_alpha_daily": -0.0003701503349357177,
+          "hit_rate": 0.0
+        },
+        "ytd": {
+          "valid_runs": 8,
+          "avg_accuracy": 0.48214285714285715,
+          "avg_strategy_daily_return": -0.00019882946925098288,
+          "avg_alpha_daily": -0.00037694350150777045,
+          "hit_rate": 0.0
+        }
+      }
+    }
+  },
+  "pairs_suite": {
+    "results_by_lookback": {
+      "10y": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "5y": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "3y": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "1y": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "6mo": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "3mo": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "ytd": {
+        "pair_results": [],
+        "summary": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      }
+    },
+    "summary": {
+      "by_lookback": {
+        "10y": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "5y": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "3y": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "1y": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "6mo": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "3mo": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        },
+        "ytd": {
+          "pairs_evaluated": 0,
+          "signals": 0,
+          "win_rate": 0.0,
+          "avg_trade_return": 0.0,
+          "top_pairs": []
+        }
+      },
+      "win_rate": 0.0,
+      "avg_trade_return": 0.0,
+      "valid_windows": 7
+    }
+  },
+  "regime_suite": {
+    "results_by_lookback": {
+      "10y": {
+        "summary": {
+          "n_samples": 2510,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 0,
+              "state_label": "GOLDILOCKS",
+              "samples": 461,
+              "avg_spy_forward_return": 0.002945980517773102,
+              "downside_prob": 0.34273318872017355,
+              "avg_vix_forward_change": 0.021801685554462984
+            },
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 1025,
+              "avg_spy_forward_return": 0.002225837425113761,
+              "downside_prob": 0.3746341463414634,
+              "avg_vix_forward_change": 0.0035666765567832076
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 1024,
+              "avg_spy_forward_return": 0.003029417392617431,
+              "downside_prob": 0.408243375858685,
+              "avg_vix_forward_change": -0.011629971631210207
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5149700598802395
+        }
+      },
+      "5y": {
+        "summary": {
+          "n_samples": 1255,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 0,
+              "state_label": "GOLDILOCKS",
+              "samples": 148,
+              "avg_spy_forward_return": 0.003060384680905892,
+              "downside_prob": 0.35135135135135137,
+              "avg_vix_forward_change": 0.021531370667124294
+            },
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 373,
+              "avg_spy_forward_return": 0.002627951032013574,
+              "downside_prob": 0.38337801608579086,
+              "avg_vix_forward_change": 0.0062976777977957
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 734,
+              "avg_spy_forward_return": 0.0019160367631695075,
+              "downside_prob": 0.4252400548696845,
+              "avg_vix_forward_change": -0.006772891965590515
+            }
+          ],
+          "risk_off_state_inferred": 2,
+          "directional_accuracy_proxy": 0.5088
+        }
+      },
+      "3y": {
+        "summary": {
+          "n_samples": 751,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 326,
+              "avg_spy_forward_return": 0.003027446643228104,
+              "downside_prob": 0.37116564417177916,
+              "avg_vix_forward_change": 0.007011892766873962
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 425,
+              "avg_spy_forward_return": 0.004091076297302747,
+              "downside_prob": 0.38095238095238093,
+              "avg_vix_forward_change": -0.0037364012088403303
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5107238605898123
+        }
+      },
+      "1y": {
+        "summary": {
+          "n_samples": 251,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 129,
+              "avg_spy_forward_return": 0.004447567893434155,
+              "downside_prob": 0.3875968992248062,
+              "avg_vix_forward_change": -0.013592588995985862
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 122,
+              "avg_spy_forward_return": 0.006556272773311699,
+              "downside_prob": 0.3418803418803419,
+              "avg_vix_forward_change": -0.0055087440769077236
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.516260162601626
+        }
+      },
+      "6mo": {
+        "summary": {
+          "n_samples": 125,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 64,
+              "avg_spy_forward_return": -0.000599347806497542,
+              "downside_prob": 0.484375,
+              "avg_vix_forward_change": 0.004286157060580175
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 61,
+              "avg_spy_forward_return": 0.003632533989835211,
+              "downside_prob": 0.44642857142857145,
+              "avg_vix_forward_change": -0.011991604901877844
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5166666666666667
+        }
+      },
+      "3mo": {
+        "error": "insufficient_macro_features",
+        "summary": {
+          "n_samples": 63
+        }
+      },
+      "ytd": {
+        "error": "insufficient_macro_features",
+        "summary": {
+          "n_samples": 70
+        }
+      }
+    },
+    "summary": {
+      "by_lookback": {
+        "10y": {
+          "n_samples": 2510,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 0,
+              "state_label": "GOLDILOCKS",
+              "samples": 461,
+              "avg_spy_forward_return": 0.002945980517773102,
+              "downside_prob": 0.34273318872017355,
+              "avg_vix_forward_change": 0.021801685554462984
+            },
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 1025,
+              "avg_spy_forward_return": 0.002225837425113761,
+              "downside_prob": 0.3746341463414634,
+              "avg_vix_forward_change": 0.0035666765567832076
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 1024,
+              "avg_spy_forward_return": 0.003029417392617431,
+              "downside_prob": 0.408243375858685,
+              "avg_vix_forward_change": -0.011629971631210207
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5149700598802395
+        },
+        "5y": {
+          "n_samples": 1255,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 0,
+              "state_label": "GOLDILOCKS",
+              "samples": 148,
+              "avg_spy_forward_return": 0.003060384680905892,
+              "downside_prob": 0.35135135135135137,
+              "avg_vix_forward_change": 0.021531370667124294
+            },
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 373,
+              "avg_spy_forward_return": 0.002627951032013574,
+              "downside_prob": 0.38337801608579086,
+              "avg_vix_forward_change": 0.0062976777977957
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 734,
+              "avg_spy_forward_return": 0.0019160367631695075,
+              "downside_prob": 0.4252400548696845,
+              "avg_vix_forward_change": -0.006772891965590515
+            }
+          ],
+          "risk_off_state_inferred": 2,
+          "directional_accuracy_proxy": 0.5088
+        },
+        "3y": {
+          "n_samples": 751,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 326,
+              "avg_spy_forward_return": 0.003027446643228104,
+              "downside_prob": 0.37116564417177916,
+              "avg_vix_forward_change": 0.007011892766873962
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 425,
+              "avg_spy_forward_return": 0.004091076297302747,
+              "downside_prob": 0.38095238095238093,
+              "avg_vix_forward_change": -0.0037364012088403303
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5107238605898123
+        },
+        "1y": {
+          "n_samples": 251,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 129,
+              "avg_spy_forward_return": 0.004447567893434155,
+              "downside_prob": 0.3875968992248062,
+              "avg_vix_forward_change": -0.013592588995985862
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 122,
+              "avg_spy_forward_return": 0.006556272773311699,
+              "downside_prob": 0.3418803418803419,
+              "avg_vix_forward_change": -0.0055087440769077236
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.516260162601626
+        },
+        "6mo": {
+          "n_samples": 125,
+          "horizon_days": 5,
+          "state_breakdown": [
+            {
+              "state_id": 1,
+              "state_label": "TRANSITION",
+              "samples": 64,
+              "avg_spy_forward_return": -0.000599347806497542,
+              "downside_prob": 0.484375,
+              "avg_vix_forward_change": 0.004286157060580175
+            },
+            {
+              "state_id": 2,
+              "state_label": "RISK_OFF",
+              "samples": 61,
+              "avg_spy_forward_return": 0.003632533989835211,
+              "downside_prob": 0.44642857142857145,
+              "avg_vix_forward_change": -0.011991604901877844
+            }
+          ],
+          "risk_off_state_inferred": 1,
+          "directional_accuracy_proxy": 0.5166666666666667
+        },
+        "3mo": {
+          "n_samples": 63
+        },
+        "ytd": {
+          "n_samples": 70
+        }
+      },
+      "directional_accuracy_proxy": 0.5134841499476689,
+      "valid_windows": 5
+    }
+  },
+  "strategy_proxy_suite": {
+    "results_by_lookback": {
+      "10y": {
+        "summary": {
+          "samples": 2482,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 713,
+              "hit_rate": 0.5876577840112202,
+              "avg_proxy_return": 0.0012232680589430256
+            },
+            "BEAR": {
+              "samples": 319,
+              "hit_rate": 0.3824451410658307,
+              "avg_proxy_return": -0.006271402519555795
+            },
+            "THETA": {
+              "samples": 1277,
+              "hit_rate": 0.4142521534847298,
+              "avg_proxy_return": -0.005263922026051362
+            },
+            "VEGA": {
+              "samples": 173,
+              "hit_rate": 0.5144508670520231,
+              "avg_proxy_return": 0.0022526716272036284
+            }
+          },
+          "overall_hit_rate": 0.4669621273166801
+        }
+      },
+      "5y": {
+        "summary": {
+          "samples": 1225,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 313,
+              "hit_rate": 0.5303514376996805,
+              "avg_proxy_return": 0.0006943333456824444
+            },
+            "BEAR": {
+              "samples": 185,
+              "hit_rate": 0.42162162162162165,
+              "avg_proxy_return": -0.00523657759322663
+            },
+            "THETA": {
+              "samples": 622,
+              "hit_rate": 0.4292604501607717,
+              "avg_proxy_return": -0.006557674172652799
+            },
+            "VEGA": {
+              "samples": 105,
+              "hit_rate": 0.6190476190476191,
+              "avg_proxy_return": 0.009726310033585782
+            }
+          },
+          "overall_hit_rate": 0.47020408163265304
+        }
+      },
+      "3y": {
+        "summary": {
+          "samples": 721,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 195,
+              "hit_rate": 0.5384615384615384,
+              "avg_proxy_return": 0.00020226870234274266
+            },
+            "BEAR": {
+              "samples": 73,
+              "hit_rate": 0.410958904109589,
+              "avg_proxy_return": -0.006972010471298841
+            },
+            "THETA": {
+              "samples": 413,
+              "hit_rate": 0.42857142857142855,
+              "avg_proxy_return": -0.006284946111844114
+            },
+            "VEGA": {
+              "samples": 40,
+              "hit_rate": 0.775,
+              "avg_proxy_return": 0.024965534415451074
+            }
+          },
+          "overall_hit_rate": 0.47572815533980584
+        }
+      },
+      "1y": {
+        "error": "insufficient_proxy_samples",
+        "summary": {
+          "samples": 221
+        }
+      },
+      "6mo": {
+        "error": "insufficient_proxy_samples",
+        "summary": {
+          "samples": 95
+        }
+      },
+      "3mo": {
+        "error": "insufficient_proxy_samples",
+        "summary": {
+          "samples": 33
+        }
+      },
+      "ytd": {
+        "error": "insufficient_proxy_samples",
+        "summary": {
+          "samples": 40
+        }
+      }
+    },
+    "summary": {
+      "by_lookback": {
+        "10y": {
+          "samples": 2482,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 713,
+              "hit_rate": 0.5876577840112202,
+              "avg_proxy_return": 0.0012232680589430256
+            },
+            "BEAR": {
+              "samples": 319,
+              "hit_rate": 0.3824451410658307,
+              "avg_proxy_return": -0.006271402519555795
+            },
+            "THETA": {
+              "samples": 1277,
+              "hit_rate": 0.4142521534847298,
+              "avg_proxy_return": -0.005263922026051362
+            },
+            "VEGA": {
+              "samples": 173,
+              "hit_rate": 0.5144508670520231,
+              "avg_proxy_return": 0.0022526716272036284
+            }
+          },
+          "overall_hit_rate": 0.4669621273166801
+        },
+        "5y": {
+          "samples": 1225,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 313,
+              "hit_rate": 0.5303514376996805,
+              "avg_proxy_return": 0.0006943333456824444
+            },
+            "BEAR": {
+              "samples": 185,
+              "hit_rate": 0.42162162162162165,
+              "avg_proxy_return": -0.00523657759322663
+            },
+            "THETA": {
+              "samples": 622,
+              "hit_rate": 0.4292604501607717,
+              "avg_proxy_return": -0.006557674172652799
+            },
+            "VEGA": {
+              "samples": 105,
+              "hit_rate": 0.6190476190476191,
+              "avg_proxy_return": 0.009726310033585782
+            }
+          },
+          "overall_hit_rate": 0.47020408163265304
+        },
+        "3y": {
+          "samples": 721,
+          "horizon_days": 5,
+          "by_strategy": {
+            "BULL": {
+              "samples": 195,
+              "hit_rate": 0.5384615384615384,
+              "avg_proxy_return": 0.00020226870234274266
+            },
+            "BEAR": {
+              "samples": 73,
+              "hit_rate": 0.410958904109589,
+              "avg_proxy_return": -0.006972010471298841
+            },
+            "THETA": {
+              "samples": 413,
+              "hit_rate": 0.42857142857142855,
+              "avg_proxy_return": -0.006284946111844114
+            },
+            "VEGA": {
+              "samples": 40,
+              "hit_rate": 0.775,
+              "avg_proxy_return": 0.024965534415451074
+            }
+          },
+          "overall_hit_rate": 0.47572815533980584
+        },
+        "1y": {
+          "samples": 221
+        },
+        "6mo": {
+          "samples": 95
+        },
+        "3mo": {
+          "samples": 33
+        },
+        "ytd": {
+          "samples": 40
+        }
+      },
+      "overall_hit_rate": 0.47096478809637965,
+      "valid_windows": 3
+    }
+  },
+  "strategy_profile_suite": {
+    "results_by_lookback": {
+      "10y": {
+        "results_by_profile": {
+          "all_weather": {
+            "label": "All Weather",
+            "thesis": "Balanced deployment across premium capture, long volatility, and directional books.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.6152296535052377,
+              "avg_proxy_return": 0.005738137257635904,
+              "score": 0.6105,
+              "bucket_selection_share": {
+                "THETA": 0.1088,
+                "VEGA": 0.533,
+                "BULL": 0.2788,
+                "BEAR": 0.0794
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.6482683982683982,
+                  "avg_proxy_return": 0.00911006636354708,
+                  "score": 0.6546
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.4444444444444444,
+                  "avg_proxy_return": -0.005951806752421515,
+                  "score": 0.4238
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.5838150289017341,
+                  "avg_proxy_return": 0.000945767471998012,
+                  "score": 0.5571
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.8983957219251337,
+                  "avg_proxy_return": 0.021562432746686663,
+                  "score": 0.8943
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.9090909090909091,
+                  "avg_proxy_return": 0.03721024126301618,
+                  "score": 0.9455
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.7197452229299363,
+                  "avg_proxy_return": 0.011914421947231383,
+                  "score": 0.7176
+                }
+              }
+            }
+          },
+          "theta_harvest": {
+            "label": "Theta Harvest",
+            "thesis": "Lean into short premium when tape is orderly and realized volatility stays contained.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.43593875906526997,
+              "avg_proxy_return": -0.005615052461758052,
+              "score": 0.4211,
+              "bucket_selection_share": {
+                "THETA": 0.7599,
+                "VEGA": 0.0,
+                "BULL": 0.0633,
+                "BEAR": 0.1769
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.4145021645021645,
+                  "avg_proxy_return": -0.007497736989335187,
+                  "score": 0.3947
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.4444444444444444,
+                  "avg_proxy_return": -0.005951806752421515,
+                  "score": 0.4238
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.47832369942196534,
+                  "avg_proxy_return": -0.003068405247466221,
+                  "score": 0.4649
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.36363636363636365,
+                  "avg_proxy_return": -0.006801236801533733,
+                  "score": 0.3692
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.3090909090909091,
+                  "avg_proxy_return": -0.014924530080464371,
+                  "score": 0.278
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.5732484076433121,
+                  "avg_proxy_return": -8.417954445455064e-05,
+                  "score": 0.5433
+                }
+              }
+            }
+          },
+          "bull_trend": {
+            "label": "Bull Trend",
+            "thesis": "Favor bullish spreads when momentum is positive and panic risk is low.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.5709105560032232,
+              "avg_proxy_return": 0.001979175055672658,
+              "score": 0.5568,
+              "bucket_selection_share": {
+                "THETA": 0.1882,
+                "VEGA": 0.0975,
+                "BULL": 0.7143,
+                "BEAR": 0.0
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.5844155844155844,
+                  "avg_proxy_return": 0.0019214806739985078,
+                  "score": 0.5645
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.4444444444444444,
+                  "avg_proxy_return": -0.005951806752421515,
+                  "score": 0.4238
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.5838150289017341,
+                  "avg_proxy_return": 0.000945767471998012,
+                  "score": 0.5571
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.8983957219251337,
+                  "avg_proxy_return": 0.021562432746686663,
+                  "score": 0.8943
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.22842639593908629,
+                  "avg_proxy_return": -0.010031172216653964,
+                  "score": 0.2648
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.9090909090909091,
+                  "avg_proxy_return": 0.03721024126301618,
+                  "score": 0.9455
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.5732484076433121,
+                  "avg_proxy_return": -8.417954445455064e-05,
+                  "score": 0.5433
+                }
+              }
+            }
+          },
+          "bear_trend": {
+            "label": "Bear Trend",
+            "thesis": "Favor bearish spreads and protection when downside momentum builds.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.43029814665592264,
+              "avg_proxy_return": -0.0025975127383350903,
+              "score": 0.4395,
+              "bucket_selection_share": {
+                "THETA": 0.2788,
+                "VEGA": 0.0633,
+                "BULL": 0.0,
+                "BEAR": 0.6579
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.4155844155844156,
+                  "avg_proxy_return": -0.0019214806739985078,
+                  "score": 0.4355
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.3037037037037037,
+                  "avg_proxy_return": -0.00427294629327334,
+                  "score": 0.3515
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.47832369942196534,
+                  "avg_proxy_return": -0.003068405247466221,
+                  "score": 0.4649
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.36363636363636365,
+                  "avg_proxy_return": -0.006801236801533733,
+                  "score": 0.3692
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.3090909090909091,
+                  "avg_proxy_return": -0.014924530080464371,
+                  "score": 0.278
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.7197452229299363,
+                  "avg_proxy_return": 0.011914421947231383,
+                  "score": 0.7176
+                }
+              }
+            }
+          },
+          "long_vol_breakout": {
+            "label": "Long Vol Breakout",
+            "thesis": "Prefer convexity and breakout trades when volatility is rising fast.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.6426269137792103,
+              "avg_proxy_return": 0.006850419015225593,
+              "score": 0.6349,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.533,
+                "BULL": 0.3876,
+                "BEAR": 0.0794
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.6482683982683982,
+                  "avg_proxy_return": 0.00911006636354708,
+                  "score": 0.6546
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.6962962962962963,
+                  "avg_proxy_return": 0.00427294629327334,
+                  "score": 0.6485
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.5838150289017341,
+                  "avg_proxy_return": 0.000945767471998012,
+                  "score": 0.5571
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.8983957219251337,
+                  "avg_proxy_return": 0.021562432746686663,
+                  "score": 0.8943
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.9090909090909091,
+                  "avg_proxy_return": 0.03721024126301618,
+                  "score": 0.9455
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.7197452229299363,
+                  "avg_proxy_return": 0.011914421947231383,
+                  "score": 0.7176
+                }
+              }
+            }
+          },
+          "panic_hedge": {
+            "label": "Panic Hedge",
+            "thesis": "Shrink short premium, keep convexity on, and let defense dominate in panic regimes.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.6059629331184528,
+              "avg_proxy_return": 0.007524918393450136,
+              "score": 0.6178,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.8118,
+                "BULL": 0.0,
+                "BEAR": 0.1882
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.6482683982683982,
+                  "avg_proxy_return": 0.00911006636354708,
+                  "score": 0.6546
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.3037037037037037,
+                  "avg_proxy_return": -0.00427294629327334,
+                  "score": 0.3515
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.6054913294797688,
+                  "avg_proxy_return": 0.006699377956276792,
+                  "score": 0.6115
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.8983957219251337,
+                  "avg_proxy_return": 0.021562432746686663,
+                  "score": 0.8943
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.9090909090909091,
+                  "avg_proxy_return": 0.03721024126301618,
+                  "score": 0.9455
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.7197452229299363,
+                  "avg_proxy_return": 0.011914421947231383,
+                  "score": 0.7176
+                }
+              }
+            }
+          },
+          "mean_reversion": {
+            "label": "Mean Reversion",
+            "thesis": "Favor range capture and measured directional fades in choppy, non-trending tapes.",
+            "summary": {
+              "samples": 2482,
+              "hit_rate": 0.43593875906526997,
+              "avg_proxy_return": -0.005615052461758052,
+              "score": 0.4211,
+              "bucket_selection_share": {
+                "THETA": 0.7599,
+                "VEGA": 0.0,
+                "BULL": 0.0633,
+                "BEAR": 0.1769
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 924,
+                  "hit_rate": 0.4145021645021645,
+                  "avg_proxy_return": -0.007497736989335187,
+                  "score": 0.3947
+                },
+                "calm_range": {
+                  "samples": 270,
+                  "hit_rate": 0.4444444444444444,
+                  "avg_proxy_return": -0.005951806752421515,
+                  "score": 0.4238
+                },
+                "calm_bull": {
+                  "samples": 692,
+                  "hit_rate": 0.47832369942196534,
+                  "avg_proxy_return": -0.003068405247466221,
+                  "score": 0.4649
+                },
+                "volatile_bear": {
+                  "samples": 187,
+                  "hit_rate": 0.36363636363636365,
+                  "avg_proxy_return": -0.006801236801533733,
+                  "score": 0.3692
+                },
+                "calm_bear": {
+                  "samples": 197,
+                  "hit_rate": 0.37055837563451777,
+                  "avg_proxy_return": -0.005951423110383885,
+                  "score": 0.3795
+                },
+                "panic": {
+                  "samples": 55,
+                  "hit_rate": 0.3090909090909091,
+                  "avg_proxy_return": -0.014924530080464371,
+                  "score": 0.278
+                },
+                "volatile_bull": {
+                  "samples": 157,
+                  "hit_rate": 0.5732484076433121,
+                  "avg_proxy_return": -8.417954445455064e-05,
+                  "score": 0.5433
+                }
+              }
+            }
+          }
+        },
+        "summary": {
+          "samples": 2482,
+          "state_distribution": {
+            "calm_bear": 0.0794,
+            "calm_bull": 0.2788,
+            "calm_range": 0.1088,
+            "panic": 0.0222,
+            "transition": 0.3723,
+            "volatile_bear": 0.0753,
+            "volatile_bull": 0.0633
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6349,
+            "hit_rate": 0.6426269137792103,
+            "avg_proxy_return": 0.006850419015225593
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6546,
+              "hit_rate": 0.6482683982683982,
+              "avg_proxy_return": 0.00911006636354708,
+              "samples": 924
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6485,
+              "hit_rate": 0.6962962962962963,
+              "avg_proxy_return": 0.00427294629327334,
+              "samples": 270
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.6115,
+              "hit_rate": 0.6054913294797688,
+              "avg_proxy_return": 0.006699377956276792,
+              "samples": 692
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8943,
+              "hit_rate": 0.8983957219251337,
+              "avg_proxy_return": 0.021562432746686663,
+              "samples": 187
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.3795,
+              "hit_rate": 0.37055837563451777,
+              "avg_proxy_return": -0.005951423110383885,
+              "samples": 197
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 0.9455,
+              "hit_rate": 0.9090909090909091,
+              "avg_proxy_return": 0.03721024126301618,
+              "samples": 55
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 0.7176,
+              "hit_rate": 0.7197452229299363,
+              "avg_proxy_return": 0.011914421947231383,
+              "samples": 157
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 0.7176,
+            "hit_rate": 0.7197452229299363,
+            "avg_proxy_return": 0.011914421947231383,
+            "samples": 157
+          }
+        }
+      },
+      "5y": {
+        "results_by_profile": {
+          "all_weather": {
+            "label": "All Weather",
+            "thesis": "Balanced deployment across premium capture, long volatility, and directional books.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.6179591836734694,
+              "avg_proxy_return": 0.006340842041300483,
+              "score": 0.6164,
+              "bucket_selection_share": {
+                "THETA": 0.1069,
+                "VEGA": 0.5592,
+                "BULL": 0.2457,
+                "BEAR": 0.0882
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.6577319587628866,
+                  "avg_proxy_return": 0.009344121689546346,
+                  "score": 0.6619
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.48854961832061067,
+                  "avg_proxy_return": -0.00300868728316493,
+                  "score": 0.4715
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.521594684385382,
+                  "avg_proxy_return": 4.965149233647667e-05,
+                  "score": 0.5133
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.8968253968253969,
+                  "avg_proxy_return": 0.020689955135236363,
+                  "score": 0.8871
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.7761194029850746,
+                  "avg_proxy_return": 0.015299465513472318,
+                  "score": 0.7758
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.06755813041353126,
+                  "score": 1.0
+                }
+              }
+            }
+          },
+          "theta_harvest": {
+            "label": "Theta Harvest",
+            "thesis": "Lean into short premium when tape is orderly and realized volatility stays contained.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.4293877551020408,
+              "avg_proxy_return": -0.005756084762714408,
+              "score": 0.4162,
+              "bucket_selection_share": {
+                "THETA": 0.7486,
+                "VEGA": 0.0,
+                "BULL": 0.0547,
+                "BEAR": 0.1967
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.4061855670103093,
+                  "avg_proxy_return": -0.007976655694016373,
+                  "score": 0.3863
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.48854961832061067,
+                  "avg_proxy_return": -0.00300868728316493,
+                  "score": 0.4715
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.45514950166112955,
+                  "avg_proxy_return": -0.0036911773946848862,
+                  "score": 0.4465
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.38095238095238093,
+                  "avg_proxy_return": -0.006875560767713687,
+                  "score": 0.3791
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.4925373134328358,
+                  "avg_proxy_return": -0.0038225470796626913,
+                  "score": 0.468
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 0.2857142857142857,
+                  "avg_proxy_return": -0.00926172121291735,
+                  "score": 0.3047
+                }
+              }
+            }
+          },
+          "bull_trend": {
+            "label": "Bull Trend",
+            "thesis": "Favor bullish spreads when momentum is positive and panic risk is low.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.5624489795918367,
+              "avg_proxy_return": 0.002348212140177168,
+              "score": 0.5544,
+              "bucket_selection_share": {
+                "THETA": 0.1951,
+                "VEGA": 0.1086,
+                "BULL": 0.6963,
+                "BEAR": 0.0
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.5773195876288659,
+                  "avg_proxy_return": 0.0013749953021907856,
+                  "score": 0.5563
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.48854961832061067,
+                  "avg_proxy_return": -0.00300868728316493,
+                  "score": 0.4715
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.521594684385382,
+                  "avg_proxy_return": 4.965149233647667e-05,
+                  "score": 0.5133
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.8968253968253969,
+                  "avg_proxy_return": 0.020689955135236363,
+                  "score": 0.8871
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.32407407407407407,
+                  "avg_proxy_return": -0.002174541856863646,
+                  "score": 0.3788
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.4925373134328358,
+                  "avg_proxy_return": -0.0038225470796626913,
+                  "score": 0.468
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.06755813041353126,
+                  "score": 1.0
+                }
+              }
+            }
+          },
+          "bear_trend": {
+            "label": "Bear Trend",
+            "thesis": "Favor bearish spreads and protection when downside momentum builds.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.43020408163265306,
+              "avg_proxy_return": -0.002155346660358793,
+              "score": 0.4426,
+              "bucket_selection_share": {
+                "THETA": 0.2457,
+                "VEGA": 0.0547,
+                "BULL": 0.0,
+                "BEAR": 0.6996
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.422680412371134,
+                  "avg_proxy_return": -0.0013749953021907856,
+                  "score": 0.4437
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.2900763358778626,
+                  "avg_proxy_return": -0.003558885438812464,
+                  "score": 0.3484
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.45514950166112955,
+                  "avg_proxy_return": -0.0036911773946848862,
+                  "score": 0.4465
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.38095238095238093,
+                  "avg_proxy_return": -0.006875560767713687,
+                  "score": 0.3791
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.7761194029850746,
+                  "avg_proxy_return": 0.015299465513472318,
+                  "score": 0.7758
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 0.2857142857142857,
+                  "avg_proxy_return": -0.00926172121291735,
+                  "score": 0.3047
+                }
+              }
+            }
+          },
+          "long_vol_breakout": {
+            "label": "Long Vol Breakout",
+            "thesis": "Prefer convexity and breakout trades when volatility is rising fast.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.6416326530612245,
+              "avg_proxy_return": 0.007043170226262964,
+              "score": 0.6357,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.5592,
+                "BULL": 0.3527,
+                "BEAR": 0.0882
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.6577319587628866,
+                  "avg_proxy_return": 0.009344121689546346,
+                  "score": 0.6619
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.7099236641221374,
+                  "avg_proxy_return": 0.003558885438812464,
+                  "score": 0.6516
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.521594684385382,
+                  "avg_proxy_return": 4.965149233647667e-05,
+                  "score": 0.5133
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.8968253968253969,
+                  "avg_proxy_return": 0.020689955135236363,
+                  "score": 0.8871
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.7761194029850746,
+                  "avg_proxy_return": 0.015299465513472318,
+                  "score": 0.7758
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.06755813041353126,
+                  "score": 1.0
+                }
+              }
+            }
+          },
+          "panic_hedge": {
+            "label": "Panic Hedge",
+            "thesis": "Shrink short premium, keep convexity on, and let defense dominate in panic regimes.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.6261224489795918,
+              "avg_proxy_return": 0.008002918363432721,
+              "score": 0.6333,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.8049,
+                "BULL": 0.0,
+                "BEAR": 0.1951
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.6577319587628866,
+                  "avg_proxy_return": 0.009344121689546346,
+                  "score": 0.6619
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.2900763358778626,
+                  "avg_proxy_return": -0.003558885438812464,
+                  "score": 0.3484
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.6411960132890365,
+                  "avg_proxy_return": 0.007053370605299322,
+                  "score": 0.6355
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.8968253968253969,
+                  "avg_proxy_return": 0.020689955135236363,
+                  "score": 0.8871
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.7761194029850746,
+                  "avg_proxy_return": 0.015299465513472318,
+                  "score": 0.7758
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.06755813041353126,
+                  "score": 1.0
+                }
+              }
+            }
+          },
+          "mean_reversion": {
+            "label": "Mean Reversion",
+            "thesis": "Favor range capture and measured directional fades in choppy, non-trending tapes.",
+            "summary": {
+              "samples": 1225,
+              "hit_rate": 0.4293877551020408,
+              "avg_proxy_return": -0.005756084762714408,
+              "score": 0.4162,
+              "bucket_selection_share": {
+                "THETA": 0.7486,
+                "VEGA": 0.0,
+                "BULL": 0.0547,
+                "BEAR": 0.1967
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 485,
+                  "hit_rate": 0.4061855670103093,
+                  "avg_proxy_return": -0.007976655694016373,
+                  "score": 0.3863
+                },
+                "calm_range": {
+                  "samples": 131,
+                  "hit_rate": 0.48854961832061067,
+                  "avg_proxy_return": -0.00300868728316493,
+                  "score": 0.4715
+                },
+                "calm_bull": {
+                  "samples": 301,
+                  "hit_rate": 0.45514950166112955,
+                  "avg_proxy_return": -0.0036911773946848862,
+                  "score": 0.4465
+                },
+                "volatile_bear": {
+                  "samples": 126,
+                  "hit_rate": 0.38095238095238093,
+                  "avg_proxy_return": -0.006875560767713687,
+                  "score": 0.3791
+                },
+                "calm_bear": {
+                  "samples": 108,
+                  "hit_rate": 0.4166666666666667,
+                  "avg_proxy_return": -0.004537778085858387,
+                  "score": 0.4173
+                },
+                "volatile_bull": {
+                  "samples": 67,
+                  "hit_rate": 0.4925373134328358,
+                  "avg_proxy_return": -0.0038225470796626913,
+                  "score": 0.468
+                },
+                "panic": {
+                  "samples": 7,
+                  "hit_rate": 0.2857142857142857,
+                  "avg_proxy_return": -0.00926172121291735,
+                  "score": 0.3047
+                }
+              }
+            }
+          }
+        },
+        "summary": {
+          "samples": 1225,
+          "state_distribution": {
+            "calm_bear": 0.0882,
+            "calm_bull": 0.2457,
+            "calm_range": 0.1069,
+            "panic": 0.0057,
+            "transition": 0.3959,
+            "volatile_bear": 0.1029,
+            "volatile_bull": 0.0547
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6357,
+            "hit_rate": 0.6416326530612245,
+            "avg_proxy_return": 0.007043170226262964
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6619,
+              "hit_rate": 0.6577319587628866,
+              "avg_proxy_return": 0.009344121689546346,
+              "samples": 485
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6516,
+              "hit_rate": 0.7099236641221374,
+              "avg_proxy_return": 0.003558885438812464,
+              "samples": 131
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.6355,
+              "hit_rate": 0.6411960132890365,
+              "avg_proxy_return": 0.007053370605299322,
+              "samples": 301
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8871,
+              "hit_rate": 0.8968253968253969,
+              "avg_proxy_return": 0.020689955135236363,
+              "samples": 126
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.4173,
+              "hit_rate": 0.4166666666666667,
+              "avg_proxy_return": -0.004537778085858387,
+              "samples": 108
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 0.7758,
+              "hit_rate": 0.7761194029850746,
+              "avg_proxy_return": 0.015299465513472318,
+              "samples": 67
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.06755813041353126,
+              "samples": 7
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 0.7758,
+            "hit_rate": 0.7761194029850746,
+            "avg_proxy_return": 0.015299465513472318,
+            "samples": 67
+          }
+        }
+      },
+      "3y": {
+        "results_by_profile": {
+          "all_weather": {
+            "label": "All Weather",
+            "thesis": "Balanced deployment across premium capture, long volatility, and directional books.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.5825242718446602,
+              "avg_proxy_return": 0.003992023223811069,
+              "score": 0.5783,
+              "bucket_selection_share": {
+                "THETA": 0.1387,
+                "VEGA": 0.4896,
+                "BULL": 0.2705,
+                "BEAR": 0.1012
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.6535947712418301,
+                  "avg_proxy_return": 0.008049722108934301,
+                  "score": 0.6501
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.43,
+                  "avg_proxy_return": -0.007050754651893112,
+                  "score": 0.4072
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.5384615384615384,
+                  "avg_proxy_return": 0.00020226735357982837,
+                  "score": 0.5245
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.04160075276482953,
+                  "score": 1.0
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.07825856098793385,
+                  "score": 1.0
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.8709677419354839,
+                  "avg_proxy_return": 0.018504710203833666,
+                  "score": 0.8558
+                }
+              }
+            }
+          },
+          "theta_harvest": {
+            "label": "Theta Harvest",
+            "thesis": "Lean into short premium when tape is orderly and realized volatility stays contained.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.42302357836338417,
+              "avg_proxy_return": -0.0058972676372443505,
+              "score": 0.4114,
+              "bucket_selection_share": {
+                "THETA": 0.8336,
+                "VEGA": 0.0,
+                "BULL": 0.0139,
+                "BEAR": 0.1526
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.42483660130718953,
+                  "avg_proxy_return": -0.005521871108793634,
+                  "score": 0.4151
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.43,
+                  "avg_proxy_return": -0.007050754651893112,
+                  "score": 0.4072
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.4358974358974359,
+                  "avg_proxy_return": -0.004679322454614546,
+                  "score": 0.4278
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 0.4,
+                  "avg_proxy_return": -0.017790348917851587,
+                  "score": 0.3119
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 0.3333333333333333,
+                  "avg_proxy_return": -0.010666686888307996,
+                  "score": 0.3232
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.3870967741935484,
+                  "avg_proxy_return": -0.010459763006296804,
+                  "score": 0.3569
+                }
+              }
+            }
+          },
+          "bull_trend": {
+            "label": "Bull Trend",
+            "thesis": "Favor bullish spreads when momentum is positive and panic risk is low.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.5381414701803051,
+              "avg_proxy_return": 0.0013158421781530182,
+              "score": 0.5324,
+              "bucket_selection_share": {
+                "THETA": 0.2399,
+                "VEGA": 0.0513,
+                "BULL": 0.7087,
+                "BEAR": 0.0
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.5915032679738562,
+                  "avg_proxy_return": 0.0023009761074115733,
+                  "score": 0.5715
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.43,
+                  "avg_proxy_return": -0.007050754651893112,
+                  "score": 0.4072
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.5384615384615384,
+                  "avg_proxy_return": 0.00020226735357982837,
+                  "score": 0.5245
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3013698630136986,
+                  "avg_proxy_return": 0.0006159309555301167,
+                  "score": 0.3853
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 0.4,
+                  "avg_proxy_return": -0.017790348917851587,
+                  "score": 0.3119
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.07825856098793385,
+                  "score": 1.0
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.8709677419354839,
+                  "avg_proxy_return": 0.018504710203833666,
+                  "score": 0.8558
+                }
+              }
+            }
+          },
+          "bear_trend": {
+            "label": "Bear Trend",
+            "thesis": "Favor bearish spreads and protection when downside momentum builds.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.406380027739251,
+              "avg_proxy_return": -0.0032799574658686896,
+              "score": 0.4202,
+              "bucket_selection_share": {
+                "THETA": 0.2705,
+                "VEGA": 0.0139,
+                "BULL": 0.0,
+                "BEAR": 0.7157
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.4084967320261438,
+                  "avg_proxy_return": -0.0023009761074115733,
+                  "score": 0.4285
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.3,
+                  "avg_proxy_return": -0.003974997188771818,
+                  "score": 0.3514
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.4358974358974359,
+                  "avg_proxy_return": -0.004679322454614546,
+                  "score": 0.4278
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.04160075276482953,
+                  "score": 1.0
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 0.3333333333333333,
+                  "avg_proxy_return": -0.010666686888307996,
+                  "score": 0.3232
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.3870967741935484,
+                  "avg_proxy_return": -0.010459763006296804,
+                  "score": 0.3569
+                }
+              }
+            }
+          },
+          "long_vol_breakout": {
+            "label": "Long Vol Breakout",
+            "thesis": "Prefer convexity and breakout trades when volatility is rising fast.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.6199722607489597,
+              "avg_proxy_return": 0.005521253714888036,
+              "score": 0.6117,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.4896,
+                "BULL": 0.4092,
+                "BEAR": 0.1012
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.6535947712418301,
+                  "avg_proxy_return": 0.008049722108934301,
+                  "score": 0.6501
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.7,
+                  "avg_proxy_return": 0.003974997188771818,
+                  "score": 0.6486
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.5384615384615384,
+                  "avg_proxy_return": 0.00020226735357982837,
+                  "score": 0.5245
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.04160075276482953,
+                  "score": 1.0
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.07825856098793385,
+                  "score": 1.0
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.8709677419354839,
+                  "avg_proxy_return": 0.018504710203833666,
+                  "score": 0.8558
+                }
+              }
+            }
+          },
+          "panic_hedge": {
+            "label": "Panic Hedge",
+            "thesis": "Shrink short premium, keep convexity on, and let defense dominate in panic regimes.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.5936199722607489,
+              "avg_proxy_return": 0.0065934945736736495,
+              "score": 0.6036,
+              "bucket_selection_share": {
+                "THETA": 0.0,
+                "VEGA": 0.7601,
+                "BULL": 0.0,
+                "BEAR": 0.2399
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.6535947712418301,
+                  "avg_proxy_return": 0.008049722108934301,
+                  "score": 0.6501
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.3,
+                  "avg_proxy_return": -0.003974997188771818,
+                  "score": 0.3514
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.6461538461538462,
+                  "avg_proxy_return": 0.008243729389163368,
+                  "score": 0.647
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.04160075276482953,
+                  "score": 1.0
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 1.0,
+                  "avg_proxy_return": 0.07825856098793385,
+                  "score": 1.0
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.8709677419354839,
+                  "avg_proxy_return": 0.018504710203833666,
+                  "score": 0.8558
+                }
+              }
+            }
+          },
+          "mean_reversion": {
+            "label": "Mean Reversion",
+            "thesis": "Favor range capture and measured directional fades in choppy, non-trending tapes.",
+            "summary": {
+              "samples": 721,
+              "hit_rate": 0.42302357836338417,
+              "avg_proxy_return": -0.0058972676372443505,
+              "score": 0.4114,
+              "bucket_selection_share": {
+                "THETA": 0.8336,
+                "VEGA": 0.0,
+                "BULL": 0.0139,
+                "BEAR": 0.1526
+              },
+              "by_state": {
+                "transition": {
+                  "samples": 306,
+                  "hit_rate": 0.42483660130718953,
+                  "avg_proxy_return": -0.005521871108793634,
+                  "score": 0.4151
+                },
+                "calm_range": {
+                  "samples": 100,
+                  "hit_rate": 0.43,
+                  "avg_proxy_return": -0.007050754651893112,
+                  "score": 0.4072
+                },
+                "calm_bull": {
+                  "samples": 195,
+                  "hit_rate": 0.4358974358974359,
+                  "avg_proxy_return": -0.004679322454614546,
+                  "score": 0.4278
+                },
+                "calm_bear": {
+                  "samples": 73,
+                  "hit_rate": 0.3972602739726027,
+                  "avg_proxy_return": -0.005185449309857698,
+                  "score": 0.401
+                },
+                "volatile_bull": {
+                  "samples": 10,
+                  "hit_rate": 0.4,
+                  "avg_proxy_return": -0.017790348917851587,
+                  "score": 0.3119
+                },
+                "panic": {
+                  "samples": 6,
+                  "hit_rate": 0.3333333333333333,
+                  "avg_proxy_return": -0.010666686888307996,
+                  "score": 0.3232
+                },
+                "volatile_bear": {
+                  "samples": 31,
+                  "hit_rate": 0.3870967741935484,
+                  "avg_proxy_return": -0.010459763006296804,
+                  "score": 0.3569
+                }
+              }
+            }
+          }
+        },
+        "summary": {
+          "samples": 721,
+          "state_distribution": {
+            "calm_bear": 0.1012,
+            "calm_bull": 0.2705,
+            "calm_range": 0.1387,
+            "panic": 0.0083,
+            "transition": 0.4244,
+            "volatile_bear": 0.043,
+            "volatile_bull": 0.0139
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6117,
+            "hit_rate": 0.6199722607489597,
+            "avg_proxy_return": 0.005521253714888036
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6501,
+              "hit_rate": 0.6535947712418301,
+              "avg_proxy_return": 0.008049722108934301,
+              "samples": 306
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6486,
+              "hit_rate": 0.7,
+              "avg_proxy_return": 0.003974997188771818,
+              "samples": 100
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.647,
+              "hit_rate": 0.6461538461538462,
+              "avg_proxy_return": 0.008243729389163368,
+              "samples": 195
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.401,
+              "hit_rate": 0.3972602739726027,
+              "avg_proxy_return": -0.005185449309857698,
+              "samples": 73
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.04160075276482953,
+              "samples": 10
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.07825856098793385,
+              "samples": 6
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8558,
+              "hit_rate": 0.8709677419354839,
+              "avg_proxy_return": 0.018504710203833666,
+              "samples": 31
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 1.0,
+            "hit_rate": 1.0,
+            "avg_proxy_return": 0.04160075276482953,
+            "samples": 10
+          }
+        }
+      },
+      "1y": {
+        "error": "insufficient_profile_samples",
+        "summary": {
+          "samples": 221
+        }
+      },
+      "6mo": {
+        "error": "insufficient_profile_samples",
+        "summary": {
+          "samples": 95
+        }
+      },
+      "3mo": {
+        "error": "insufficient_profile_samples",
+        "summary": {
+          "samples": 33
+        }
+      },
+      "ytd": {
+        "error": "insufficient_profile_samples",
+        "summary": {
+          "samples": 40
+        }
+      }
+    },
+    "summary": {
+      "by_lookback": {
+        "10y": {
+          "samples": 2482,
+          "state_distribution": {
+            "calm_bear": 0.0794,
+            "calm_bull": 0.2788,
+            "calm_range": 0.1088,
+            "panic": 0.0222,
+            "transition": 0.3723,
+            "volatile_bear": 0.0753,
+            "volatile_bull": 0.0633
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6349,
+            "hit_rate": 0.6426269137792103,
+            "avg_proxy_return": 0.006850419015225593
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6546,
+              "hit_rate": 0.6482683982683982,
+              "avg_proxy_return": 0.00911006636354708,
+              "samples": 924
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6485,
+              "hit_rate": 0.6962962962962963,
+              "avg_proxy_return": 0.00427294629327334,
+              "samples": 270
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.6115,
+              "hit_rate": 0.6054913294797688,
+              "avg_proxy_return": 0.006699377956276792,
+              "samples": 692
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8943,
+              "hit_rate": 0.8983957219251337,
+              "avg_proxy_return": 0.021562432746686663,
+              "samples": 187
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.3795,
+              "hit_rate": 0.37055837563451777,
+              "avg_proxy_return": -0.005951423110383885,
+              "samples": 197
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 0.9455,
+              "hit_rate": 0.9090909090909091,
+              "avg_proxy_return": 0.03721024126301618,
+              "samples": 55
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 0.7176,
+              "hit_rate": 0.7197452229299363,
+              "avg_proxy_return": 0.011914421947231383,
+              "samples": 157
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 0.7176,
+            "hit_rate": 0.7197452229299363,
+            "avg_proxy_return": 0.011914421947231383,
+            "samples": 157
+          }
+        },
+        "5y": {
+          "samples": 1225,
+          "state_distribution": {
+            "calm_bear": 0.0882,
+            "calm_bull": 0.2457,
+            "calm_range": 0.1069,
+            "panic": 0.0057,
+            "transition": 0.3959,
+            "volatile_bear": 0.1029,
+            "volatile_bull": 0.0547
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6357,
+            "hit_rate": 0.6416326530612245,
+            "avg_proxy_return": 0.007043170226262964
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6619,
+              "hit_rate": 0.6577319587628866,
+              "avg_proxy_return": 0.009344121689546346,
+              "samples": 485
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6516,
+              "hit_rate": 0.7099236641221374,
+              "avg_proxy_return": 0.003558885438812464,
+              "samples": 131
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.6355,
+              "hit_rate": 0.6411960132890365,
+              "avg_proxy_return": 0.007053370605299322,
+              "samples": 301
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8871,
+              "hit_rate": 0.8968253968253969,
+              "avg_proxy_return": 0.020689955135236363,
+              "samples": 126
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.4173,
+              "hit_rate": 0.4166666666666667,
+              "avg_proxy_return": -0.004537778085858387,
+              "samples": 108
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 0.7758,
+              "hit_rate": 0.7761194029850746,
+              "avg_proxy_return": 0.015299465513472318,
+              "samples": 67
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.06755813041353126,
+              "samples": 7
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 0.7758,
+            "hit_rate": 0.7761194029850746,
+            "avg_proxy_return": 0.015299465513472318,
+            "samples": 67
+          }
+        },
+        "3y": {
+          "samples": 721,
+          "state_distribution": {
+            "calm_bear": 0.1012,
+            "calm_bull": 0.2705,
+            "calm_range": 0.1387,
+            "panic": 0.0083,
+            "transition": 0.4244,
+            "volatile_bear": 0.043,
+            "volatile_bull": 0.0139
+          },
+          "current_market_state": "volatile_bull",
+          "best_profile_overall": {
+            "profile": "long_vol_breakout",
+            "score": 0.6117,
+            "hit_rate": 0.6199722607489597,
+            "avg_proxy_return": 0.005521253714888036
+          },
+          "best_profile_by_state": {
+            "transition": {
+              "profile": "all_weather",
+              "score": 0.6501,
+              "hit_rate": 0.6535947712418301,
+              "avg_proxy_return": 0.008049722108934301,
+              "samples": 306
+            },
+            "calm_range": {
+              "profile": "long_vol_breakout",
+              "score": 0.6486,
+              "hit_rate": 0.7,
+              "avg_proxy_return": 0.003974997188771818,
+              "samples": 100
+            },
+            "calm_bull": {
+              "profile": "panic_hedge",
+              "score": 0.647,
+              "hit_rate": 0.6461538461538462,
+              "avg_proxy_return": 0.008243729389163368,
+              "samples": 195
+            },
+            "calm_bear": {
+              "profile": "all_weather",
+              "score": 0.401,
+              "hit_rate": 0.3972602739726027,
+              "avg_proxy_return": -0.005185449309857698,
+              "samples": 73
+            },
+            "volatile_bull": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.04160075276482953,
+              "samples": 10
+            },
+            "panic": {
+              "profile": "all_weather",
+              "score": 1.0,
+              "hit_rate": 1.0,
+              "avg_proxy_return": 0.07825856098793385,
+              "samples": 6
+            },
+            "volatile_bear": {
+              "profile": "all_weather",
+              "score": 0.8558,
+              "hit_rate": 0.8709677419354839,
+              "avg_proxy_return": 0.018504710203833666,
+              "samples": 31
+            }
+          },
+          "current_state_best_profile": {
+            "profile": "all_weather",
+            "score": 1.0,
+            "hit_rate": 1.0,
+            "avg_proxy_return": 0.04160075276482953,
+            "samples": 10
+          }
+        },
+        "1y": {
+          "samples": 221
+        },
+        "6mo": {
+          "samples": 95
+        },
+        "3mo": {
+          "samples": 33
+        },
+        "ytd": {
+          "samples": 40
+        }
+      },
+      "consensus_profile": "long_vol_breakout",
+      "consensus_state": "volatile_bull",
+      "profile_vote_share": {
+        "long_vol_breakout": 3
+      },
+      "current_state_vote_share": {
+        "volatile_bull": 3
+      },
+      "avg_best_profile_score": 0.6274333333333334,
+      "valid_windows": 3
+    }
+  },
+  "delay_quote_suite": {
+    "per_symbol": {
+      "WMT": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04315199293407691,
+          "avg_delay_move_pct": 0.001965274979775638,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.07881621590300643,
+          "naive_win_rate": 0.5844618674269423,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.07881621590300643,
+          "delay_filtered_win_rate": 0.5844618674269423
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.046431790349852425,
+          "avg_delay_move_pct": 0.001965274979775638,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.45213077162236726,
+          "naive_win_rate": 0.5730577334283677,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.45213077162236726,
+          "delay_filtered_win_rate": 0.5730577334283677
+        }
+      },
+      "AMZN": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04125621890806506,
+          "avg_delay_move_pct": 0.002528114746044118,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -1.4282829424069667,
+          "naive_win_rate": 0.586600142551675,
+          "delay_filtered_samples": 1402,
+          "delay_filtered_keep_rate": 0.9992872416250891,
+          "delay_filtered_avg_short_pnl": -1.443501577762031,
+          "delay_filtered_win_rate": 0.5863052781740371
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04541357466309917,
+          "avg_delay_move_pct": 0.002528114746044118,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -1.525812206600733,
+          "naive_win_rate": 0.4989308624376336,
+          "delay_filtered_samples": 1402,
+          "delay_filtered_keep_rate": 0.9992872416250891,
+          "delay_filtered_avg_short_pnl": -1.53164618794387,
+          "delay_filtered_win_rate": 0.4985734664764622
+        }
+      },
+      "AAPL": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04199206353667429,
+          "avg_delay_move_pct": 0.0020423535076979993,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.14272812145685476,
+          "naive_win_rate": 0.5459729151817534,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.14272812145685476,
+          "delay_filtered_win_rate": 0.5459729151817534
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.045401800705565785,
+          "avg_delay_move_pct": 0.0020423535076979993,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.8062696025666934,
+          "naive_win_rate": 0.5901639344262295,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.8062696025666934,
+          "delay_filtered_win_rate": 0.5901639344262295
+        }
+      },
+      "UNH": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04229653868701872,
+          "avg_delay_move_pct": 0.0026307368403239283,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -4.18854685134235,
+          "naive_win_rate": 0.49679258731290094,
+          "delay_filtered_samples": 1401,
+          "delay_filtered_keep_rate": 0.9985744832501782,
+          "delay_filtered_avg_short_pnl": -4.281767113071004,
+          "delay_filtered_win_rate": 0.49607423269093504
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04681938234498547,
+          "avg_delay_move_pct": 0.0026307368403239283,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -2.815478515860314,
+          "naive_win_rate": 0.631503920171062,
+          "delay_filtered_samples": 1401,
+          "delay_filtered_keep_rate": 0.9985744832501782,
+          "delay_filtered_avg_short_pnl": -2.8437977124410674,
+          "delay_filtered_win_rate": 0.6309778729478943
+        }
+      },
+      "CVS": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04215657948177857,
+          "avg_delay_move_pct": 0.002496059096243808,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.5422880353357438,
+          "naive_win_rate": 0.5673556664290805,
+          "delay_filtered_samples": 1401,
+          "delay_filtered_keep_rate": 0.9985744832501782,
+          "delay_filtered_avg_short_pnl": -0.5513647970613117,
+          "delay_filtered_win_rate": 0.5667380442541042
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04650469817812444,
+          "avg_delay_move_pct": 0.002496059096243808,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.29407658814517157,
+          "naive_win_rate": 0.6108339272986457,
+          "delay_filtered_samples": 1401,
+          "delay_filtered_keep_rate": 0.9985744832501782,
+          "delay_filtered_avg_short_pnl": -0.2984343227986299,
+          "delay_filtered_win_rate": 0.6102783725910065
+        }
+      },
+      "BRK.B": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04315501268744114,
+          "avg_delay_move_pct": 0.0013651358623151548,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.4906559864319624,
+          "naive_win_rate": 0.5438346400570206,
+          "delay_filtered_samples": 1402,
+          "delay_filtered_keep_rate": 0.9992872416250891,
+          "delay_filtered_avg_short_pnl": -0.5042336120273518,
+          "delay_filtered_win_rate": 0.543509272467903
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04548963602735652,
+          "avg_delay_move_pct": 0.0013651358623151548,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.762320169285974,
+          "naive_win_rate": 0.5908766928011404,
+          "delay_filtered_samples": 1402,
+          "delay_filtered_keep_rate": 0.9992872416250891,
+          "delay_filtered_avg_short_pnl": -0.7685303589298641,
+          "delay_filtered_win_rate": 0.5905848787446505
+        }
+      },
+      "GOOGL": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.041760553825233804,
+          "avg_delay_move_pct": 0.002286775041500361,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -1.3709004173788255,
+          "naive_win_rate": 0.518888096935139,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -1.3709004173788255,
+          "delay_filtered_win_rate": 0.518888096935139
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04545058816587502,
+          "avg_delay_move_pct": 0.002286775041500361,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.7151953741042748,
+          "naive_win_rate": 0.5659301496792587,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.7151953741042748,
+          "delay_filtered_win_rate": 0.5659301496792587
+        }
+      },
+      "XOM": {
+        "put": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04119585445720324,
+          "avg_delay_move_pct": 0.002347332285674554,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -0.4138777779663103,
+          "naive_win_rate": 0.5987170349251604,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -0.4138777779663103,
+          "delay_filtered_win_rate": 0.5987170349251604
+        },
+        "call": {
+          "samples": 1403,
+          "avg_quote_error_pct": 0.04558878053951876,
+          "avg_delay_move_pct": 0.002347332285674554,
+          "delta_band_breach_rate": 0.0,
+          "naive_avg_short_pnl": -1.0446925283738118,
+          "naive_win_rate": 0.44975053456878117,
+          "delay_filtered_samples": 1403,
+          "delay_filtered_keep_rate": 1.0,
+          "delay_filtered_avg_short_pnl": -1.0446925283738118,
+          "delay_filtered_win_rate": 0.44975053456878117
+        }
+      }
+    },
+    "summary": {
+      "symbols": 8,
+      "horizon_days": 5,
+      "vectorbt_available": false,
+      "puts": {
+        "samples": 11224,
+        "avg_quote_error_pct": 0.042120601814686465,
+        "avg_delay_move_pct": 0.0022077227949469456,
+        "delta_band_breach_rate": 0.0,
+        "naive_avg_short_pnl": -1.0820120435277525,
+        "naive_win_rate": 0.555327868852459,
+        "delay_filtered_samples": 11218,
+        "delay_filtered_avg_short_pnl": -1.0979508874634696,
+        "delay_filtered_win_rate": 0.5550900338741308
+      },
+      "calls": {
+        "samples": 11224,
+        "avg_quote_error_pct": 0.0458875313717972,
+        "avg_delay_move_pct": 0.0022077227949469456,
+        "delta_band_breach_rate": 0.0,
+        "naive_avg_short_pnl": -1.0519969695699174,
+        "naive_win_rate": 0.5638809693513899,
+        "delay_filtered_samples": 11218,
+        "delay_filtered_avg_short_pnl": -1.0573875068864147,
+        "delay_filtered_win_rate": 0.5636477090390444
+      },
+      "vectorbt_proxy": null
+    }
+  },
+  "option_model_suite": {
+    "per_symbol": {
+      "WMT": {
+        "put": {
+          "black_scholes": {
+            "signals": 183,
+            "avg_edge_pct": 0.06838270454679744,
+            "avg_long_pnl": 0.15674151585643223,
+            "long_win_rate": 0.4808743169398907
+          },
+          "binomial": {
+            "signals": 201,
+            "avg_edge_pct": 0.07051647858840977,
+            "avg_long_pnl": 0.1963817122511259,
+            "long_win_rate": 0.48258706467661694
+          },
+          "monte_carlo": {
+            "signals": 298,
+            "avg_edge_pct": 0.1944104600325566,
+            "avg_long_pnl": 0.01694300670451331,
+            "long_win_rate": 0.3926174496644295
+          },
+          "ensemble": {
+            "signals": 252,
+            "avg_edge_pct": 0.09483669548714857,
+            "avg_long_pnl": 0.03592451804657116,
+            "long_win_rate": 0.43253968253968256
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 174,
+            "avg_edge_pct": 0.06583501841287946,
+            "avg_long_pnl": 0.6606298013385244,
+            "long_win_rate": 0.47126436781609193
+          },
+          "binomial": {
+            "signals": 205,
+            "avg_edge_pct": 0.0666639410964987,
+            "avg_long_pnl": 0.5515285192192803,
+            "long_win_rate": 0.44390243902439025
+          },
+          "monte_carlo": {
+            "signals": 313,
+            "avg_edge_pct": 0.21996193557365337,
+            "avg_long_pnl": 0.4224999425308634,
+            "long_win_rate": 0.4249201277955272
+          },
+          "ensemble": {
+            "signals": 260,
+            "avg_edge_pct": 0.09981425159023254,
+            "avg_long_pnl": 0.42472501662790135,
+            "long_win_rate": 0.4423076923076923
+          }
+        }
+      },
+      "AMZN": {
+        "put": {
+          "black_scholes": {
+            "signals": 173,
+            "avg_edge_pct": 0.06689106525383344,
+            "avg_long_pnl": 3.298627114743763,
+            "long_win_rate": 0.5144508670520231
+          },
+          "binomial": {
+            "signals": 183,
+            "avg_edge_pct": 0.06984769860302067,
+            "avg_long_pnl": 3.402488363043827,
+            "long_win_rate": 0.5136612021857924
+          },
+          "monte_carlo": {
+            "signals": 297,
+            "avg_edge_pct": 0.1890607675341412,
+            "avg_long_pnl": 2.2570058611348363,
+            "long_win_rate": 0.4511784511784512
+          },
+          "ensemble": {
+            "signals": 244,
+            "avg_edge_pct": 0.09246992472502803,
+            "avg_long_pnl": 2.3751424973373125,
+            "long_win_rate": 0.46311475409836067
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 166,
+            "avg_edge_pct": 0.06988477649429281,
+            "avg_long_pnl": 2.550099662459421,
+            "long_win_rate": 0.5843373493975904
+          },
+          "binomial": {
+            "signals": 199,
+            "avg_edge_pct": 0.06973572970309697,
+            "avg_long_pnl": 2.425185676025841,
+            "long_win_rate": 0.5778894472361809
+          },
+          "monte_carlo": {
+            "signals": 319,
+            "avg_edge_pct": 0.22220748072003732,
+            "avg_long_pnl": 1.4536016486196703,
+            "long_win_rate": 0.5360501567398119
+          },
+          "ensemble": {
+            "signals": 262,
+            "avg_edge_pct": 0.10361241850950297,
+            "avg_long_pnl": 1.7588356549083488,
+            "long_win_rate": 0.549618320610687
+          }
+        }
+      },
+      "AAPL": {
+        "put": {
+          "black_scholes": {
+            "signals": 163,
+            "avg_edge_pct": 0.06515475671962112,
+            "avg_long_pnl": 0.6316586985713541,
+            "long_win_rate": 0.4785276073619632
+          },
+          "binomial": {
+            "signals": 180,
+            "avg_edge_pct": 0.06717500611108701,
+            "avg_long_pnl": 0.5115191947797125,
+            "long_win_rate": 0.4777777777777778
+          },
+          "monte_carlo": {
+            "signals": 308,
+            "avg_edge_pct": 0.18579398437704794,
+            "avg_long_pnl": 0.08834205694038999,
+            "long_win_rate": 0.38636363636363635
+          },
+          "ensemble": {
+            "signals": 241,
+            "avg_edge_pct": 0.09263697099759859,
+            "avg_long_pnl": 0.27372570036389837,
+            "long_win_rate": 0.4149377593360996
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 187,
+            "avg_edge_pct": 0.07197382666844408,
+            "avg_long_pnl": 1.3305747859386445,
+            "long_win_rate": 0.43315508021390375
+          },
+          "binomial": {
+            "signals": 218,
+            "avg_edge_pct": 0.0722717358632159,
+            "avg_long_pnl": 1.0198300972238505,
+            "long_win_rate": 0.42201834862385323
+          },
+          "monte_carlo": {
+            "signals": 312,
+            "avg_edge_pct": 0.22533531156926437,
+            "avg_long_pnl": 0.918288239791845,
+            "long_win_rate": 0.40064102564102566
+          },
+          "ensemble": {
+            "signals": 279,
+            "avg_edge_pct": 0.10191303221319194,
+            "avg_long_pnl": 0.7893840784697528,
+            "long_win_rate": 0.3906810035842294
+          }
+        }
+      },
+      "UNH": {
+        "put": {
+          "black_scholes": {
+            "signals": 158,
+            "avg_edge_pct": 0.06792944724815975,
+            "avg_long_pnl": 5.501664307315273,
+            "long_win_rate": 0.620253164556962
+          },
+          "binomial": {
+            "signals": 169,
+            "avg_edge_pct": 0.07033449050158518,
+            "avg_long_pnl": 5.006369375194525,
+            "long_win_rate": 0.6035502958579881
+          },
+          "monte_carlo": {
+            "signals": 294,
+            "avg_edge_pct": 0.18789140887539094,
+            "avg_long_pnl": 3.9632052727987084,
+            "long_win_rate": 0.5204081632653061
+          },
+          "ensemble": {
+            "signals": 243,
+            "avg_edge_pct": 0.08854004523627218,
+            "avg_long_pnl": 5.525112739548482,
+            "long_win_rate": 0.5555555555555556
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 175,
+            "avg_edge_pct": 0.07066076003878236,
+            "avg_long_pnl": 4.698517356155141,
+            "long_win_rate": 0.44
+          },
+          "binomial": {
+            "signals": 209,
+            "avg_edge_pct": 0.0705572113775835,
+            "avg_long_pnl": 4.459377575303484,
+            "long_win_rate": 0.41626794258373206
+          },
+          "monte_carlo": {
+            "signals": 308,
+            "avg_edge_pct": 0.23712997981876907,
+            "avg_long_pnl": 3.417141004675373,
+            "long_win_rate": 0.36688311688311687
+          },
+          "ensemble": {
+            "signals": 266,
+            "avg_edge_pct": 0.10877044799749931,
+            "avg_long_pnl": 2.6646553475287362,
+            "long_win_rate": 0.3458646616541353
+          }
+        }
+      },
+      "CVS": {
+        "put": {
+          "black_scholes": {
+            "signals": 172,
+            "avg_edge_pct": 0.06751896332622978,
+            "avg_long_pnl": 0.8483257263527826,
+            "long_win_rate": 0.5116279069767442
+          },
+          "binomial": {
+            "signals": 181,
+            "avg_edge_pct": 0.0706317864037023,
+            "avg_long_pnl": 0.9254914497865532,
+            "long_win_rate": 0.5138121546961326
+          },
+          "monte_carlo": {
+            "signals": 298,
+            "avg_edge_pct": 0.18962717964211148,
+            "avg_long_pnl": 0.500805213811565,
+            "long_win_rate": 0.46308724832214765
+          },
+          "ensemble": {
+            "signals": 251,
+            "avg_edge_pct": 0.09042392211646676,
+            "avg_long_pnl": 0.6413155674635976,
+            "long_win_rate": 0.50199203187251
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 185,
+            "avg_edge_pct": 0.0671570192396133,
+            "avg_long_pnl": 0.46387287449196746,
+            "long_win_rate": 0.3945945945945946
+          },
+          "binomial": {
+            "signals": 222,
+            "avg_edge_pct": 0.06744459479936722,
+            "avg_long_pnl": 0.4642487482561669,
+            "long_win_rate": 0.43243243243243246
+          },
+          "monte_carlo": {
+            "signals": 313,
+            "avg_edge_pct": 0.22959949447386643,
+            "avg_long_pnl": 0.39186535630626074,
+            "long_win_rate": 0.3961661341853035
+          },
+          "ensemble": {
+            "signals": 267,
+            "avg_edge_pct": 0.10647343467899276,
+            "avg_long_pnl": 0.3840754402712576,
+            "long_win_rate": 0.38202247191011235
+          }
+        }
+      },
+      "BRK.B": {
+        "put": {
+          "black_scholes": {
+            "signals": 175,
+            "avg_edge_pct": 0.06795345447256901,
+            "avg_long_pnl": 1.082667315686456,
+            "long_win_rate": 0.5542857142857143
+          },
+          "binomial": {
+            "signals": 202,
+            "avg_edge_pct": 0.06989589469895255,
+            "avg_long_pnl": 1.0576049158499095,
+            "long_win_rate": 0.5594059405940595
+          },
+          "monte_carlo": {
+            "signals": 303,
+            "avg_edge_pct": 0.19492900435391744,
+            "avg_long_pnl": 0.9087952168042542,
+            "long_win_rate": 0.4884488448844885
+          },
+          "ensemble": {
+            "signals": 251,
+            "avg_edge_pct": 0.09513055231423392,
+            "avg_long_pnl": 1.09013933802618,
+            "long_win_rate": 0.4820717131474104
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 188,
+            "avg_edge_pct": 0.0674180926995212,
+            "avg_long_pnl": 1.3186392260792312,
+            "long_win_rate": 0.43617021276595747
+          },
+          "binomial": {
+            "signals": 199,
+            "avg_edge_pct": 0.070133601997358,
+            "avg_long_pnl": 1.178982560771845,
+            "long_win_rate": 0.40703517587939697
+          },
+          "monte_carlo": {
+            "signals": 316,
+            "avg_edge_pct": 0.21457164336993695,
+            "avg_long_pnl": 0.6672075554323019,
+            "long_win_rate": 0.41139240506329117
+          },
+          "ensemble": {
+            "signals": 256,
+            "avg_edge_pct": 0.10221096146564468,
+            "avg_long_pnl": 1.202706850685192,
+            "long_win_rate": 0.4296875
+          }
+        }
+      },
+      "GOOGL": {
+        "put": {
+          "black_scholes": {
+            "signals": 158,
+            "avg_edge_pct": 0.06996293939687656,
+            "avg_long_pnl": 2.5277476718741716,
+            "long_win_rate": 0.5632911392405063
+          },
+          "binomial": {
+            "signals": 173,
+            "avg_edge_pct": 0.07179867222049767,
+            "avg_long_pnl": 2.3801835993088822,
+            "long_win_rate": 0.5549132947976878
+          },
+          "monte_carlo": {
+            "signals": 297,
+            "avg_edge_pct": 0.19341591328966506,
+            "avg_long_pnl": 1.8101471058931635,
+            "long_win_rate": 0.5218855218855218
+          },
+          "ensemble": {
+            "signals": 240,
+            "avg_edge_pct": 0.09424124237854645,
+            "avg_long_pnl": 1.9040513607433198,
+            "long_win_rate": 0.5333333333333333
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 181,
+            "avg_edge_pct": 0.0750059336454767,
+            "avg_long_pnl": 1.3605242774877968,
+            "long_win_rate": 0.47513812154696133
+          },
+          "binomial": {
+            "signals": 207,
+            "avg_edge_pct": 0.0758635951397018,
+            "avg_long_pnl": 1.1101282880471393,
+            "long_win_rate": 0.4396135265700483
+          },
+          "monte_carlo": {
+            "signals": 318,
+            "avg_edge_pct": 0.22463779714863125,
+            "avg_long_pnl": 0.6794799011922467,
+            "long_win_rate": 0.4371069182389937
+          },
+          "ensemble": {
+            "signals": 277,
+            "avg_edge_pct": 0.10333943934799572,
+            "avg_long_pnl": 0.5695831057624771,
+            "long_win_rate": 0.4368231046931408
+          }
+        }
+      },
+      "XOM": {
+        "put": {
+          "black_scholes": {
+            "signals": 162,
+            "avg_edge_pct": 0.06757219355969901,
+            "avg_long_pnl": 0.7772052897113482,
+            "long_win_rate": 0.4691358024691358
+          },
+          "binomial": {
+            "signals": 175,
+            "avg_edge_pct": 0.06976927292887607,
+            "avg_long_pnl": 0.672540042719512,
+            "long_win_rate": 0.46285714285714286
+          },
+          "monte_carlo": {
+            "signals": 301,
+            "avg_edge_pct": 0.18974572170077122,
+            "avg_long_pnl": 0.2969933343147443,
+            "long_win_rate": 0.39867109634551495
+          },
+          "ensemble": {
+            "signals": 253,
+            "avg_edge_pct": 0.09218006939510831,
+            "avg_long_pnl": 0.280416568062045,
+            "long_win_rate": 0.3952569169960474
+          }
+        },
+        "call": {
+          "black_scholes": {
+            "signals": 173,
+            "avg_edge_pct": 0.06888931121072764,
+            "avg_long_pnl": 1.2112076362678093,
+            "long_win_rate": 0.6011560693641619
+          },
+          "binomial": {
+            "signals": 213,
+            "avg_edge_pct": 0.06792075793195909,
+            "avg_long_pnl": 1.2670417587195446,
+            "long_win_rate": 0.5915492957746479
+          },
+          "monte_carlo": {
+            "signals": 316,
+            "avg_edge_pct": 0.22575682910234066,
+            "avg_long_pnl": 0.996820698555777,
+            "long_win_rate": 0.5443037974683544
+          },
+          "ensemble": {
+            "signals": 259,
+            "avg_edge_pct": 0.1060909614846903,
+            "avg_long_pnl": 1.034887758829293,
+            "long_win_rate": 0.5637065637065637
+          }
+        }
+      }
+    },
+    "summary": {
+      "symbols": 8,
+      "edge_threshold_pct": 0.03,
+      "sample_stride_bars": 2,
+      "models": {
+        "black_scholes": {
+          "avg_signals_per_symbol": 173.3125,
+          "avg_edge_pct": 0.0686688434004611,
+          "avg_long_pnl": 1.7421847581048981,
+          "long_win_rate": 0.4994590695997115
+        },
+        "binomial": {
+          "avg_signals_per_symbol": 196.0,
+          "avg_edge_pct": 0.07002980687770999,
+          "avg_long_pnl": 1.6257205873657297,
+          "long_win_rate": 0.491390306122449
+        },
+        "monte_carlo": {
+          "avg_signals_per_symbol": 306.9375,
+          "avg_edge_pct": 0.20814427703507388,
+          "avg_long_pnl": 1.1645027917984376,
+          "long_win_rate": 0.4461413154143759
+        },
+        "ensemble": {
+          "avg_signals_per_symbol": 256.3125,
+          "avg_edge_pct": 0.09850712261512178,
+          "avg_long_pnl": 1.2914416994337536,
+          "long_win_rate": 0.45623018775908314
+        }
+      }
+    }
+  },
+  "ml_alpha_suite": {
+    "summary": {
+      "months_tested": 48,
+      "avg_information_coefficient": 0.014880952380952384,
+      "long_only": {
+        "annualized_return": 0.14730166775116982,
+        "annualized_volatility": 0.21524619901536285,
+        "sharpe_ratio": 0.748067799037471,
+        "max_drawdown": -0.16086465491660473,
+        "win_rate": 0.5833333333333334
+      },
+      "long_short": {
+        "annualized_return": 0.03808082358682641,
+        "annualized_volatility": 0.143328232217535,
+        "sharpe_ratio": 0.33341799197800065,
+        "max_drawdown": -0.1318924353780785,
+        "win_rate": 0.5208333333333334
+      }
+    },
+    "rows": [
+      {
+        "date": "2023-04-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.03572868243818256,
+        "long_short_return": 0.02923247620348554,
+        "information_coefficient": 0.0
+      },
+      {
+        "date": "2023-05-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.0653630815667916,
+        "long_short_return": -0.014483468898964902,
+        "information_coefficient": -0.19047619047619052
+      },
+      {
+        "date": "2023-06-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.07141048164660413,
+        "long_short_return": 0.02297130384153878,
+        "information_coefficient": 0.523809523809524
+      },
+      {
+        "date": "2023-07-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.047534635797654934,
+        "long_short_return": -0.04643367991429048,
+        "information_coefficient": -0.261904761904762
+      },
+      {
+        "date": "2023-08-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.06670194817604991,
+        "long_short_return": 0.05284874182537552,
+        "information_coefficient": 0.6904761904761906
+      },
+      {
+        "date": "2023-09-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.027190501970425995,
+        "long_short_return": -0.012036630203147852,
+        "information_coefficient": -0.19047619047619052
+      },
+      {
+        "date": "2023-10-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.023797736827874838,
+        "long_short_return": -0.03694026434475403,
+        "information_coefficient": -0.1666666666666667
+      },
+      {
+        "date": "2023-11-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.10103737250735945,
+        "long_short_return": 0.055157570056305616,
+        "information_coefficient": 0.6428571428571429
+      },
+      {
+        "date": "2023-12-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.010385792051890996,
+        "long_short_return": -0.019345580891621278,
+        "information_coefficient": -0.3333333333333334
+      },
+      {
+        "date": "2024-01-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.009271412605890539,
+        "long_short_return": -0.038069807927898575,
+        "information_coefficient": -0.4523809523809524
+      },
+      {
+        "date": "2024-02-29",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.0552708499723934,
+        "long_short_return": 0.012578887383150106,
+        "information_coefficient": 0.04761904761904763
+      },
+      {
+        "date": "2024-03-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.024343657120590056,
+        "long_short_return": 0.0836038708528618,
+        "information_coefficient": 0.14285714285714288
+      },
+      {
+        "date": "2024-04-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.033970579281805025,
+        "long_short_return": 0.017228571404985682,
+        "information_coefficient": -0.07142857142857144
+      },
+      {
+        "date": "2024-05-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.04310642513239055,
+        "long_short_return": 0.006726662417500334,
+        "information_coefficient": -0.2380952380952381
+      },
+      {
+        "date": "2024-06-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.08220140285488042,
+        "long_short_return": 0.057323222184130884,
+        "information_coefficient": 0.4523809523809524
+      },
+      {
+        "date": "2024-07-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.04828537040212022,
+        "long_short_return": -0.025405505576095222,
+        "information_coefficient": -0.6428571428571429
+      },
+      {
+        "date": "2024-08-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.07119900445290095,
+        "long_short_return": 0.012810474236932379,
+        "information_coefficient": 0.38095238095238104
+      },
+      {
+        "date": "2024-09-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.04585878367949525,
+        "long_short_return": -0.005672080056818518,
+        "information_coefficient": 0.11904761904761905
+      },
+      {
+        "date": "2024-10-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.0876660990489091,
+        "long_short_return": 0.0033546922706434446,
+        "information_coefficient": 0.11904761904761905
+      },
+      {
+        "date": "2024-11-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.06411211895178293,
+        "long_short_return": 0.051850716348927406,
+        "information_coefficient": 0.07142857142857144
+      },
+      {
+        "date": "2024-12-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.13364894937518224,
+        "long_short_return": 0.03061881113439613,
+        "information_coefficient": 0.261904761904762
+      },
+      {
+        "date": "2025-01-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.06975181643571288,
+        "long_short_return": -0.11667477144833657,
+        "information_coefficient": -0.38095238095238104
+      },
+      {
+        "date": "2025-02-28",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.008317197001331156,
+        "long_short_return": -0.014086734952402757,
+        "information_coefficient": 0.04761904761904763
+      },
+      {
+        "date": "2025-03-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.010850774572781885,
+        "long_short_return": 0.061340657695046125,
+        "information_coefficient": 0.5476190476190477
+      },
+      {
+        "date": "2025-04-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.07728199525658597,
+        "long_short_return": -0.01862905426870337,
+        "information_coefficient": 0.04761904761904763
+      },
+      {
+        "date": "2025-05-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.01556725381827212,
+        "long_short_return": -0.005909618432894143,
+        "information_coefficient": -0.11904761904761905
+      },
+      {
+        "date": "2025-06-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.05556673096951126,
+        "long_short_return": 0.017177008480724343,
+        "information_coefficient": -0.04761904761904763
+      },
+      {
+        "date": "2025-07-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.11688545157236574,
+        "long_short_return": -0.0013767128557085617,
+        "information_coefficient": 0.023809523809523815
+      },
+      {
+        "date": "2025-08-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.040094748595008,
+        "long_short_return": 0.020285972995971596,
+        "information_coefficient": 0.261904761904762
+      },
+      {
+        "date": "2025-09-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.0304781862558689,
+        "long_short_return": -0.006118245210080003,
+        "information_coefficient": -0.3333333333333334
+      },
+      {
+        "date": "2025-10-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.02071677888745349,
+        "long_short_return": 0.032879067408303486,
+        "information_coefficient": 0.11904761904761905
+      },
+      {
+        "date": "2025-11-30",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.01603804927341196,
+        "long_short_return": 0.0028410245207033114,
+        "information_coefficient": -0.261904761904762
+      },
+      {
+        "date": "2025-12-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.01330509001931729,
+        "long_short_return": -0.02803908135654007,
+        "information_coefficient": -0.04761904761904763
+      },
+      {
+        "date": "2026-01-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.04714569183656392,
+        "long_short_return": -0.013400453829182368,
+        "information_coefficient": 0.261904761904762
+      },
+      {
+        "date": "2026-02-28",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": 0.052143269642361656,
+        "long_short_return": 0.0766348493189781,
+        "information_coefficient": 0.8333333333333335
+      },
+      {
+        "date": "2026-03-31",
+        "n_test": 8,
+        "long_bucket": 2,
+        "short_bucket": 1,
+        "long_return": -0.01980042919127928,
+        "long_short_return": -0.01982967087733492,
+        "information_coefficient": -0.4523809523809524
+      }
+    ]
+  },
+  "massive_overview": {
+    "predictive_score": 0.5169466622741999,
+    "movement_hit_rate": 0.0,
+    "pairs_win_rate": 0.0,
+    "regime_directional_accuracy_proxy": 0.5134841499476689,
+    "strategy_router_hit_rate": 0.47096478809637965,
+    "strategy_profile_score": 0.6274333333333334,
+    "delay_filtered_put_win_rate": 0.5550900338741308,
+    "delay_filtered_call_win_rate": 0.5636477090390444,
+    "option_model_ensemble_win_rate": 0.45623018775908314,
+    "option_model_ensemble_edge_pct": 0.09850712261512178,
+    "avg_recent_quote_error_pct": 0.04400406659324183,
+    "ml_alpha_information_coefficient": 0.014880952380952384,
+    "ml_alpha_long_short_sharpe": 0.33341799197800065,
+    "consensus_market_state": "volatile_bull",
+    "consensus_strategy_profile": "long_vol_breakout",
+    "window_movement_accuracy": {
+      "10y": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.524867374005305,
+        "avg_strategy_daily_return": -0.007605715698343188,
+        "avg_alpha_daily": -0.009583511383589982,
+        "hit_rate": 0.0
+      },
+      "5y": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.5242042440318302,
+        "avg_strategy_daily_return": 0.005195976806880415,
+        "avg_alpha_daily": 0.004435352648996055,
+        "hit_rate": 0.0
+      },
+      "3y": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.5204646017699115,
+        "avg_strategy_daily_return": 0.0023600031904531388,
+        "avg_alpha_daily": 0.0014140026374773185,
+        "hit_rate": 0.0
+      },
+      "1y": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.485,
+        "avg_strategy_daily_return": 0.00018677971317732078,
+        "avg_alpha_daily": 7.988687339574585e-06,
+        "hit_rate": 0.0
+      },
+      "6mo": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.5098684210526315,
+        "avg_strategy_daily_return": -3.868038779913929e-06,
+        "avg_alpha_daily": -0.00015099239533399034,
+        "hit_rate": 0.0
+      },
+      "3mo": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.4605263157894737,
+        "avg_strategy_daily_return": -0.00023802340985053239,
+        "avg_alpha_daily": -0.0003701503349357177,
+        "hit_rate": 0.0
+      },
+      "ytd": {
+        "valid_runs": 8,
+        "avg_accuracy": 0.48214285714285715,
+        "avg_strategy_daily_return": -0.00019882946925098288,
+        "avg_alpha_daily": -0.00037694350150777045,
+        "hit_rate": 0.0
+      }
+    },
+    "window_pairs_win_rate": {
+      "10y": 0.0,
+      "5y": 0.0,
+      "3y": 0.0,
+      "1y": 0.0,
+      "6mo": 0.0,
+      "3mo": 0.0,
+      "ytd": 0.0
+    },
+    "window_regime_accuracy": {
+      "10y": 0.5149700598802395,
+      "5y": 0.5088,
+      "3y": 0.5107238605898123,
+      "1y": 0.516260162601626,
+      "6mo": 0.5166666666666667
+    },
+    "window_strategy_hit_rate": {
+      "10y": 0.4669621273166801,
+      "5y": 0.47020408163265304,
+      "3y": 0.47572815533980584
+    },
+    "window_strategy_profile_state": {
+      "10y": "volatile_bull",
+      "5y": "volatile_bull",
+      "3y": "volatile_bull",
+      "1y": null,
+      "6mo": null,
+      "3mo": null,
+      "ytd": null
+    },
+    "note": "Proxy framework focuses on predictive quality. Delay quote analysis and option model suite are theoretical options studies, not full broker-fill backtests.",
+    "institutional_score": 0.490297,
+    "deployment_tier": "research_only"
+  },
+  "institutional_robustness": {
+    "institutional_score": 0.490297,
+    "deployment_tier": "research_only",
+    "breadth_score": 0.107143,
+    "stability_score": 0.741051,
+    "execution_quality_score": 0.647967,
+    "option_quality_score": 0.45623,
+    "alpha_quality_score": 0.619048,
+    "gates": {
+      "predictive_score": false,
+      "movement_breadth": true,
+      "regime_breadth": false,
+      "strategy_breadth": false,
+      "execution_quality": true,
+      "option_quality": false
+    },
+    "windows": {
+      "movement": {
+        "threshold": 0.52,
+        "valid_windows": 7,
+        "pass_rate": 0.42857142857142855,
+        "stability_score": 0.9066151646574518,
+        "confidence_band": {
+          "samples": 7,
+          "mean": 0.5010105448274299,
+          "p10": 0.4878516228168297,
+          "p90": 0.5119265979860939,
+          "dispersion": 0.023346208835637046
+        },
+        "window_values": {
+          "10y": 0.524867374005305,
+          "5y": 0.5242042440318302,
+          "3y": 0.5204646017699115,
+          "1y": 0.485,
+          "6mo": 0.5098684210526315,
+          "3mo": 0.4605263157894737,
+          "ytd": 0.48214285714285715
+        }
+      },
+      "pairs": {
+        "threshold": 0.52,
+        "valid_windows": 7,
+        "pass_rate": 0.0,
+        "stability_score": 1.0,
+        "confidence_band": {
+          "samples": 7,
+          "mean": 0.0,
+          "p10": 0.0,
+          "p90": 0.0,
+          "dispersion": 0.0
+        },
+        "window_values": {
+          "10y": 0.0,
+          "5y": 0.0,
+          "3y": 0.0,
+          "1y": 0.0,
+          "6mo": 0.0,
+          "3mo": 0.0,
+          "ytd": 0.0
+        }
+      },
+      "regime": {
+        "threshold": 0.52,
+        "valid_windows": 7,
+        "pass_rate": 0.0,
+        "stability_score": 0.07206493123146596,
+        "confidence_band": {
+          "samples": 7,
+          "mean": 0.3667743928197635,
+          "p10": 0.22068926872413733,
+          "p90": 0.44226206124336687,
+          "dispersion": 0.2319837671921335
+        },
+        "window_values": {
+          "10y": 0.5149700598802395,
+          "5y": 0.5088,
+          "3y": 0.5107238605898123,
+          "1y": 0.516260162601626,
+          "6mo": 0.5166666666666667,
+          "3mo": 0.0,
+          "ytd": 0.0
+        }
+      },
+      "strategy_proxy": {
+        "threshold": 0.51,
+        "valid_windows": 3,
+        "pass_rate": 0.0,
+        "stability_score": 0.9855243404042885,
+        "confidence_band": {
+          "samples": 3,
+          "mean": 0.47096478809637965,
+          "p10": 0.4680427787553378,
+          "p90": 0.4738867974374215,
+          "dispersion": 0.003618914898927865
+        },
+        "window_values": {
+          "10y": 0.4669621273166801,
+          "5y": 0.47020408163265304,
+          "3y": 0.47572815533980584
+        }
+      }
+    },
+    "note": "Institutional robustness score emphasizes breadth, stability, and execution realism. It is a deployment filter, not a profit guarantee."
+  },
+  "source_output_path": "reports/massive_backtest_report.json"
+}

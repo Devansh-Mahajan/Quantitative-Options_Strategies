@@ -2,7 +2,7 @@
   "phase": "cycle-pretrade",
   "order_label": "run-strategy-cycle",
   "portfolio_risk_engine": {
-    "portfolio_equity": 9273.71,
+    "portfolio_equity": 9273.47,
     "modeled_portfolio_value": 9347.43,
     "expected_value": 9347.43,
     "var_95": 0.0,
@@ -38,7 +38,7 @@
       "correlation_concentration"
     ],
     "risk_score": 0.453723,
-    "daily_pnl_pct": -0.19791,
+    "daily_pnl_pct": -0.200493,
     "kill_switch_active": false,
     "hard_kill_reasons": [],
     "underlying_count": 1,
@@ -46,5 +46,5 @@
     "horizon_days": 1.0,
     "confidence": 0.95
   },
-  "generated_at_utc": "2026-04-14T22:17:58Z"
+  "generated_at_utc": "2026-04-14T23:02:22Z"
 }

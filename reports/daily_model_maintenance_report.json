@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-14T22:07:27.739408+00:00",
+  "generated_at_utc": "2026-04-14T23:00:57.745179+00:00",
   "mode": "daily",
   "runtime_message": "CPU detected and using.",
   "resource_profile": {
@@ -17,6 +17,41 @@
     "strategy_interval_seconds": 900,
     "telemetry_interval_seconds": 300
   },
-  "steps": [],
+  "steps": [
+    {
+      "command": [
+        "/home/dash/options-spread/.venv/bin/python",
+        "scripts/quant_research_foundry.py",
+        "--mode",
+        "weekend-calibrate",
+        "--target-daily-return",
+        "0.002",
+        "--target-accuracy",
+        "0.56",
+        "--max-symbols",
+        "39",
+        "--rf-jobs",
+        "10",
+        "--model-parallelism",
+        "3"
+      ],
+      "return_code": 0,
+      "started_at_utc": "2026-04-14T22:57:41.841556+00:00",
+      "finished_at_utc": "2026-04-14T23:00:54.470922+00:00",
+      "duration_seconds": 192.63
+    },
+    {
+      "command": [
+        "/home/dash/options-spread/.venv/bin/python",
+        "scripts/train_regime_movement_models.py",
+        "--target-accuracy",
+        "0.56"
+      ],
+      "return_code": 0,
+      "started_at_utc": "2026-04-14T23:00:54.470986+00:00",
+      "finished_at_utc": "2026-04-14T23:00:57.745122+00:00",
+      "duration_seconds": 3.27
+    }
+  ],
   "note": "Daily maintenance refreshes model packs and regime movement models between heavy weekend recalibration cycles."
 }
