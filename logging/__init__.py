@@ -17,6 +17,7 @@ import sysconfig
 from pathlib import Path
 
 _STDLIB_LOGGING_PATH = Path(sysconfig.get_path("stdlib")) / "logging" / "__init__.py"
+_STDLIB_LOGGING_DIR = _STDLIB_LOGGING_PATH.parent
 _spec = importlib.util.spec_from_file_location("_stdlib_logging", _STDLIB_LOGGING_PATH)
 if _spec is None or _spec.loader is None:
     raise ImportError(f"Unable to load stdlib logging module from {_STDLIB_LOGGING_PATH}")
@@ -30,6 +31,11 @@ for _name, _value in _stdlib_logging.__dict__.items():
     if _name in {"__name__", "__package__", "__path__", "__file__", "__spec__"}:
         continue
     globals()[_name] = _value
+
+# Make stdlib submodules such as ``logging.handlers`` importable while still
+# keeping local helper modules (e.g. ``logging.logger_setup``) available.
+if str(_STDLIB_LOGGING_DIR) not in __path__:
+    __path__.append(str(_STDLIB_LOGGING_DIR))
 
 # Mirror stdlib surface as closely as possible for dir(logging) and wildcard imports.
 __all__ = getattr(_stdlib_logging, "__all__", [])

@@ -154,26 +154,62 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 
 8. **Run always-on concurrent automation (optional but recommended for 24/7 ops)**
 
+   Simplest one-command launcher:
+
    ```bash
-   automate-stack --restart-on-failure
+   python start.py
+   ```
+
+   Equivalent direct launcher:
+
+   ```bash
+   python -m scripts.automation_controller --restart-on-failure
    ```
 
    This launches concurrent loops for:
    - market-hours portfolio deployment,
    - always-on risk monitoring,
    - market-regime rebalance checks,
+   - faster critical-window monitoring around the open and close,
+   - immediate regime-shift detection + rebalance triggers,
    - open/close bell risk sweeps,
-   - pre-open self checks + post-close self-evaluation/fine-tuning/backtesting,
+   - a cached preflight gate that recompiles/import-checks the stack before live actions run,
+   - pre-open self checks + daily post-close evaluation/model-maintenance,
+   - a 24/7 system-resource telemetry loop that writes host snapshots to `.runtime/system_resource_snapshot.json`,
+   - Friday post-close fine-tuning/backtesting before the heavier weekend recalibration cycle,
    - weekend recalibration + automatic backtesting + fixed report generation.
+
+   The controller now streams child command output with cleaner status lines, and `run-strategy` prints stage percentages so you can see exactly where the stack is in the cycle.
+
+   Manual preflight check:
+
+   ```bash
+   python -m scripts.automation_preflight --json-only --no-deep-model-checks
+   ```
+
+   Daily lightweight model maintenance can also be run manually:
+
+   ```bash
+   python -m scripts.model_maintenance --mode daily
+   ```
+
+   Daily automation reports are written to:
+   - `reports/daily/latest_daily_automation_report.md`
+   - `reports/daily/latest_daily_automation_report.json`
+
+   Every massive backtest now also writes:
+   - an archived JSON + Markdown report under `reports/backtests/`
+   - `reports/latest_backtest_report.json`
+   - `reports/latest_backtest_summary.md`
 
    To add weekend calibration beside your run-bot timings:
 
    ```bash
-   automate-stack \
+   python -m scripts.automation_controller \
      --weekend-hour 8 \
      --weekend-minute 0 \
-     --weekend-recalibration-command "weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56" \
-     --weekend-backtest-command "massive-backtest"
+     --weekend-recalibration-command "python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56" \
+     --weekend-backtest-command "python -m scripts.massive_backtest_engine"
    ```
 
    The weekend report is written to `reports/weekend_professional_report.md`.
@@ -181,13 +217,22 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
    Optional `crontab -e` bootstrap (launch once on reboot, controller handles timing internally):
 
    ```cron
-   @reboot cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'source .venv/bin/activate && automate-stack --restart-on-failure >> logs/automate-stack.log 2>&1'
+   @reboot cd /path/to/options-spread && /path/to/options-spread/.venv/bin/python -m scripts.automation_controller --restart-on-failure >> /path/to/options-spread/logs/automate-stack.log 2>&1
    ```
 
    Optional fail-safe watchdog every 15 minutes (restart if down + optional ping):
 
    ```cron
-   */15 * * * * cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
+   */15 * * * * cd /path/to/options-spread && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
+   ```
+
+   If you still prefer separate cron jobs instead of the always-on controller, add the weekend calibration/backtest task next to the weekday run-bot timings:
+
+   ```cron
+   CRON_TZ=America/New_York
+   0 10,13 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
+   30 15 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --manage-only --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
+   0 8 * * 6 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56 && /home/dash/options-spread/.venv/bin/python -m scripts.massive_backtest_engine >> /home/dash/options-spread/logs/weekend-automation.log 2>&1
    ```
 
 ---
@@ -203,6 +248,12 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 * Queries the macro HMM/deep regime brain (`core/regime_detection.py`) and the large cross-sectional screener (`scripts/mega_screener.py`) for higher-level trade priors.
 * Adds an HMM-driven **pairs mean-reversion overlay** (`core/pairs_trading.py`) that injects bullish/bearish directional context when historically correlated pairs diverge materially with confidence gating.
 * Fuses deep-model priors, movement signals, pair signals, flow ranking, and macro posture in `core/signal_fusion.py` before capital is routed to Theta, Vega, Bull, and Bear books.
+* Uses weekend-generated market-state policy controls to bias routing thresholds, bucket sizing, and deployment toward the profile that best matched recent backtest regimes.
+* Runs a cached compile/import/config preflight before live automation actions so broken edits are caught before the stack wastes a market window.
+* Can deploy a capped direct-equity overlay from the same predictive signal stack, apply event-aware IV/distribution filters to those stock entries, and unwind that overlay automatically when the market state turns defensive.
+* Can also use a stock-based delta hedge sleeve (`SPY` / `SH` by default) when the live portfolio delta drifts too far away from the model target and options alone are not enough to rebalance quickly.
+* Writes `.runtime/risk_snapshot.json` and `.runtime/system_resource_snapshot.json` so the 24/7 risk desk and host-health state are auditable outside the terminal.
+* Sizes research/backtest concurrency from the detected machine profile so a 28-core / 32 GB host can run faster without letting BLAS/RandomForest threads stampede each other.
 * Dynamically throttles new trade count and risk deployment when model confidence is weak, the stack disagrees, or macro-regime conviction falls.
 * Uses an optional **Platinum sizing layer** (`core/portfolio_optimizer.py`) that applies conservative Kelly-style deployment scaling from signal quality, macro confidence, pair confidence, and VIX.
 * Stores a routing snapshot in the strategy JSON log so you can audit why a bucket was favored on a given run.
@@ -223,6 +274,17 @@ This code helps pick the right puts and calls to sell, tracks your positions, an
 6. `core/signal_fusion.py` combines those inputs into ranked candidate buckets and a consensus-based deployment multiplier.
 
 This is much closer to an institutional routing pattern: the stack scales down when signals conflict and only sizes up when multiple layers agree. It is still not a profit guarantee, and no model can be expected to win in every market condition.
+
+Weekend recalibration now also builds a regime-policy artifact that:
+- infers the current market state,
+- scores multiple strategy profiles against recent backtest windows,
+- selects a live profile and emits bucket weights, routing thresholds, risk/deployment multipliers, and short-premium safety caps for the always-on runner.
+
+Useful live override knobs when you want to clamp or test behavior without editing files:
+- `--min-signal-confidence-override`
+- `--min-vix-for-directional-credit`
+- `--max-vix-for-short-premium`
+- `--disable-runtime-regime-policy`
 
 ---
 

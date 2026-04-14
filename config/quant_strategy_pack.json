@@ -1,0 +1,56 @@
+{
+  "mode": "zero-calibration",
+  "universe": [
+    "WMT",
+    "AMZN",
+    "AAPL",
+    "UNH",
+    "CVS",
+    "BRK.B",
+    "GOOGL",
+    "XOM",
+    "MCK",
+    "JPM",
+    "COST",
+    "COR",
+    "CI",
+    "MSFT",
+    "CAH",
+    "CVX",
+    "BAC",
+    "GM",
+    "F",
+    "ELV",
+    "C",
+    "META",
+    "CNC",
+    "HD",
+    "FNMA",
+    "KR",
+    "PSX",
+    "MPC",
+    "VZ",
+    "NVDA",
+    "GS",
+    "WFC",
+    "VLO",
+    "CMCSA",
+    "T"
+  ],
+  "ensemble_weights": {
+    "logreg": 0.45,
+    "rf": 0.35,
+    "mlp": 0.2
+  },
+  "entry_policy": {
+    "min_ensemble_confidence": 0.54,
+    "min_expected_daily_return": 0.002,
+    "max_position_per_symbol": 0.03,
+    "max_sector_exposure": 0.2
+  },
+  "risk_policy": {
+    "stop_volatility_regime": 0.035,
+    "capital_throttle_if_drawdown_pct": -0.06,
+    "notes": "Static priors for immediate deployment without data refit."
+  }
+}

@@ -15,11 +15,22 @@ class Contract:
     dte: Optional[float] = None  # Days to expiration
     strike: Optional[float] = None
     delta: Optional[float] = None
+    gamma: Optional[float] = None
+    theta: Optional[float] = None
+    vega: Optional[float] = None
     bid_price: Optional[float] = None
     ask_price: Optional[float] = None
     last_price: Optional[float] = None
     oi: Optional[int] = None  # Open interest
     underlying_price: Optional[float] = None
+    delayed_underlying_price: Optional[float] = None
+    implied_volatility: Optional[float] = None
+    fair_value: Optional[float] = None
+    fair_bid_price: Optional[float] = None
+    fair_ask_price: Optional[float] = None
+    pricing_confidence: Optional[float] = None
+    quote_age_minutes: Optional[float] = None
+    staleness_pct: Optional[float] = None
     client: Optional["BrokerClient"] = field(default=None, repr=False, compare=False)
 
 
@@ -58,9 +69,13 @@ class Contract:
             dte = (contract.expiration_date - datetime.date.today()).days,
             strike = contract.strike_price,
             delta = snapshot.greeks.delta if hasattr(snapshot, 'greeks') and snapshot.greeks else None,
+            gamma = snapshot.greeks.gamma if hasattr(snapshot, 'greeks') and snapshot.greeks else None,
+            theta = snapshot.greeks.theta if hasattr(snapshot, 'greeks') and snapshot.greeks else None,
+            vega = snapshot.greeks.vega if hasattr(snapshot, 'greeks') and snapshot.greeks else None,
             bid_price = snapshot.latest_quote.bid_price if hasattr(snapshot, 'latest_quote') and snapshot.latest_quote else None,
             ask_price = snapshot.latest_quote.ask_price if hasattr(snapshot, 'latest_quote') and snapshot.latest_quote else None,
-            last_price = snapshot.latest_trade.price if hasattr(snapshot, 'latest_trade') and snapshot.latest_trade else None
+            last_price = snapshot.latest_trade.price if hasattr(snapshot, 'latest_trade') and snapshot.latest_trade else None,
+            implied_volatility = getattr(snapshot, "implied_volatility", None),
         )
     
     @classmethod
@@ -80,12 +95,16 @@ class Contract:
             data = snapshot[self.symbol]
             if hasattr(data, 'greeks') and data.greeks:
                 self.delta = data.greeks.delta
+                self.gamma = data.greeks.gamma
+                self.theta = data.greeks.theta
+                self.vega = data.greeks.vega
             if hasattr(data, 'latest_quote') and data.latest_quote:
                 self.bid_price = data.latest_quote.bid_price
                 self.ask_price = data.latest_quote.ask_price
                 self.last_price = getattr(data.latest_trade, "price", None)
             if hasattr(data, 'latest_trade') and data.latest_trade:
                 self.last_price = data.latest_trade.price
+            self.implied_volatility = getattr(data, "implied_volatility", None)
         
         # underlying_latest_trade = get_stock_latest_trade(self.underlying)
         # if underlying_latest_trade and self.underlying in underlying_latest_trade:
@@ -101,11 +120,22 @@ class Contract:
             "dte": self.dte,
             "strike": self.strike,
             "delta": self.delta,
+            "gamma": self.gamma,
+            "theta": self.theta,
+            "vega": self.vega,
             "bid_price": self.bid_price,
             "ask_price": self.ask_price,
             "last_price": self.last_price,
             "oi": self.oi,
             "underlying_price": self.underlying_price,
+            "delayed_underlying_price": self.delayed_underlying_price,
+            "implied_volatility": self.implied_volatility,
+            "fair_value": self.fair_value,
+            "fair_bid_price": self.fair_bid_price,
+            "fair_ask_price": self.fair_ask_price,
+            "pricing_confidence": self.pricing_confidence,
+            "quote_age_minutes": self.quote_age_minutes,
+            "staleness_pct": self.staleness_pct,
         }
     
     @staticmethod

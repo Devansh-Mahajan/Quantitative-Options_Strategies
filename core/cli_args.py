@@ -85,5 +85,41 @@ def parse_args():
         default=12,
         help="How many fused candidates per strategy bucket to retain before deployment throttling.",
     )
+    parser.add_argument(
+        "--min-signal-confidence-override",
+        type=float,
+        help="Optional manual floor for signal confidence gating after runtime policy is loaded.",
+    )
+    parser.add_argument(
+        "--min-vix-for-directional-credit",
+        type=float,
+        help="Optional live override for the minimum VIX required before directional short premium is allowed.",
+    )
+    parser.add_argument(
+        "--max-vix-for-short-premium",
+        type=float,
+        help="Optional live override for the maximum VIX allowed for short-premium deployment.",
+    )
+    parser.add_argument(
+        "--disable-runtime-regime-policy",
+        action="store_true",
+        help="Ignore weekend market_regime_policy live controls for this run.",
+    )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help="Bypass the cached compile/import/config validation gate for this manual run.",
+    )
+    parser.add_argument(
+        "--preflight-max-age-seconds",
+        type=int,
+        default=300,
+        help="Reuse a successful preflight result for this many seconds before validating again.",
+    )
+    parser.add_argument(
+        "--no-progress-ui",
+        action="store_true",
+        help="Disable clean percentage-based progress lines in the terminal.",
+    )
 
     return parser.parse_args()

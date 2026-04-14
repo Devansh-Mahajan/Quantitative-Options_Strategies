@@ -10,7 +10,12 @@ def setup_logger(log_file="logs/run.log", level="INFO", to_file=False):
         # Console output
         ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(getattr(logging, level.upper()))
-        ch.setFormatter(logging.Formatter("[%(message)s]"))
+        ch.setFormatter(
+            logging.Formatter(
+                "%(asctime)s | %(levelname)s | %(message)s",
+                datefmt="%H:%M:%S",
+            )
+        )
         logger.addHandler(ch)
 
         # File output

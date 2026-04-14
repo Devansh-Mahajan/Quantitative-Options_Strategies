@@ -9,6 +9,7 @@ logger = logging.getLogger(f"strategy.{__name__}")
 
 # --- METADATA TRACKER FOR EARNINGS DATES ---
 STRADDLE_META_FILE = "straddles_meta.json"
+EQUITY_OVERLAY_META_FILE = "config/equity_overlay_positions.json"
 
 MODEL_STATE_FILE = "config/model_state.json"
 
@@ -73,6 +74,31 @@ def remove_straddle_metadata(symbol):
             del data[symbol]
             with open(STRADDLE_META_FILE, 'w') as f:
                 json.dump(data, f)
+
+
+def register_equity_overlay(symbol, metadata):
+    data = _safe_read_json(EQUITY_OVERLAY_META_FILE)
+    data[str(symbol).upper()] = metadata
+    os.makedirs(os.path.dirname(EQUITY_OVERLAY_META_FILE), exist_ok=True)
+    with open(EQUITY_OVERLAY_META_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def get_equity_overlay_metadata(symbol=None):
+    data = _safe_read_json(EQUITY_OVERLAY_META_FILE)
+    if symbol is None:
+        return data
+    return data.get(str(symbol).upper())
+
+
+def remove_equity_overlay_metadata(symbol):
+    data = _safe_read_json(EQUITY_OVERLAY_META_FILE)
+    key = str(symbol).upper()
+    if key in data:
+        del data[key]
+        os.makedirs(os.path.dirname(EQUITY_OVERLAY_META_FILE), exist_ok=True)
+        with open(EQUITY_OVERLAY_META_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
 
 # --- UPDATED RISK CALCULATOR ---
 def calculate_risk(positions):

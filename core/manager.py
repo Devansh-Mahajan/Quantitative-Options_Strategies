@@ -1,21 +1,84 @@
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from alpaca.trading.enums import AssetClass, QueryOrderStatus
 from alpaca.trading.requests import GetOrdersRequest
+from core.delay_aware_options import (
+    build_delay_adjusted_contracts,
+    effective_ask_price,
+    effective_bid_price,
+)
+from models.contract import Contract
 from .utils import parse_option_symbol
 from config.params import PROFIT_TARGET, STOP_LOSS
-from core.state_manager import get_straddle_metadata, remove_straddle_metadata 
+from core.state_manager import get_equity_overlay_metadata, get_straddle_metadata, remove_straddle_metadata 
 from config.params import PROFIT_TARGET, STOP_LOSS, SWEEP_TICKER, TARGET_CASH_BUFFER, MAX_RISK_BASE
 from core.notifications import send_alert
 logger = logging.getLogger(f"strategy.{__name__}")
+
+
+@dataclass(frozen=True)
+class CreditSpreadExitPlan:
+    take_profit: float
+    stop_loss: float
+    time_stop_dte: int
+    emergency_exit_risk: float
+
+
+@dataclass(frozen=True)
+class LongOptionExitPlan:
+    take_profit: float
+    stop_loss: float
+    time_stop_dte: int
+
+
+def build_credit_spread_exit_plan(days_to_expiry: int, pop: float, implied_risk: float) -> CreditSpreadExitPlan:
+    if days_to_expiry > 35:
+        take_profit = 0.28
+    elif days_to_expiry > 21:
+        take_profit = 0.38
+    elif days_to_expiry > 10:
+        take_profit = 0.50
+    else:
+        take_profit = 0.62
+
+    if pop >= 75.0:
+        take_profit = max(0.18, take_profit - 0.08)
+        stop_loss = 1.85
+        time_stop_dte = 8
+    elif pop >= 60.0:
+        stop_loss = 1.55
+        time_stop_dte = 7
+    else:
+        take_profit = min(0.68, take_profit + 0.06)
+        stop_loss = 1.20
+        time_stop_dte = 10
+
+    if implied_risk >= 0.75:
+        stop_loss = min(stop_loss, 0.95)
+
+    return CreditSpreadExitPlan(
+        take_profit=round(take_profit, 4),
+        stop_loss=round(stop_loss, 4),
+        time_stop_dte=int(time_stop_dte),
+        emergency_exit_risk=0.78,
+    )
+
+
+def build_long_option_exit_plan(days_to_expiry: int, is_cornwall: bool) -> LongOptionExitPlan:
+    if is_cornwall:
+        return LongOptionExitPlan(take_profit=5.0, stop_loss=0.55, time_stop_dte=3)
+    if days_to_expiry > 21:
+        return LongOptionExitPlan(take_profit=0.90, stop_loss=0.38, time_stop_dte=5)
+    return LongOptionExitPlan(take_profit=0.75, stop_loss=0.32, time_stop_dte=3)
 
 def get_portfolio_greeks(client, positions):
     """Calculates total Portfolio Delta, Theta, and Vega."""
     from alpaca.trading.enums import AssetClass
     
-    option_symbols = [p.symbol for p in positions if p.asset_class == AssetClass.US_OPTION]
-    if not option_symbols:
+    option_positions = [p for p in positions if p.asset_class == AssetClass.US_OPTION]
+    if not option_positions:
         return 0.0, 0.0, 0.0
         
     total_delta = 0.0
@@ -23,21 +86,19 @@ def get_portfolio_greeks(client, positions):
     total_vega = 0.0  # <-- NEW
     
     try:
-        snapshots = client.get_option_snapshot(option_symbols)
+        priced_map = _build_position_contract_map(client, option_positions)
         
-        for p in positions:
-            if p.asset_class == AssetClass.US_OPTION:
-                qty = float(p.qty) 
-                snap = snapshots.get(p.symbol)
-                
-                if snap and snap.greeks:
-                    delta = snap.greeks.delta or 0.0
-                    theta = snap.greeks.theta or 0.0
-                    vega = snap.greeks.vega or 0.0  # <-- NEW
-                    
-                    total_delta += (delta * 100 * qty)
-                    total_theta += (theta * 100 * qty)
-                    total_vega += (vega * 100 * qty)  # <-- NEW
+        for p in option_positions:
+            qty = float(p.qty)
+            contract = priced_map.get(p.symbol)
+            if contract:
+                delta = contract.delta or 0.0
+                theta = contract.theta or 0.0
+                vega = contract.vega or 0.0
+
+                total_delta += (delta * 100 * qty)
+                total_theta += (theta * 100 * qty)
+                total_vega += (vega * 100 * qty)
                     
     except Exception as e:
         logger.debug(f"Could not calculate Greeks: {e}")
@@ -124,6 +185,7 @@ def sweep_idle_cash(client, current_equity):
 
 def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS):
     cleanup_stale_orders(client)
+    overlay_meta = get_equity_overlay_metadata()
 
     try:
         positions = client.trade_client.get_all_positions()
@@ -150,6 +212,7 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
 
     closed_profits, closed_losses, closed_time, holding_status = [], [], [], []
     processed_straddles = set()
+    priced_position_contracts = _build_position_contract_map(client, positions)
 
     spreads = {}
     for pos in positions:
@@ -157,7 +220,11 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
         if pos.asset_class == AssetClass.US_EQUITY:
             profit_pct = float(pos.unrealized_plpc) * 100
             profit_dollars = float(pos.unrealized_pl)
-            holding_status.append(f"{pos.symbol} [SHARES]: {profit_pct:+.2f}% (${profit_dollars:+.2f}) | Qty: {pos.qty}")
+            overlay_role = (overlay_meta.get(pos.symbol, {}) or {}).get("mode")
+            role_suffix = f" | Role: {overlay_role}" if overlay_role else ""
+            holding_status.append(
+                f"{pos.symbol} [SHARES]: {profit_pct:+.2f}% (${profit_dollars:+.2f}) | Qty: {pos.qty}{role_suffix}"
+            )
             continue
 
         if pos.asset_class != AssetClass.US_OPTION: continue
@@ -197,11 +264,17 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
             
             if c_pos and p_pos:
                 total_cost = abs(float(c_pos.cost_basis)) + abs(float(p_pos.cost_basis))
-                total_val = float(c_pos.market_value) + float(p_pos.market_value)
+                total_val = _estimate_long_option_exit_value(c_pos, priced_position_contracts) + _estimate_long_option_exit_value(p_pos, priced_position_contracts)
                 profit_pct = (total_val - total_cost) / total_cost if total_cost > 0 else 0
                 
-                if days_to_earnings <= 1 or profit_pct >= 0.50:
-                    reason = "Pre-Earnings" if days_to_earnings <= 1 else "Target Hit"
+                if days_to_earnings <= 1 or profit_pct >= 0.50 or (days_to_earnings > 3 and profit_pct <= -0.35):
+                    reason = (
+                        "Pre-Earnings"
+                        if days_to_earnings <= 1
+                        else "Target Hit"
+                        if profit_pct >= 0.50
+                        else "Capital Protection"
+                    )
                     logger.warning(f"🚨 [VEGA EXIT] {underlying} ({reason}). Attempting to exit Straddle.")
                     try:
                         client.market_sell(straddle_meta['call_symbol'])
@@ -223,7 +296,9 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
         # =========================================================
         if short_pos and long_pos:
             net_credit_collected = (float(short_pos.cost_basis) + float(long_pos.cost_basis)) * -1
-            current_cost_to_close = (float(short_pos.market_value) + float(long_pos.market_value)) * -1
+            short_close_cost = _estimate_short_option_close_cost(short_pos, priced_position_contracts)
+            long_exit_credit = _estimate_long_option_exit_value(long_pos, priced_position_contracts)
+            current_cost_to_close = max(0.0, short_close_cost - long_exit_credit)
             
             if net_credit_collected <= 0: continue 
                 
@@ -239,17 +314,25 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
             
             safety = "🟢 HIGH" if pop >= 75 else "🟡 MOD" if pop >= 50 else "🔴 RISK"
             days_to_expiry = get_days_to_expiry(short_pos.symbol)
-
-            dynamic_tp = 0.25 if days_to_expiry > 30 else 0.50 if days_to_expiry > 14 else 0.10
-            status_str = f"{underlying} [SPREAD]: {profit_pct*100:+.1f}% (${profit_dollars:+.2f}) | Target: {dynamic_tp*100:.0f}% | POP: {pop:.1f}% | Safety: {safety}"
+            exit_plan = build_credit_spread_exit_plan(days_to_expiry, pop, implied_risk)
+            dynamic_tp = min(float(profit_target), exit_plan.take_profit)
+            dynamic_sl = min(float(stop_loss), exit_plan.stop_loss)
+            status_str = (
+                f"{underlying} [SPREAD]: {profit_pct*100:+.1f}% (${profit_dollars:+.2f}) | "
+                f"TP: {dynamic_tp*100:.0f}% | SL: {dynamic_sl*100:.0f}% | DTE: {days_to_expiry} | "
+                f"POP: {pop:.1f}% | Safety: {safety}"
+            )
             
-            if profit_pct >= dynamic_tp:
+            if implied_risk >= exit_plan.emergency_exit_risk:
+                if safe_close_position(client, short_pos.symbol, "Emergency Risk Exit") and safe_close_position(client, long_pos.symbol, "Emergency Risk Exit"):
+                    closed_losses.append(f"{status_str} | Emergency risk exit")
+            elif profit_pct >= dynamic_tp:
                 if safe_close_position(client, short_pos.symbol, "Take Profit") and safe_close_position(client, long_pos.symbol, "Take Profit"):
                     closed_profits.append(status_str)
-            elif profit_pct <= -stop_loss:
+            elif profit_pct <= -dynamic_sl:
                 if safe_close_position(client, short_pos.symbol, "Stop Loss") and safe_close_position(client, long_pos.symbol, "Stop Loss"):
                     closed_losses.append(status_str)
-            elif days_to_expiry <= 10:
+            elif days_to_expiry <= exit_plan.time_stop_dte:
                 if safe_close_position(client, short_pos.symbol, "Time Stop") and safe_close_position(client, long_pos.symbol, "Time Stop"):
                     closed_time.append(f"{underlying} [SPREAD]: {days_to_expiry} DTE | POP was {pop:.1f}%")
             else:
@@ -260,21 +343,28 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
         # =========================================================
         elif long_pos and not short_pos:
             cost = abs(float(long_pos.cost_basis))
-            val = float(long_pos.market_value)
+            val = _estimate_long_option_exit_value(long_pos, priced_position_contracts)
             profit_pct = (val - cost) / cost if cost > 0 else 0
             profit_dollars = val - cost
             days_to_expiry = get_days_to_expiry(long_pos.symbol)
 
             is_cornwall = cost < 150.0  
-            target_pct = 5.0 if is_cornwall else 1.0 
+            exit_plan = build_long_option_exit_plan(days_to_expiry, is_cornwall)
+            target_pct = exit_plan.take_profit
             strat_name = "CORNWALL" if is_cornwall else "TAIL HEDGE"
 
-            status_str = f"{underlying} [{strat_name}]: {profit_pct*100:+.1f}% (${profit_dollars:+.2f}) | Target: {target_pct*100:.0f}%"
+            status_str = (
+                f"{underlying} [{strat_name}]: {profit_pct*100:+.1f}% (${profit_dollars:+.2f}) | "
+                f"TP: {target_pct*100:.0f}% | SL: {exit_plan.stop_loss*100:.0f}% | DTE: {days_to_expiry}"
+            )
 
             if profit_pct >= target_pct:
                 if safe_close_position(client, long_pos.symbol, "Target Hit"):
                     closed_profits.append(status_str)
-            elif days_to_expiry <= 2:
+            elif profit_pct <= -exit_plan.stop_loss:
+                if safe_close_position(client, long_pos.symbol, "Stop Loss"):
+                    closed_losses.append(status_str)
+            elif days_to_expiry <= exit_plan.time_stop_dte:
                 if safe_close_position(client, long_pos.symbol, "Expiring"):
                     closed_time.append(f"{underlying} [{strat_name}]: Expiring in {days_to_expiry}d. Exited.")
             else:
@@ -303,3 +393,47 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
     else:
         logger.info("--- NO POSITIONS CLOSED THIS RUN ---")
     return holding_status
+
+
+def _build_position_contract_map(client, option_positions):
+    if not option_positions:
+        return {}
+
+    raw_contracts = []
+    for pos in option_positions:
+        underlying, opt_type, strike = parse_option_symbol(pos.symbol)
+        raw_contracts.append(
+            Contract(
+                underlying=underlying,
+                symbol=pos.symbol,
+                contract_type="call" if opt_type == "C" else "put",
+                dte=get_days_to_expiry(pos.symbol),
+                strike=float(strike),
+            )
+        )
+
+    try:
+        snapshots = client.get_option_snapshot([contract.symbol for contract in raw_contracts])
+        priced_contracts = build_delay_adjusted_contracts(client, raw_contracts, snapshots=snapshots)
+        return {contract.symbol: contract for contract in priced_contracts}
+    except Exception as exc:
+        logger.debug("Could not build delay-aware position contract map: %s", exc)
+        return {}
+
+
+def _estimate_long_option_exit_value(position, priced_map):
+    contract = priced_map.get(position.symbol)
+    bid_price = effective_bid_price(contract)
+    qty = abs(float(position.qty))
+    if bid_price > 0:
+        return bid_price * 100.0 * qty
+    return max(0.0, float(position.market_value))
+
+
+def _estimate_short_option_close_cost(position, priced_map):
+    contract = priced_map.get(position.symbol)
+    ask_price = effective_ask_price(contract)
+    qty = abs(float(position.qty))
+    if ask_price > 0:
+        return ask_price * 100.0 * qty
+    return max(0.0, -float(position.market_value))

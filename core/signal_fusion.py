@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable, Mapping, Sequence
 
 from core.greeks_targeting import PortfolioGreekTargets
+from core.ml_alpha import AlphaSignal
 from core.movement_predictor import MovementSignal
 
 logger = logging.getLogger(f"strategy.{__name__}")
@@ -39,6 +40,15 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, float(value)))
 
 
+def _normalize_bucket_weights(weights: Mapping[str, float] | None) -> dict[str, float]:
+    raw = {bucket: max(0.0, float((weights or {}).get(bucket, 0.0))) for bucket in BUCKETS}
+    total = sum(raw.values())
+    if total <= 1e-9:
+        even = 1.0 / len(BUCKETS)
+        return {bucket: even for bucket in BUCKETS}
+    return {bucket: raw[bucket] / total for bucket in BUCKETS}
+
+
 def _normalize_flow_scores(symbols: Sequence[str], flow_map: Mapping[str, float] | None) -> dict[str, float]:
     if not symbols:
         return {}
@@ -49,6 +59,29 @@ def _normalize_flow_scores(symbols: Sequence[str], flow_map: Mapping[str, float]
     if hi - lo <= 1e-9:
         return {symbol: 0.5 for symbol in symbols}
     return {symbol: (value - lo) / (hi - lo) for symbol, value in raw.items()}
+
+
+def _normalize_alpha_scores(symbols: Sequence[str], alpha_signals: Mapping[str, AlphaSignal] | None) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
+    requested = [str(symbol).upper() for symbol in symbols]
+    if not requested or not alpha_signals:
+        neutral = {symbol: 0.5 for symbol in requested}
+        zero = {symbol: 0.0 for symbol in requested}
+        return neutral, zero, zero
+
+    percentiles = {}
+    strengths = {}
+    dispersions = {}
+    for symbol in requested:
+        signal = (alpha_signals or {}).get(symbol)
+        if signal is None:
+            percentiles[symbol] = 0.5
+            strengths[symbol] = 0.0
+            dispersions[symbol] = 0.0
+            continue
+        percentiles[symbol] = _clamp(float(signal.percentile))
+        strengths[symbol] = _clamp(float(signal.alpha_score))
+        dispersions[symbol] = _clamp(float(signal.model_dispersion) * 25.0)
+    return percentiles, strengths, dispersions
 
 
 def _pair_confidence_maps(pair_overlay: Mapping[str, object] | None) -> tuple[dict[str, float], dict[str, float]]:
@@ -97,7 +130,10 @@ def route_strategy_candidates(
     greek_targets: PortfolioGreekTargets,
     macro_strategy: str,
     macro_confidence: float,
+    alpha_signals: Mapping[str, AlphaSignal] | None = None,
     top_k: int = 12,
+    strategy_weight_overrides: Mapping[str, float] | None = None,
+    score_threshold_overrides: Mapping[str, float] | None = None,
 ) -> RoutingPlan:
     symbols = list(dict.fromkeys(str(symbol).upper() for symbol in allowed_symbols if symbol))
     if not symbols:
@@ -113,9 +149,15 @@ def route_strategy_candidates(
         if getattr(signal, "symbol", None)
     }
     flow_scores = _normalize_flow_scores(symbols, flow_map)
+    alpha_percentiles, alpha_strengths, alpha_dispersions = _normalize_alpha_scores(symbols, alpha_signals)
     pair_bulls, pair_bears = _pair_confidence_maps(pair_overlay)
     macro_conf = _clamp(macro_confidence)
     macro_adjust = _macro_adjustments(macro_strategy, macro_conf)
+    normalized_bucket_weights = _normalize_bucket_weights(strategy_weight_overrides)
+    bucket_score_bias = {
+        bucket: _clamp(1.0 + ((normalized_bucket_weights[bucket] - 0.25) * 1.60), 0.65, 1.35)
+        for bucket in BUCKETS
+    }
 
     theta_demand = 0.10 if greek_targets.target_theta > 0 else 0.0
     vega_demand = 0.10 if greek_targets.target_vega > 0 else 0.0
@@ -148,49 +190,67 @@ def route_strategy_candidates(
         pair_bull = pair_bulls.get(symbol, 0.0)
         pair_bear = pair_bears.get(symbol, 0.0)
         pair_pressure = max(pair_bull, pair_bear)
+        alpha_percentile = alpha_percentiles.get(symbol, 0.5)
+        alpha_strength = alpha_strengths.get(symbol, 0.0)
+        alpha_dispersion = alpha_dispersions.get(symbol, 0.0)
+        alpha_bull = _clamp((alpha_percentile - 0.5) * 2.0)
+        alpha_bear = _clamp((0.5 - alpha_percentile) * 2.0)
+        alpha_neutral = _clamp(1.0 - alpha_strength)
 
         theta_score = _clamp(
             (0.52 if symbol in ai_sets["THETA"] else 0.0)
             + (0.20 * range_bound)
             + (0.12 * balanced_flow)
             + (0.08 * (1.0 - pair_pressure))
+            + (0.03 * alpha_neutral)
+            - (0.04 * alpha_dispersion)
             + theta_demand
             + macro_adjust["THETA"],
             0.0,
             1.25,
         )
+        theta_score = _clamp(theta_score * bucket_score_bias["THETA"], 0.0, 1.25)
         vega_score = _clamp(
             (0.52 if symbol in ai_sets["VEGA"] else 0.0)
             + (0.22 * explosive)
             + (0.12 * trend_flow)
             + (0.10 * pair_pressure)
+            + (0.02 * alpha_strength)
+            - (0.04 * alpha_dispersion)
             + vega_demand
             + macro_adjust["VEGA"],
             0.0,
             1.25,
         )
+        vega_score = _clamp(vega_score * bucket_score_bias["VEGA"], 0.0, 1.25)
         bull_score = _clamp(
             (0.52 if symbol in ai_sets["BULL"] else 0.0)
             + (0.22 * bull_edge)
+            + (0.20 * alpha_bull)
             + (0.14 * flow_score)
             + (0.15 * pair_bull)
             + bullish_bias_boost
             - (0.08 * pair_bear)
+            - (0.05 * alpha_dispersion)
             + macro_adjust["BULL"],
             0.0,
             1.25,
         )
+        bull_score = _clamp(bull_score * bucket_score_bias["BULL"], 0.0, 1.25)
         bear_score = _clamp(
             (0.52 if symbol in ai_sets["BEAR"] else 0.0)
             + (0.22 * bear_edge)
+            + (0.20 * alpha_bear)
             + (0.14 * (1.0 - flow_score))
             + (0.15 * pair_bear)
             + bearish_bias_boost
             - (0.08 * pair_bull)
+            - (0.05 * alpha_dispersion)
             + macro_adjust["BEAR"],
             0.0,
             1.25,
         )
+        bear_score = _clamp(bear_score * bucket_score_bias["BEAR"], 0.0, 1.25)
 
         ranked["THETA"].append(
             RoutedCandidate(
@@ -201,6 +261,7 @@ def route_strategy_candidates(
                     "range_bound": range_bound,
                     "balanced_flow": balanced_flow,
                     "pair_stability": 1.0 - pair_pressure,
+                    "alpha_neutral": alpha_neutral,
                     "macro_adjust": macro_adjust["THETA"],
                 },
             )
@@ -214,6 +275,7 @@ def route_strategy_candidates(
                     "explosive": explosive,
                     "trend_flow": trend_flow,
                     "pair_pressure": pair_pressure,
+                    "alpha_strength": alpha_strength,
                     "macro_adjust": macro_adjust["VEGA"],
                 },
             )
@@ -225,6 +287,7 @@ def route_strategy_candidates(
                 components={
                     "mega": 1.0 if symbol in ai_sets["BULL"] else 0.0,
                     "bull_edge": bull_edge,
+                    "alpha_bull": alpha_bull,
                     "flow_score": flow_score,
                     "pair_bull": pair_bull,
                     "macro_adjust": macro_adjust["BULL"],
@@ -238,6 +301,7 @@ def route_strategy_candidates(
                 components={
                     "mega": 1.0 if symbol in ai_sets["BEAR"] else 0.0,
                     "bear_edge": bear_edge,
+                    "alpha_bear": alpha_bear,
                     "flow_score": 1.0 - flow_score,
                     "pair_bear": pair_bear,
                     "macro_adjust": macro_adjust["BEAR"],
@@ -246,6 +310,9 @@ def route_strategy_candidates(
         )
 
     thresholds = {"THETA": 0.32, "VEGA": 0.32, "BULL": 0.30, "BEAR": 0.30}
+    for bucket in BUCKETS:
+        if score_threshold_overrides and bucket in score_threshold_overrides:
+            thresholds[bucket] = float(score_threshold_overrides[bucket])
     top_k = max(1, int(top_k))
     selected: dict[str, list[str]] = {}
     diagnostics_candidates: dict[str, list[dict[str, object]]] = {}
@@ -260,6 +327,7 @@ def route_strategy_candidates(
     coverage = _clamp(len(movement_map) / max(len(symbols), 1))
     model_coverage = _clamp(len(set().union(*ai_sets.values())) / max(len(symbols), 1))
     pair_coverage = _clamp(len((pair_overlay or {}).get("signals", []) or []) / max(top_k, 1))
+    alpha_coverage = _clamp(sum(1 for symbol in symbols if symbol in (alpha_signals or {})) / max(len(symbols), 1))
 
     if greek_targets.movement_bias == "bullish":
         directional_alignment = _clamp(0.5 + top_scores["BULL"] - top_scores["BEAR"])
@@ -279,7 +347,7 @@ def route_strategy_candidates(
         + (0.25 * macro_alignment)
         + (0.20 * directional_alignment)
         + (0.10 * coverage)
-        + (0.10 * max(model_coverage, pair_coverage))
+        + (0.10 * max(model_coverage, pair_coverage, alpha_coverage))
     )
 
     deployment_multiplier = 0.60 + (0.45 * consensus_score)
@@ -296,6 +364,9 @@ def route_strategy_candidates(
         "movement_signal_coverage": round(coverage, 4),
         "model_coverage": round(model_coverage, 4),
         "pair_signal_coverage": round(pair_coverage, 4),
+        "alpha_signal_coverage": round(alpha_coverage, 4),
+        "bucket_score_bias": {bucket: round(value, 4) for bucket, value in bucket_score_bias.items()},
+        "bucket_thresholds": {bucket: round(value, 4) for bucket, value in thresholds.items()},
         "top_scores": {bucket: round(score, 4) for bucket, score in top_scores.items()},
         "selected": selected,
         "ranked": diagnostics_candidates,

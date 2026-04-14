@@ -1,6 +1,7 @@
 import unittest
 
 from core.greeks_targeting import PortfolioGreekTargets
+from core.ml_alpha import AlphaSignal
 from core.movement_predictor import MovementSignal
 from core.signal_fusion import empty_ai_targets, route_strategy_candidates
 
@@ -93,6 +94,54 @@ class SignalFusionTests(unittest.TestCase):
 
         self.assertLessEqual(plan.deployment_multiplier, 0.75)
         self.assertIn("SPY", plan.vega_candidates)
+
+    def test_threshold_override_can_suppress_bucket_selection(self):
+        plan = route_strategy_candidates(
+            allowed_symbols=["AAPL", "MSFT"],
+            ai_targets={
+                "THETA": ["AAPL"],
+                "VEGA": [],
+                "BULL": [],
+                "BEAR": [],
+            },
+            movement_signals=[
+                MovementSignal("AAPL", 0.51, 0.001, "flat"),
+                MovementSignal("MSFT", 0.52, 0.002, "flat"),
+            ],
+            flow_map={"AAPL": 0.2, "MSFT": 0.3},
+            pair_overlay={"signals": []},
+            greek_targets=_greek_targets(target_theta=15.0),
+            macro_strategy="THETA_ENGINE",
+            macro_confidence=0.70,
+            top_k=4,
+            score_threshold_overrides={"THETA": 1.10},
+        )
+
+        self.assertEqual(plan.theta_candidates, [])
+        self.assertEqual(plan.diagnostics["bucket_thresholds"]["THETA"], 1.10)
+
+    def test_alpha_signal_can_break_tie_toward_bull_bucket(self):
+        plan = route_strategy_candidates(
+            allowed_symbols=["SHOP", "ZM"],
+            ai_targets=empty_ai_targets(),
+            movement_signals=[
+                MovementSignal("SHOP", 0.53, 0.003, "up"),
+                MovementSignal("ZM", 0.53, 0.003, "up"),
+            ],
+            flow_map={"SHOP": 0.5, "ZM": 0.5},
+            pair_overlay={"signals": []},
+            alpha_signals={
+                "SHOP": AlphaSignal("SHOP", 0.041, 0.92, 0.84, "up", 0.01),
+                "ZM": AlphaSignal("ZM", -0.019, 0.18, 0.64, "down", 0.01),
+            },
+            greek_targets=_greek_targets(movement_bias="bullish"),
+            macro_strategy="THETA_ENGINE",
+            macro_confidence=0.55,
+            top_k=4,
+        )
+
+        self.assertEqual(plan.bull_candidates[0], "SHOP")
+        self.assertGreater(plan.diagnostics["top_scores"]["BULL"], plan.diagnostics["top_scores"]["BEAR"])
 
 
 if __name__ == "__main__":

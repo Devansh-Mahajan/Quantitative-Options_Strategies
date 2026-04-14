@@ -1,12 +1,24 @@
 import logging
 import re
 from datetime import datetime, timezone, timedelta
+from config.params import (
+    EXPIRATION_MAX,
+    EXPIRATION_MIN,
+    MAX_BID_ASK_SPREAD,
+    MAX_RELATIVE_SPREAD,
+    OPTION_DELAY_MIN_PRICING_CONFIDENCE,
+    SLIPPAGE_ALLOWANCE,
+)
+from core.delay_aware_options import (
+    build_delay_adjusted_contracts,
+    effective_ask_price,
+    effective_bid_price,
+    effective_mid_price,
+)
 from .strategy import filter_underlying, filter_options, score_options, select_options
 from models.contract import Contract
 import numpy as np
 
-# --- IMPORTS ---
-from config.params import MAX_BID_ASK_SPREAD, MAX_RELATIVE_SPREAD, SLIPPAGE_ALLOWANCE, EXPIRATION_MIN, EXPIRATION_MAX
 from core.notifications import send_alert  # <-- THE NEW DISCORD WEBHOOK
 
 logger = logging.getLogger(f"strategy.{__name__}")
@@ -36,9 +48,11 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
     )
     
     snapshots = client.get_option_snapshot([c.symbol for c in option_contracts])
+    priced_contracts = build_delay_adjusted_contracts(client, option_contracts, snapshots=snapshots)
+    priced_contract_map = {contract.symbol: contract for contract in priced_contracts}
     
     put_options = filter_options(
-        [Contract.from_contract_snapshot(contract, snapshots.get(contract.symbol, None)) for contract in option_contracts if snapshots.get(contract.symbol, None)],
+        list(priced_contract_map.values()),
         target_expiry=override_expiry
     )
     
@@ -62,15 +76,22 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
             if not is_condor and (max_risk > max_risk_limit or buying_power < max_risk): 
                 continue 
 
-            short_snap, long_snap = snapshots.get(p.symbol), snapshots.get(long_symbol)
-            if not short_snap or not long_snap or not short_snap.latest_quote or not long_snap.latest_quote: continue
+            short_contract = priced_contract_map.get(p.symbol)
+            long_contract = priced_contract_map.get(long_symbol)
+            if not short_contract or not long_contract:
+                continue
+            if min(
+                float(short_contract.pricing_confidence or 0.0),
+                float(long_contract.pricing_confidence or 0.0),
+            ) < OPTION_DELAY_MIN_PRICING_CONFIDENCE:
+                continue
+
+            sb, sa = effective_bid_price(short_contract), effective_ask_price(short_contract)
+            lb, la = effective_bid_price(long_contract), effective_ask_price(long_contract)
+            if min(sb, sa, lb, la) <= 0:
+                continue
                 
-            sb, sa = short_snap.latest_quote.bid_price, short_snap.latest_quote.ask_price
-            lb, la = long_snap.latest_quote.bid_price, long_snap.latest_quote.ask_price
-            
-            if None in (sb, sa, lb, la) or sa == 0 or la == 0: continue
-                
-            short_mid, long_mid = (sb + sa) / 2.0, (lb + la) / 2.0
+            short_mid, long_mid = effective_mid_price(short_contract), effective_mid_price(long_contract)
             short_rel_spread = (sa - sb) / short_mid if short_mid > 0 else 1.0
             long_rel_spread = (la - lb) / long_mid if long_mid > 0 else 1.0
 
@@ -115,9 +136,11 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
     )
     
     snapshots = client.get_option_snapshot([c.symbol for c in raw_call_contracts])
+    priced_contracts = build_delay_adjusted_contracts(client, raw_call_contracts, snapshots=snapshots)
+    priced_contract_map = {contract.symbol: contract for contract in priced_contracts}
     
     call_options = filter_options(
-        [Contract.from_contract_snapshot(contract, snapshots.get(contract.symbol, None)) for contract in raw_call_contracts if snapshots.get(contract.symbol, None)], 
+        list(priced_contract_map.values()), 
         min_strike=purchase_price or 0,
         target_expiry=override_expiry
     )
@@ -141,15 +164,22 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
                 
                 if not is_condor and (max_risk > max_risk_limit or buying_power < max_risk): continue
 
-                short_snap, long_snap = snapshots.get(p.symbol), snapshots.get(long_symbol)
-                if not short_snap or not long_snap or not short_snap.latest_quote or not long_snap.latest_quote: continue
+                short_contract = priced_contract_map.get(p.symbol)
+                long_contract = priced_contract_map.get(long_symbol)
+                if not short_contract or not long_contract:
+                    continue
+                if min(
+                    float(short_contract.pricing_confidence or 0.0),
+                    float(long_contract.pricing_confidence or 0.0),
+                ) < OPTION_DELAY_MIN_PRICING_CONFIDENCE:
+                    continue
+
+                sb, sa = effective_bid_price(short_contract), effective_ask_price(short_contract)
+                lb, la = effective_bid_price(long_contract), effective_ask_price(long_contract)
+                if min(sb, sa, lb, la) <= 0:
+                    continue
                     
-                sb, sa = short_snap.latest_quote.bid_price, short_snap.latest_quote.ask_price
-                lb, la = long_snap.latest_quote.bid_price, long_snap.latest_quote.ask_price
-                
-                if None in (sb, sa, lb, la) or sa == 0 or la == 0: continue
-                    
-                short_mid, long_mid = (sb + sa) / 2.0, (lb + la) / 2.0
+                short_mid, long_mid = effective_mid_price(short_contract), effective_mid_price(long_contract)
                 short_rel_spread = (sa - sb) / short_mid if short_mid > 0 else 1.0
                 long_rel_spread = (la - lb) / long_mid if long_mid > 0 else 1.0
 
@@ -218,15 +248,26 @@ def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_mana
             if not best_call or not best_put: continue
 
             snapshots = client.get_option_snapshot([best_call, best_put])
-            call_snap, put_snap = snapshots.get(best_call), snapshots.get(best_put)
-            if not call_snap or not put_snap or not call_snap.latest_quote or not put_snap.latest_quote: continue
-                
-            cb, ca = call_snap.latest_quote.bid_price, call_snap.latest_quote.ask_price
-            pb, pa = put_snap.latest_quote.bid_price, put_snap.latest_quote.ask_price
-            if None in (cb, ca, pb, pa) or ca == 0 or pa == 0: continue
+            raw_map = {contract.symbol: contract for contract in calls + puts}
+            priced = build_delay_adjusted_contracts(client, [raw_map[best_call], raw_map[best_put]], snapshots=snapshots)
+            priced_map = {contract.symbol: contract for contract in priced}
+            call_contract = priced_map.get(best_call)
+            put_contract = priced_map.get(best_put)
+            if not call_contract or not put_contract:
+                continue
+            if min(
+                float(call_contract.pricing_confidence or 0.0),
+                float(put_contract.pricing_confidence or 0.0),
+            ) < OPTION_DELAY_MIN_PRICING_CONFIDENCE:
+                continue
+
+            cb, ca = effective_bid_price(call_contract), effective_ask_price(call_contract)
+            pb, pa = effective_bid_price(put_contract), effective_ask_price(put_contract)
+            if min(cb, ca, pb, pa) <= 0:
+                continue
                 
             natural_debit = ca + pa
-            mid_debit = ((cb + ca) / 2.0) + ((pb + pa) / 2.0)
+            mid_debit = effective_mid_price(call_contract) + effective_mid_price(put_contract)
             max_risk = round(natural_debit * 100, 2)
             if max_risk > max_risk_limit or buying_power < max_risk: continue
                 
@@ -293,22 +334,25 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
         valid.sort(key=lambda x: abs(parse_occ_symbol(x.symbol)[3] - spy_price))
             
         snapshots = client.get_option_snapshot([opt.symbol for opt in valid[:10]]) 
+        priced_candidates = build_delay_adjusted_contracts(client, valid[:10], snapshots=snapshots)
+        priced_map = {contract.symbol: contract for contract in priced_candidates}
         
         for opt in valid[:10]:
-            snap = snapshots.get(opt.symbol)
-            if snap and snap.latest_quote and snap.greeks:
+            priced_contract = priced_map.get(opt.symbol)
+            if priced_contract and effective_ask_price(priced_contract) > 0:
                 # Calculate how many contracts we need to flatten the portfolio delta
-                opt_delta = abs(snap.greeks.delta or 0.50) * 100 # usually ~50 for ATM
+                opt_delta = abs(priced_contract.delta or 0.50) * 100 # usually ~50 for ATM
                 contracts_needed = math.ceil(abs(port_delta) / opt_delta)
                 
                 # Cap the hedge spend so we don't blow the account (2% limit)
-                max_contracts = math.floor((total_equity * 0.02) / (snap.latest_quote.ask_price * 100))
+                ask_price = effective_ask_price(priced_contract)
+                max_contracts = math.floor((total_equity * 0.02) / (ask_price * 100))
                 qty_to_buy = min(contracts_needed, max(1, max_contracts))
                 
                 if qty_to_buy > 0:
                     try:
                         client.market_buy(opt.symbol, qty=qty_to_buy)
-                        logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${snap.latest_quote.ask_price*100:.2f} each.")
+                        logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${ask_price*100:.2f} each.")
                         
                         from core.notifications import send_alert
                         send_alert(f"🚨 **DELTA NEUTRAL HEDGE DEPLOYED**\nPortfolio Delta was {port_delta:+.2f}.\nBought {qty_to_buy}x {opt.symbol} to flatten exposure.", "ALERT")
@@ -369,22 +413,26 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
             
             call_snaps = client.get_option_snapshot([o.symbol for o in valid_calls[:30]])
             put_snaps = client.get_option_snapshot([o.symbol for o in valid_puts[:30]])
+            priced_calls = build_delay_adjusted_contracts(client, valid_calls[:30], snapshots=call_snaps)
+            priced_puts = build_delay_adjusted_contracts(client, valid_puts[:30], snapshots=put_snaps)
+            priced_call_map = {contract.symbol: contract for contract in priced_calls}
+            priced_put_map = {contract.symbol: contract for contract in priced_puts}
             
             best_call, best_put = None, None
             
             for opt in valid_calls[:30]:
-                snap = call_snaps.get(opt.symbol)
-                if snap and snap.latest_quote:
-                    sb, sa = snap.latest_quote.bid_price, snap.latest_quote.ask_price
+                priced_contract = priced_call_map.get(opt.symbol)
+                if priced_contract:
+                    sb, sa = effective_bid_price(priced_contract), effective_ask_price(priced_contract)
                     if sa > 0 and sb > 0 and (sa - sb) <= 0.15: 
                         if 0.05 <= sa <= max_price_per_leg:
                             best_call = (opt.symbol, sa)
                             break
                             
             for opt in valid_puts[:30]:
-                snap = put_snaps.get(opt.symbol)
-                if snap and snap.latest_quote:
-                    sb, sa = snap.latest_quote.bid_price, snap.latest_quote.ask_price
+                priced_contract = priced_put_map.get(opt.symbol)
+                if priced_contract:
+                    sb, sa = effective_bid_price(priced_contract), effective_ask_price(priced_contract)
                     if sa > 0 and sb > 0 and (sa - sb) <= 0.15: 
                         if 0.05 <= sa <= max_price_per_leg:
                             best_put = (opt.symbol, sa)

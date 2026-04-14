@@ -1,0 +1,57 @@
+{
+  "generated_at_utc": "2026-04-14T16:58:08.098475+00:00",
+  "requested_symbols": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "SPY",
+    "QQQ"
+  ],
+  "signals": [
+    {
+      "symbol": "NVDA",
+      "predicted_return": 0.034064652316568675,
+      "percentile": 1.0,
+      "alpha_score": 1.0,
+      "direction": "up",
+      "model_dispersion": 0.004354733737792317,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "MSFT",
+      "predicted_return": 0.025685675660674298,
+      "percentile": 0.8,
+      "alpha_score": 0.6000000000000001,
+      "direction": "up",
+      "model_dispersion": 0.0029315688432628067,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "AAPL",
+      "predicted_return": 0.019741140098797422,
+      "percentile": 0.6,
+      "alpha_score": 0.19999999999999996,
+      "direction": "up",
+      "model_dispersion": 0.0027664131170849738,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "QQQ",
+      "predicted_return": 0.01191315358432443,
+      "percentile": 0.4,
+      "alpha_score": 0.19999999999999996,
+      "direction": "down",
+      "model_dispersion": 0.001493199725207546,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "SPY",
+      "predicted_return": 0.008234982441195499,
+      "percentile": 0.2,
+      "alpha_score": 0.6,
+      "direction": "down",
+      "model_dispersion": 0.0037496789597467562,
+      "source": "ml_alpha_ensemble"
+    }
+  ]
+}

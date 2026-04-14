@@ -102,6 +102,14 @@ run-strategy --mega-confidence-threshold 80 --predictor-universe-cap 25 --router
 - `--mega-confidence-threshold` raises or lowers how selective the deep screener is.
 - `--predictor-universe-cap` limits how many ranked symbols are sent through the movement predictor.
 - `--router-top-k` controls how many fused candidates are retained per strategy bucket before final trade throttling.
+- `--min-signal-confidence-override` lets you manually tighten the live entry gate on top of the weekend policy.
+- `--min-vix-for-directional-credit` raises the floor for directional short-premium deployment.
+- `--max-vix-for-short-premium` caps when the live stack is allowed to sell premium.
+- `--disable-runtime-regime-policy` ignores the generated weekend market-policy artifact for one run.
+- `--skip-preflight` bypasses the compile/import/config safety gate for a one-off manual run.
+- `--preflight-max-age-seconds` controls how long a successful preflight is reused before the stack validates again.
+- `--no-progress-ui` disables the clean percentage-based terminal progress lines if you want quieter output.
+- `model-maintenance --mode daily` runs the lighter post-close model refresh path without invoking the full weekend stack.
 
 ## 4.2 Suggested Schedule
 
@@ -117,21 +125,53 @@ Use cron/systemd/Kubernetes schedules based on your infrastructure.
 If you want PM + risk monitoring to run continuously with concurrent workers, run:
 
 ```bash
-automate-stack
+python start.py
+```
+
+or:
+
+```bash
+python -m scripts.automation_controller
 ```
 
 That single command now also handles:
+- **preflight validation gate** before live actions (cached between runs unless files change),
 - **pre-open self-check** (default 09:00 ET),
-- **post-close self-evaluation + fine-tuning + backtest** (default 16:20 ET).
+- **post-close self-evaluation + daily model maintenance** (default 16:20 ET),
+- **Friday post-close fine-tuning + backtest** before the weekend recalibration.
 
 What this launches in parallel:
 - **portfolio-manager loop**: full `run-strategy` cycle during market session windows,
 - **risk-monitor loop**: `run-strategy --manage-only` every few minutes (24/7),
 - **regime-rebalance loop**: recurring model-aware rebalance cycle during market hours,
+- **critical-window loop**: faster risk/theta/delta monitoring near the open and close,
+- **regime-shift watcher**: probes macro/runtime regime changes and triggers an immediate rebalance when signatures flip,
 - **market open/close watcher**: immediate risk sweep when the market session flips,
+- **equity overlay hedge sleeve**: can keep adjusting direct-stock delta hedges even while the risk loop is running in manage-only mode,
+- **system telemetry loop**: writes host pressure snapshots to `.runtime/system_resource_snapshot.json`,
 - **weekend automation loop**: one-shot recalibration + backtesting + report generation.
 
+Daily reporting outputs:
+- `reports/daily/latest_daily_automation_report.md`
+- `reports/daily/latest_daily_automation_report.json`
+
+Backtest reporting outputs:
+- `reports/latest_backtest_report.json`
+- `reports/latest_backtest_summary.md`
+- archived per-run artifacts in `reports/backtests/`
+
 You can tune each cadence with `--strategy-interval-seconds`, `--risk-interval-seconds`, and `--regime-interval-seconds`.
+You can inspect the safety gate manually with:
+
+```bash
+python -m scripts.automation_preflight --json-only --no-deep-model-checks
+```
+
+You can inspect the host resource probe manually with:
+
+```bash
+python -m scripts.system_resource_probe
+```
 You can tune pre/post market maintenance with:
 - `--pre-open-hour/--pre-open-minute`
 - `--post-close-hour/--post-close-minute`
@@ -144,7 +184,7 @@ You can tune pre/post market maintenance with:
 If you want one command and let it run forever, start:
 
 ```bash
-automate-stack --restart-on-failure
+python -m scripts.automation_controller --restart-on-failure
 ```
 
 This is already a long-running daemon-style process. It knows market open/close windows from your configured timezone and market-hour flags, so you do **not** need per-time cron jobs for intraday loops.
@@ -154,7 +194,7 @@ This is already a long-running daemon-style process. It knows market open/close 
 If you still want cron to make sure it launches on reboot, add this line:
 
 ```cron
-@reboot cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'source .venv/bin/activate && automate-stack --restart-on-failure >> logs/automate-stack.log 2>&1'
+@reboot cd /path/to/options-spread && /path/to/options-spread/.venv/bin/python -m scripts.automation_controller --restart-on-failure >> /path/to/options-spread/logs/automate-stack.log 2>&1
 ```
 
 That cron entry only starts the 24/7 controller. The controller itself handles pre-open, market hours, post-close, and weekend schedules.
@@ -170,7 +210,7 @@ scripts/ensure_automate_stack.sh
 Add this to `crontab -e` for a 15-minute heartbeat:
 
 ```cron
-*/15 * * * * cd /workspace/Quantitative-Options_Strategies && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
+*/15 * * * * cd /path/to/options-spread && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
 ```
 
 Optional wake-up ping:
@@ -181,18 +221,36 @@ Optional wake-up ping:
 To place weekend calibration into the same automation service (instead of a separate cron), configure:
 
 ```bash
-automate-stack \
+python -m scripts.automation_controller \
   --weekend-hour 8 \
   --weekend-minute 0 \
-  --weekend-recalibration-command "weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56" \
-  --weekend-backtest-command "massive-backtest"
+  --weekend-recalibration-command "python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56" \
+  --weekend-backtest-command "python -m scripts.massive_backtest_engine"
 ```
 
 This runs the weekend recalibration first, then launches the backtesting engine automatically, and writes a fixed professional report to:
 
 `reports/weekend_professional_report.md`
 
+Weekend recalibration now also emits a richer `config/market_regime_policy.json` artifact with:
+- inferred current market state,
+- selected live strategy profile,
+- bucket weights and score thresholds for `THETA` / `VEGA` / `BULL` / `BEAR`,
+- deployment, risk, and trade-intensity multipliers,
+- short-premium VIX caps and directional-credit VIX floors.
+
 If you still prefer cron, keep the weekday bot schedule and add a Saturday/Sunday line for the same recalibration + backtest chain.
+
+Example if you want the classic weekday run-bot schedule plus a weekend calibration task next to it:
+
+```cron
+CRON_TZ=America/New_York
+0 10,13 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
+30 15 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --manage-only --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
+0 8 * * 6 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56 && /home/dash/options-spread/.venv/bin/python -m scripts.massive_backtest_engine >> /home/dash/options-spread/logs/weekend-automation.log 2>&1
+```
+
+The recommended path is still the 24/7 automation controller, because it already runs those jobs concurrently and avoids drift between multiple cron entries.
 
 
 ## 4.3 Portfolio History Review (Date Parameters)

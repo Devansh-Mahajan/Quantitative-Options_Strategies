@@ -1,4 +1,5 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.state_manager import register_model_snapshot
+from core.resource_profile import load_resource_profile
 from core.universe_maintenance import download_close_matrix, load_symbol_file
 
 DEFAULT_REPORT_PATH = ROOT / "reports" / "quant_foundry_report.json"
@@ -34,6 +36,7 @@ DEFAULT_MODEL_PARAMS = {
 
 
 def parse_args():
+    resource_profile = load_resource_profile(ROOT)
     parser = argparse.ArgumentParser(
         description=(
             "Build a multi-model strategy pack with walk-forward validation. "
@@ -51,6 +54,8 @@ def parse_args():
         default="weekend-calibrate",
     )
     parser.add_argument("--max-symbols", type=int, default=35)
+    parser.add_argument("--rf-jobs", type=int, default=resource_profile.research_rf_jobs)
+    parser.add_argument("--model-parallelism", type=int, default=resource_profile.model_parallelism)
     parser.add_argument("--report-path", default=str(DEFAULT_REPORT_PATH))
     parser.add_argument("--pack-path", default=str(DEFAULT_PACK_PATH))
     parser.add_argument("--model-config-path", default=str(DEFAULT_MODEL_CONFIG_PATH))
@@ -137,7 +142,7 @@ def load_last_model_params(path: Path) -> dict:
     return _sanitize_model_params(payload.get("model_params"))
 
 
-def fit_models(X: pd.DataFrame, y: pd.Series, model_params: dict) -> dict:
+def fit_models(X: pd.DataFrame, y: pd.Series, model_params: dict, model_parallelism: int = 1) -> dict:
     X = pd.get_dummies(X, columns=["symbol"], dtype=float)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     model_rows = {}
@@ -148,21 +153,29 @@ def fit_models(X: pd.DataFrame, y: pd.Series, model_params: dict) -> dict:
         "mlp": lambda cfg: MLPClassifier(**cfg),
     }
 
-    for name, constructor in constructors.items():
+    def _fit_one(name: str):
         try:
+            constructor = constructors[name]
             model = constructor(model_params[name])
             model.fit(X_train, y_train)
             prob = model.predict_proba(X_test)[:, 1]
             pred = (prob >= 0.5).astype(int)
             acc = float(accuracy_score(y_test, pred))
             ll = float(log_loss(y_test, prob, labels=[0, 1]))
-            model_rows[name] = {
+            return name, {
                 "accuracy": acc,
                 "log_loss": ll,
                 "n_test": int(len(y_test)),
             }
         except Exception as exc:
-            model_rows[name] = {"error": str(exc), "accuracy": 0.0, "log_loss": 10.0, "n_test": int(len(y_test))}
+            return name, {"error": str(exc), "accuracy": 0.0, "log_loss": 10.0, "n_test": int(len(y_test))}
+
+    max_workers = max(1, min(3, int(model_parallelism or 1)))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_fit_one, name): name for name in constructors}
+        for future in as_completed(futures):
+            name, result = future.result()
+            model_rows[name] = result
 
     losses = {k: v.get("log_loss", 10.0) for k, v in model_rows.items() if "error" not in v}
     if losses:
@@ -279,7 +292,14 @@ def main():
             raise SystemExit("Not enough samples for calibration. Increase period or universe.")
 
         warm_start_params = None if args.disable_model_warm_start else load_last_model_params(model_config_path)
-        metrics = fit_models(X, y, model_params=warm_start_params)
+        working_model_params = _sanitize_model_params(warm_start_params)
+        working_model_params["rf"]["n_jobs"] = max(1, int(args.rf_jobs))
+        metrics = fit_models(
+            X,
+            y,
+            model_params=working_model_params,
+            model_parallelism=args.model_parallelism,
+        )
         est_annual = (metrics["ensemble_accuracy"] - 0.5) * 0.60
         est_daily = annual_to_daily(est_annual)
 

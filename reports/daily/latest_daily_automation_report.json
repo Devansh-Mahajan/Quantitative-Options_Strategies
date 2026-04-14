@@ -1,0 +1,56 @@
+{
+  "generated_at_utc": "2026-04-13T21:45:56.957474+00:00",
+  "date": "2026-04-13",
+  "context": {
+    "date": "2026-04-13",
+    "post_close_eval_rc": 0,
+    "post_close_train_rc": 1,
+    "post_close_tune_rc": null,
+    "post_close_backtest_rc": null
+  },
+  "risk": {
+    "daily_pnl_pct": -1.0785,
+    "daily_pnl_dollars": -101.08,
+    "total_equity": 9271.09,
+    "buying_power_budget": 1952.55,
+    "portfolio_delta": 12.21,
+    "portfolio_theta": -31.61,
+    "portfolio_vega": 22.54,
+    "target_delta": -0.4429,
+    "target_theta": 38.9415,
+    "target_vega": 11.3649,
+    "movement_bias": "neutral",
+    "macro_regime": "THETA_ENGINE",
+    "runtime_market_state": null,
+    "runtime_profile": null
+  },
+  "system": {
+    "pressure": "elevated",
+    "normalized_cpu_load_pct": 83.15,
+    "memory_usage_pct": 23.2,
+    "disk_usage_pct": 38.81
+  },
+  "foundry": {
+    "mode": "zero-calibration",
+    "ensemble_accuracy": null,
+    "estimated_strategy_daily_return": null
+  },
+  "latest_backtest": {
+    "predictive_score": null,
+    "consensus_market_state": null,
+    "consensus_strategy_profile": null
+  },
+  "market_policy": {
+    "current_regime_label": null,
+    "current_market_state": null,
+    "selected_profile": null,
+    "risk_multiplier": null,
+    "deployment_multiplier": null,
+    "trade_intensity_multiplier": null
+  },
+  "model_maintenance": {
+    "mode": null,
+    "steps": 0
+  },
+  "note": "Daily operating report for the automated stack. It summarizes system state and the latest available research outputs."
+}

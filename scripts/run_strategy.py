@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from core.broker_client import BrokerClient
 from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
+from core.equity_overlay import rebalance_equity_overlay
 from core.state_manager import update_state, calculate_risk
 from config.credentials import ALPACA_API_KEY, ALPACA_SECRET_KEY, IS_PAPER
 from logging.strategy_logger import StrategyLogger
@@ -34,6 +35,7 @@ from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_c
 from core.notifications import send_alert
 from core.sentiment import get_vix_level
 from core.movement_predictor import aggregate_movement_signals
+from core.ml_alpha import live_alpha_signal_map
 from core.greeks_targeting import derive_portfolio_greek_targets
 
 # 🧠 THE AI INFERENCE ENGINES
@@ -44,7 +46,11 @@ from core.pairs_trading import generate_pairs_trading_signals
 from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
 from core.adaptive_recalibration import AdaptiveRecalibrationEngine
 from core.runtime_calibration import load_runtime_calibration
+from core.resource_profile import load_resource_profile
 from core.signal_fusion import empty_ai_targets, route_strategy_candidates
+from core.system_preflight import DEFAULT_STATE_PATH, run_preflight
+from core.system_telemetry import DEFAULT_RISK_SNAPSHOT_PATH, write_risk_snapshot
+from core.terminal_ui import ProgressTracker
 
 
 def _validate_date(date_str):
@@ -88,23 +94,77 @@ def _show_portfolio_history(client, logger, start_date, end_date, timeframe):
 
 def main():
     args = parse_args()
-    runtime_calibration = load_runtime_calibration()
-    
+    resource_profile = load_resource_profile(Path(__file__).parent.parent)
     strat_logger = StrategyLogger(enabled=args.strat_log)
     logger = setup_logger(level=args.log_level, to_file=args.log_to_file)
+    progress = ProgressTracker(
+        logger=logger,
+        label="RUN",
+        total_steps=8,
+        enabled=not args.no_progress_ui,
+    )
     strat_logger.set_fresh_start(args.fresh_start)
+    progress.advance("Bootstrapping runtime")
+
+    if not args.skip_preflight:
+        def _preflight_callback(percent: int, message: str, detail: str | None = None) -> None:
+            progress.substep(percent, 100, message, detail=detail)
+
+        preflight_result = run_preflight(
+            state_path=DEFAULT_STATE_PATH,
+            max_age_seconds=args.preflight_max_age_seconds,
+            progress_callback=_preflight_callback if not args.no_progress_ui else None,
+        )
+        if not preflight_result.ok:
+            logger.critical("Preflight blocked run-strategy: %s", preflight_result.summary)
+            for issue in preflight_result.issues:
+                if issue.severity == "error":
+                    logger.critical("  %s: %s", issue.check, issue.detail)
+            raise SystemExit(2)
+        if not preflight_result.skipped:
+            logger.info("✅ %s", preflight_result.summary)
+
+    runtime_calibration = load_runtime_calibration(include_live_policy=not args.disable_runtime_regime_policy)
     if runtime_calibration.notes:
         logger.info(
             "🗂️ Loaded runtime calibration artifacts: %s",
             ", ".join(runtime_calibration.notes),
         )
+    logger.info(
+        "🖥️ Resource profile | cpu=%d mem=%.1fGB backtest_workers=%d rf_jobs=%d model_parallelism=%d",
+        resource_profile.cpu_count,
+        resource_profile.memory_gb,
+        resource_profile.backtest_workers,
+        resource_profile.research_rf_jobs,
+        resource_profile.model_parallelism,
+    )
+    progress.advance("Loading calibration and account context")
     runtime_min_signal_confidence = max(
         float(MIN_SIGNAL_CONFIDENCE),
         float(runtime_calibration.min_signal_confidence or 0.0),
     )
+    if args.min_signal_confidence_override is not None:
+        runtime_min_signal_confidence = max(runtime_min_signal_confidence, float(args.min_signal_confidence_override))
     router_top_k = max(1, int(args.router_top_k))
     if runtime_calibration.dynamic_top_k:
         router_top_k = max(1, min(router_top_k, int(runtime_calibration.dynamic_top_k)))
+    mega_confidence_threshold = float(
+        runtime_calibration.mega_confidence_threshold
+        if runtime_calibration.mega_confidence_threshold is not None
+        else args.mega_confidence_threshold
+    )
+    predictor_cap = max(
+        1,
+        int(
+            runtime_calibration.predictor_universe_cap
+            if runtime_calibration.predictor_universe_cap is not None
+            else args.predictor_universe_cap
+        ),
+    )
+    if args.min_vix_for_directional_credit is not None:
+        runtime_calibration.min_vix_for_directional_credit = float(args.min_vix_for_directional_credit)
+    if args.max_vix_for_short_premium is not None:
+        runtime_calibration.max_vix_for_short_premium = float(args.max_vix_for_short_premium)
 
     symbols_file = Path(__file__).parent.parent / "config" / "symbol_list.txt"
     weekend_symbols_file = Path(__file__).parent.parent / "config" / "volatile_symbols.txt"
@@ -136,6 +196,7 @@ def main():
         holding_status = manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS)
         if holding_status is None: 
             holding_status = [] # Safety catch
+    progress.advance("Managing current portfolio and exposures")
 
     positions = client.get_positions()
     strat_logger.add_current_positions(positions)
@@ -181,15 +242,29 @@ def main():
 
     # Grab VIX early so we can scale risk and print it on the dashboard
     current_vix = get_vix_level()
-    predictor_cap = max(1, int(args.predictor_universe_cap))
     predictor_universe = allowed_symbols[:predictor_cap] if allowed_symbols else SYMBOLS[:predictor_cap]
     movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
+    alpha_universe = allowed_symbols[: max(12, min(len(allowed_symbols), predictor_cap * 2))] if allowed_symbols else SYMBOLS[: max(12, predictor_cap)]
+    alpha_signals = live_alpha_signal_map(alpha_universe)
+    progress.advance("Scoring live market signals")
 
     if daily_pnl_pct <= -10.0:
         logger.critical(f"🔴 KILL SWITCH TRIGGERED 🔴 Daily P/L is {daily_pnl_pct:.2f}% (${daily_pnl_dollars:.2f}). Trading halted.")
         send_alert(f"🚨 **KILL SWITCH TRIGGERED** 🚨\nDaily P/L is {daily_pnl_pct:.2f}%. Trading suspended.", "ERROR")
         buying_power = 0  
         dynamic_max_risk = 0
+        port_delta = 0.0
+        port_theta = 0.0
+        port_vega = 0.0
+        greek_targets = derive_portfolio_greek_targets(
+            movement_signals=movement_signals,
+            equity=total_equity,
+            vix_level=current_vix,
+        )
+        brain_strategy = "KILL_SWITCH"
+        brain_confidence = 100.0
+        deployment_scale = 0.0
+        adaptive_profile = None
     else:
         max_risk_allowed = total_equity * RISK_ALLOCATION
         buying_power = max_risk_allowed - current_risk
@@ -238,6 +313,15 @@ def main():
         logger.info(f"⏳ PORTFOLIO THETA: ${port_theta:+.2f} / day")
         logger.info(f"🌊 PORTFOLIO VEGA: ${port_vega:+.2f} per 1% IV change")
         logger.info(f"🔮 MACRO REGIME VERDICT: {brain_strategy} ({brain_confidence:.1f}% Confidence)")
+        if alpha_signals:
+            strongest_alpha = sorted(alpha_signals.values(), key=lambda item: (-item.alpha_score, item.symbol))[:5]
+            logger.info(
+                "🧠 CROSS-SECTIONAL ML ALPHA: %s",
+                " | ".join(
+                    f"{signal.symbol}:{signal.direction}:{signal.percentile:.2f}"
+                    for signal in strongest_alpha
+                ),
+            )
 
         signal_confidence = greek_targets.target_confidence
         macro_confidence = max(0.0, min(1.0, brain_confidence / 100.0))
@@ -270,8 +354,10 @@ def main():
             dynamic_max_risk *= runtime_calibration.risk_multiplier
             deployment_scale *= runtime_calibration.deployment_multiplier
             logger.info(
-                "🗺️ Weekend regime policy: %s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f | conf=%s",
+                "🗺️ Weekend regime policy: %s / %s / %s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f | conf=%s",
                 runtime_calibration.current_regime,
+                runtime_calibration.current_market_state or "n/a",
+                runtime_calibration.selected_profile or "n/a",
                 runtime_calibration.risk_multiplier,
                 runtime_calibration.deployment_multiplier,
                 runtime_calibration.trade_intensity_multiplier,
@@ -306,6 +392,33 @@ def main():
         sweep_idle_cash(client, total_equity)
     # ==========================================================
 
+    risk_snapshot = {
+        "generated_at_utc": datetime.utcnow().isoformat() + "Z",
+        "mode": "manage-only" if args.manage_only else "full",
+        "daily_pnl_pct": round(float(daily_pnl_pct), 4),
+        "daily_pnl_dollars": round(float(daily_pnl_dollars), 2),
+        "total_equity": round(float(total_equity), 2),
+        "buying_power_budget": round(float(buying_power), 2),
+        "vix": round(float(current_vix), 4),
+        "portfolio_delta": round(float(port_delta), 4),
+        "portfolio_theta": round(float(port_theta), 4),
+        "portfolio_vega": round(float(port_vega), 4),
+        "target_delta": round(float(greek_targets.target_delta), 4),
+        "target_theta": round(float(greek_targets.target_theta), 4),
+        "target_vega": round(float(greek_targets.target_vega), 4),
+        "movement_bias": greek_targets.movement_bias,
+        "macro_regime": brain_strategy,
+        "macro_confidence": round(float(brain_confidence), 4),
+        "runtime_regime_policy": runtime_calibration.current_regime,
+        "runtime_market_state": runtime_calibration.current_market_state,
+        "runtime_profile": runtime_calibration.selected_profile,
+        "open_positions": len(positions),
+        "allowed_symbols": len(allowed_symbols),
+        "risk_allocation_in_use": round(float(current_risk), 2),
+        "resource_profile": resource_profile.to_dict(),
+    }
+    write_risk_snapshot(DEFAULT_RISK_SNAPSHOT_PATH, risk_snapshot)
+
     strat_logger.set_buying_power(buying_power)
     strat_logger.set_allowed_symbols(allowed_symbols)
 
@@ -325,6 +438,7 @@ def main():
                 )
 
             logger.info(f"Step 2: Hunting for new setups with ${buying_power:.2f} BP (Total Equity: ${total_equity:.2f})...")
+            progress.advance("Routing candidate trades across strategy buckets")
             
             # --- 0A. THE DOOMSDAY PROTOCOL ---
             try:
@@ -339,7 +453,7 @@ def main():
 
             ai_targets = empty_ai_targets()
             try:
-                ai_targets = get_mega_brain_targets(confidence_threshold=args.mega_confidence_threshold)
+                ai_targets = get_mega_brain_targets(confidence_threshold=mega_confidence_threshold)
             except Exception as exc:
                 logger.error("Mega Brain target scan failed; continuing with non-neural signals only: %s", exc)
 
@@ -358,25 +472,43 @@ def main():
                 allowed_symbols=allowed_symbols,
                 ai_targets=ai_targets,
                 movement_signals=movement_signals,
+                alpha_signals=alpha_signals,
                 flow_map=flow_map,
                 pair_overlay=pair_overlay_cache,
                 greek_targets=greek_targets,
                 macro_strategy=brain_strategy,
                 macro_confidence=macro_confidence,
                 top_k=router_top_k,
+                strategy_weight_overrides=runtime_calibration.strategy_weights,
+                score_threshold_overrides=runtime_calibration.bucket_thresholds,
             )
             deployment_scale *= routing_plan.deployment_multiplier
             theta_candidates = routing_plan.theta_candidates
             vega_candidates = routing_plan.vega_candidates
             bull_candidates = routing_plan.bull_candidates
             bear_candidates = routing_plan.bear_candidates
+
+            if not runtime_calibration.theta_enabled:
+                theta_candidates = []
+            if not runtime_calibration.vega_enabled:
+                vega_candidates = []
+            if not runtime_calibration.directional_enabled:
+                bull_candidates = []
+                bear_candidates = []
+
             strat_logger.add_model_routing(
                 {
-                    "mega_confidence_threshold": args.mega_confidence_threshold,
+                    "mega_confidence_threshold": mega_confidence_threshold,
                     "predictor_universe_cap": predictor_cap,
+                    "alpha_signal_count": len(alpha_signals),
                     "router_top_k": router_top_k,
                     "min_signal_confidence": runtime_min_signal_confidence,
                     "runtime_regime_policy": runtime_calibration.current_regime,
+                    "runtime_market_state": runtime_calibration.current_market_state,
+                    "runtime_profile": runtime_calibration.selected_profile,
+                    "strategy_weights": runtime_calibration.strategy_weights,
+                    "bucket_thresholds": runtime_calibration.bucket_thresholds,
+                    "bucket_cap_multipliers": runtime_calibration.bucket_cap_multipliers,
                     "consensus_score": routing_plan.consensus_score,
                     "deployment_multiplier": routing_plan.deployment_multiplier,
                     "diagnostics": routing_plan.diagnostics,
@@ -433,10 +565,20 @@ def main():
                     int(round(throttle_n * runtime_calibration.trade_intensity_multiplier)),
                 ),
             )
-            theta_candidates = theta_candidates[:throttle_n]
-            vega_candidates = vega_candidates[:throttle_n]
-            bull_candidates = bull_candidates[:throttle_n]
-            bear_candidates = bear_candidates[:throttle_n]
+            bucket_caps = {}
+            for bucket in ("THETA", "VEGA", "BULL", "BEAR"):
+                multiplier = float(runtime_calibration.bucket_cap_multipliers.get(bucket, 1.0) or 1.0)
+                bucket_caps[bucket] = max(
+                    1,
+                    min(
+                        MAX_NEW_TRADES_PER_CYCLE,
+                        int(round(throttle_n * multiplier)),
+                    ),
+                )
+            theta_candidates = theta_candidates[: bucket_caps["THETA"]]
+            vega_candidates = vega_candidates[: bucket_caps["VEGA"]]
+            bull_candidates = bull_candidates[: bucket_caps["BULL"]]
+            bear_candidates = bear_candidates[: bucket_caps["BEAR"]]
             
             logger.info(f"📊 NEURAL TARGETS ALIGNED WITH RISK: Theta(Condors): {len(theta_candidates)} | Vega(Straddles): {len(vega_candidates)} | Bull(Puts): {len(bull_candidates)} | Bear(Calls): {len(bear_candidates)}")
 
@@ -445,7 +587,7 @@ def main():
             deploy_asymmetric_bets(client, theta_candidates, total_equity, positions)
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
-            if greek_targets.target_vega > 0:
+            if greek_targets.target_vega > 0 and runtime_calibration.vega_enabled:
                 boosted_vega = [sym for sym in ai_targets.get('VEGA', []) if sym in allowed_symbols]
                 vega_candidates = list(dict.fromkeys(vega_candidates + boosted_vega))
                 vega_candidates = vega_candidates[: max(throttle_n, 3)]
@@ -470,6 +612,12 @@ def main():
                     logger.warning("🚨 MACRO AI SAYS TAIL_HEDGE: Market crash probability high. Iron Condors DEACTIVATED.")
                 elif brain_strategy == "VEGA_SNIPER":
                     logger.warning("🟡 MACRO AI SAYS VEGA_SNIPER: Volatility expanding. Iron Condors DEACTIVATED to prevent blowouts.")
+                elif current_vix > runtime_calibration.max_vix_for_short_premium:
+                    logger.warning(
+                        "🛑 Regime policy capped short premium at VIX %.2f. Current VIX %.2f. Iron Condors DEACTIVATED.",
+                        runtime_calibration.max_vix_for_short_premium,
+                        current_vix,
+                    )
                 else:
                     logger.info(f"Step 2B: Launching AI Theta Engine (Iron Condors) on {len(theta_candidates)} targets.")
                     buying_power = sell_iron_condors(
@@ -484,6 +632,7 @@ def main():
 
             # --- 2C. DEPLOY DIRECTIONAL EDGE (Bull / Bear Credit Spreads) ---
             if buying_power >= 50:
+                min_vix_for_directional_credit = float(runtime_calibration.min_vix_for_directional_credit)
                 if greek_targets.movement_bias == "bullish":
                     bear_candidates = bear_candidates[: max(1, len(bear_candidates) // 4)]
                 elif greek_targets.movement_bias == "bearish":
@@ -491,7 +640,14 @@ def main():
 
                 if brain_strategy == "TAIL_HEDGE" or brain_strategy == "VEGA_SNIPER":
                     logger.warning("🟡 MACRO AI GATE: Market is too volatile for directional short premium. Skipping Put/Call Spreads.")
-                elif current_vix >= 15.0:
+                elif not runtime_calibration.directional_enabled:
+                    logger.info("🧯 Runtime regime policy disabled directional short premium for this market state.")
+                elif current_vix > runtime_calibration.max_vix_for_short_premium:
+                    logger.info(
+                        "🧯 Runtime regime policy capped short premium at VIX %.2f. Holding fire on directional spreads.",
+                        runtime_calibration.max_vix_for_short_premium,
+                    )
+                elif current_vix >= min_vix_for_directional_credit:
                     half_bp = buying_power / 2.0
                     
                     if bull_candidates and half_bp >= 50:
@@ -502,7 +658,12 @@ def main():
                         logger.info(f"🧠 Step 2D: Deploying AI Bearish Edge (Call Credit Spreads) on {len(bear_candidates)} tickers.")
                         sell_calls(client, bear_candidates, purchase_price=None, stock_qty=0, buying_power=half_bp, max_risk_limit=dynamic_max_risk, strat_logger=strat_logger)
                 else:
-                    logger.info(f"Step 2C: VIX is too low ({current_vix}) for directional Credit Spreads. Remaining BP (${buying_power:.2f}) held in cash.")
+                    logger.info(
+                        "Step 2C: VIX is too low (%.2f < %.2f) for directional Credit Spreads. Remaining BP ($%.2f) held in cash.",
+                        current_vix,
+                        min_vix_for_directional_credit,
+                        buying_power,
+                    )
             elif buying_power < 50:
                 logger.info(f"Remaining BP (${buying_power:.2f}) exhausted. Skipping Directional Bets.")
                 
@@ -511,11 +672,41 @@ def main():
                 pass 
             else:
                 logger.info(f"Remaining BP (${buying_power:.2f}) is too low for new ${dynamic_max_risk} spreads.")
+        progress.advance("Deploying options books")
     else:
         logger.info("Manage-Only mode activated. Skipping Step 2 (Hunting for new Spreads).")
+        progress.advance("Managing positions without new entries")
     # ==========================================================
 
-    strat_logger.save()    
+    if daily_pnl_pct > -10.0:
+        try:
+            refreshed_positions = client.get_positions()
+            live_buying_power = float(client.trade_client.get_account().buying_power)
+            overlay_buying_power = min(max(0.0, buying_power), max(0.0, live_buying_power))
+            overlay_buying_power, overlay_actions = rebalance_equity_overlay(
+                client=client,
+                positions=refreshed_positions,
+                movement_signals=movement_signals,
+                alpha_signals=alpha_signals,
+                flow_map=flow_map,
+                total_equity=total_equity,
+                buying_power=overlay_buying_power,
+                deployment_scale=deployment_scale,
+                current_vix=current_vix,
+                movement_bias=greek_targets.movement_bias,
+                runtime_calibration=runtime_calibration,
+                current_port_delta=port_delta,
+                target_port_delta=greek_targets.target_delta,
+                allow_new_entries=not args.manage_only,
+            )
+            if overlay_actions:
+                logger.info("📈 Direct equity overlay actions: %s", " | ".join(overlay_actions))
+        except Exception as exc:
+            logger.error("Direct equity overlay rebalance failed: %s", exc)
+    progress.advance("Rebalancing stock overlay and delta hedge")
+
+    strat_logger.save()
+    progress.advance("Persisting strategy artifacts")
 
 if __name__ == "__main__":
     main()

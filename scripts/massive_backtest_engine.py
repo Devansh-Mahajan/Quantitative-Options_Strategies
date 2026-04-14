@@ -3,6 +3,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+import math
 import sys
 
 import joblib
@@ -14,7 +15,18 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from config.params import (
+    DELTA_MAX,
+    DELTA_MIN,
+    OPTION_DELAY_MAX_UNDERLYING_MOVE_PCT,
+    OPTION_PRICING_RISK_FREE_RATE,
+)
+from core.delay_aware_options import option_greeks, option_price
+from core.ml_alpha import backtest_alpha_strategy
 from core.movement_predictor import LOOKBACK_MAP, backtest_symbol_movement, lookback_days
+from core.operations_reporting import archive_backtest_artifacts
+from core.resource_profile import load_resource_profile
+from core.strategy_regime import BUCKETS, STRATEGY_PROFILES, classify_market_state, combine_profile_with_state, clamp
 from core.universe_maintenance import download_close_matrix, load_symbol_file
 from scripts.train_hmm import build_macro_features
 
@@ -22,9 +34,13 @@ DEFAULT_LOOKBACKS = ["10y", "5y", "3y", "1y", "6mo", "3mo", "ytd"]
 DEFAULT_OUTPUT = "reports/massive_backtest_report.json"
 SYMBOL_LIST_PATH = ROOT / "config" / "symbol_list.txt"
 HMM_MODEL_PATH = ROOT / "config" / "hmm_macro_model.pkl"
+INTRADAY_BARS_PER_DAY = 26
+TARGET_OPTION_ABS_DELTA = 0.20
+VECTORBT_LOCAL_PATH = ROOT / "third_party" / "vectorbt"
 
 
 def parse_args():
+    resource_profile = load_resource_profile(ROOT)
     parser = argparse.ArgumentParser(
         description="All-in-one predictive backtest suite for movement, regime, pairs, and strategy-routing proxies."
     )
@@ -33,7 +49,7 @@ def parse_args():
     parser.add_argument("--lookbacks", nargs="+", default=DEFAULT_LOOKBACKS)
     parser.add_argument("--target-daily-return", type=float, default=0.002)
     parser.add_argument("--target-accuracy", type=float, default=0.56)
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=resource_profile.backtest_workers)
     parser.add_argument("--pairs-entry-z", type=float, default=1.5)
     parser.add_argument("--pairs-exit-z", type=float, default=0.5)
     parser.add_argument("--horizon-days", type=int, default=5, help="Evaluation horizon for regime/pairs/proxy tests.")
@@ -459,6 +475,438 @@ def run_strategy_proxy_suite(symbols: list[str], lookbacks: list[str], horizon_d
     return {"results_by_lookback": results_by_lookback, "summary": summary}
 
 
+def _bucket_proxy_outcome(bucket: str, row: pd.Series) -> tuple[bool, float]:
+    fwd_ret = float(row["fwd_ret"])
+    fwd_vol_change = float(row["fwd_vol_change"])
+
+    if bucket == "BULL":
+        return fwd_ret > 0, fwd_ret
+    if bucket == "BEAR":
+        return fwd_ret < 0, -fwd_ret
+    if bucket == "VEGA":
+        proxy_return = (0.60 * abs(fwd_ret)) + (0.40 * fwd_vol_change)
+        return fwd_vol_change > 0 or abs(fwd_ret) > 0.015, proxy_return
+
+    proxy_return = (-abs(fwd_ret)) + max(0.0, -fwd_vol_change)
+    return abs(fwd_ret) < 0.02 and fwd_vol_change <= 0, proxy_return
+
+
+def _profile_score(hit_rate: float, avg_proxy_return: float) -> float:
+    return_component = clamp(0.50 + (avg_proxy_return * 18.0), 0.0, 1.0)
+    return round((0.60 * float(hit_rate)) + (0.40 * return_component), 4)
+
+
+def _run_strategy_profile_suite_from_close(close: pd.DataFrame, vix_close: pd.Series | None, horizon_days: int):
+    if close.empty:
+        return {"error": "no_price_data", "summary": {"samples": 0}}
+
+    market = close.mean(axis=1).dropna()
+    ret1 = np.log(market / market.shift(1))
+    realized_vol20 = ret1.rolling(20).std() * np.sqrt(252)
+    vol_trend = realized_vol20.diff(5)
+    mom20 = market / market.rolling(20).mean() - 1.0
+
+    if vix_close is None or vix_close.empty:
+        vix_close = pd.Series(index=market.index, data=np.nan).ffill().fillna(20.0)
+
+    frame = pd.DataFrame(
+        {
+            "mom20": mom20,
+            "vol20": realized_vol20,
+            "vol_trend": vol_trend,
+            "vix": vix_close.reindex(market.index).ffill(),
+            "fwd_ret": np.log(market.shift(-horizon_days) / market),
+            "fwd_vol_change": realized_vol20.shift(-horizon_days) - realized_vol20,
+        }
+    ).dropna()
+
+    if len(frame) < 400:
+        return {"error": "insufficient_profile_samples", "summary": {"samples": int(len(frame))}}
+
+    frame["market_state"] = [
+        classify_market_state(row.mom20, row.vix, row.vol_trend)
+        for row in frame.itertuples(index=False)
+    ]
+
+    state_distribution = {
+        state: round(float((frame["market_state"] == state).mean()), 4)
+        for state in sorted(frame["market_state"].unique())
+    }
+    current_market_state = str(frame["market_state"].iloc[-1])
+
+    results_by_profile = {}
+    best_profile_by_state: dict[str, dict[str, object]] = {}
+    overall_candidates = []
+
+    for profile_name in STRATEGY_PROFILES:
+        profile_hits = []
+        profile_returns = []
+        bucket_selection = {bucket: 0 for bucket in BUCKETS}
+        state_hits: dict[str, list[float]] = {}
+        state_returns: dict[str, list[float]] = {}
+
+        for row in frame.itertuples(index=False):
+            market_state = str(row.market_state)
+            combined = combine_profile_with_state(profile_name, market_state)
+            selected_bucket = max(BUCKETS, key=lambda bucket: (combined.get(bucket, 0.0), bucket))
+            success, proxy_return = _bucket_proxy_outcome(selected_bucket, pd.Series(row._asdict()))
+
+            profile_hits.append(1.0 if success else 0.0)
+            profile_returns.append(float(proxy_return))
+            bucket_selection[selected_bucket] += 1
+            state_hits.setdefault(market_state, []).append(1.0 if success else 0.0)
+            state_returns.setdefault(market_state, []).append(float(proxy_return))
+
+        by_state = {}
+        for state, hits in state_hits.items():
+            avg_proxy_return = safe_mean(state_returns.get(state, []))
+            hit_rate = safe_mean(hits)
+            score = _profile_score(hit_rate, avg_proxy_return)
+            by_state[state] = {
+                "samples": len(hits),
+                "hit_rate": hit_rate,
+                "avg_proxy_return": avg_proxy_return,
+                "score": score,
+            }
+
+            incumbent = best_profile_by_state.get(state)
+            if incumbent is None or score > float(incumbent.get("score", -1.0)):
+                best_profile_by_state[state] = {
+                    "profile": profile_name,
+                    "score": score,
+                    "hit_rate": hit_rate,
+                    "avg_proxy_return": avg_proxy_return,
+                    "samples": len(hits),
+                }
+
+        avg_proxy_return = safe_mean(profile_returns)
+        hit_rate = safe_mean(profile_hits)
+        score = _profile_score(hit_rate, avg_proxy_return)
+        overall_candidates.append((score, profile_name, hit_rate, avg_proxy_return))
+
+        results_by_profile[profile_name] = {
+            "label": STRATEGY_PROFILES[profile_name]["label"],
+            "thesis": STRATEGY_PROFILES[profile_name]["thesis"],
+            "summary": {
+                "samples": int(len(profile_hits)),
+                "hit_rate": hit_rate,
+                "avg_proxy_return": avg_proxy_return,
+                "score": score,
+                "bucket_selection_share": {
+                    bucket: round(bucket_selection[bucket] / max(len(profile_hits), 1), 4)
+                    for bucket in BUCKETS
+                },
+                "by_state": by_state,
+            },
+        }
+
+    overall_candidates.sort(reverse=True)
+    best_overall = overall_candidates[0] if overall_candidates else (0.0, "all_weather", 0.0, 0.0)
+
+    summary = {
+        "samples": int(len(frame)),
+        "state_distribution": state_distribution,
+        "current_market_state": current_market_state,
+        "best_profile_overall": {
+            "profile": best_overall[1],
+            "score": best_overall[0],
+            "hit_rate": best_overall[2],
+            "avg_proxy_return": best_overall[3],
+        },
+        "best_profile_by_state": best_profile_by_state,
+        "current_state_best_profile": best_profile_by_state.get(
+            current_market_state,
+            {
+                "profile": best_overall[1],
+                "score": best_overall[0],
+                "hit_rate": best_overall[2],
+                "avg_proxy_return": best_overall[3],
+                "samples": int(len(frame)),
+            },
+        ),
+    }
+    return {"results_by_profile": results_by_profile, "summary": summary}
+
+
+def run_strategy_profile_suite(symbols: list[str], lookbacks: list[str], horizon_days: int):
+    close = download_close(symbols, period="10y")
+    vix = download_close(["^VIX"], period="10y")
+    vix_close = None
+    if not vix.empty:
+        if "^VIX" in vix.columns:
+            vix_close = vix["^VIX"]
+        elif "VIX" in vix.columns:
+            vix_close = vix["VIX"]
+
+    results_by_lookback = {}
+    for lookback in lookbacks:
+        window_close = _slice_frame_to_lookback(close, lookback)
+        window_vix = _slice_frame_to_lookback(vix_close, lookback) if vix_close is not None else None
+        results_by_lookback[lookback] = _run_strategy_profile_suite_from_close(window_close, window_vix, horizon_days)
+
+    valid_results = [result for result in results_by_lookback.values() if "error" not in result]
+    best_profile_votes: dict[str, int] = {}
+    current_state_votes: dict[str, int] = {}
+    profile_scores = []
+
+    for result in valid_results:
+        summary = result.get("summary", {})
+        best_profile = (summary.get("best_profile_overall") or {}).get("profile")
+        if best_profile:
+            best_profile_votes[str(best_profile)] = best_profile_votes.get(str(best_profile), 0) + 1
+            profile_scores.append(float((summary.get("best_profile_overall") or {}).get("score", 0.0)))
+        current_state = summary.get("current_market_state")
+        if current_state:
+            current_state_votes[str(current_state)] = current_state_votes.get(str(current_state), 0) + 1
+
+    consensus_profile = max(best_profile_votes.items(), key=lambda item: (item[1], item[0]))[0] if best_profile_votes else "all_weather"
+    consensus_state = max(current_state_votes.items(), key=lambda item: (item[1], item[0]))[0] if current_state_votes else "transition"
+    summary = {
+        "by_lookback": {lookback: result.get("summary", {}) for lookback, result in results_by_lookback.items()},
+        "consensus_profile": consensus_profile,
+        "consensus_state": consensus_state,
+        "profile_vote_share": best_profile_votes,
+        "current_state_vote_share": current_state_votes,
+        "avg_best_profile_score": safe_mean(profile_scores),
+        "valid_windows": len(valid_results),
+    }
+    return {"results_by_lookback": results_by_lookback, "summary": summary}
+
+
+def _load_vectorbt_module():
+    try:
+        import vectorbt as vbt
+
+        return vbt
+    except Exception:
+        pass
+
+    if VECTORBT_LOCAL_PATH.exists():
+        local_path = str(VECTORBT_LOCAL_PATH)
+        if local_path not in sys.path:
+            sys.path.insert(0, local_path)
+        try:
+            import vectorbt as vbt
+
+            return vbt
+        except Exception:
+            return None
+    return None
+
+
+def _download_intraday_close(symbols: list[str], period: str = "60d", interval: str = "15m") -> pd.DataFrame:
+    raw = yf.download(symbols, period=period, interval=interval, auto_adjust=True, progress=False)
+    if raw is None or raw.empty:
+        return pd.DataFrame()
+    if isinstance(raw.columns, pd.MultiIndex):
+        if "Close" in raw.columns.get_level_values(0):
+            close = raw["Close"]
+        else:
+            close = raw.xs("Close", axis=1, level=0, drop_level=True)
+    else:
+        close = raw[["Close"]].rename(columns={"Close": symbols[0]})
+    return close.ffill().dropna(how="all")
+
+
+def _target_delta_strike(flag: str, spot: float, volatility: float, years_to_expiry: float, risk_free_rate: float) -> float:
+    if spot <= 0 or volatility <= 0 or years_to_expiry <= 0:
+        return spot
+    # Inverse normal constants for N^-1(0.80) and N^-1(0.20).
+    d1 = 0.8416212336 if flag == "p" else -0.8416212336
+    exponent = (d1 * volatility * math.sqrt(years_to_expiry)) - ((risk_free_rate + 0.5 * volatility * volatility) * years_to_expiry)
+    return spot / math.exp(exponent)
+
+
+def _build_vectorbt_summary(naive_returns: list[float], filtered_returns: list[float]) -> dict | None:
+    vbt = _load_vectorbt_module()
+    if vbt is None:
+        return None
+
+    def _portfolio_stats(returns: list[float]) -> dict:
+        if not returns:
+            return {"trades": 0}
+        capped = pd.Series(np.clip(np.array(returns, dtype=float), -0.95, 3.0))
+        equity_curve = 100.0 * (1.0 + capped).cumprod()
+        portfolio = vbt.Portfolio.from_holding(equity_curve, init_cash=100.0, freq="15m")
+        return {
+            "trades": int(len(capped)),
+            "total_return": float(portfolio.total_return()),
+            "max_drawdown": float(portfolio.max_drawdown()),
+            "sharpe_ratio": float(portfolio.sharpe_ratio()),
+        }
+
+    return {
+        "naive": _portfolio_stats(naive_returns),
+        "delay_filtered": _portfolio_stats(filtered_returns),
+    }
+
+
+def _run_delay_quote_suite_from_close(close: pd.DataFrame, horizon_days: int):
+    if close.empty:
+        return {"error": "no_intraday_data", "summary": {"symbols": 0}}
+
+    horizon_bars = max(1, int(horizon_days * INTRADAY_BARS_PER_DAY))
+    years_to_expiry = 45.0 / 365.0
+    years_decay = horizon_bars / float(INTRADAY_BARS_PER_DAY * 252)
+    risk_free_rate = float(OPTION_PRICING_RISK_FREE_RATE)
+    annualization = math.sqrt(INTRADAY_BARS_PER_DAY * 252)
+
+    per_symbol: dict[str, dict[str, object]] = {}
+    aggregate = {
+        "naive_pnl": {"p": [], "c": []},
+        "naive_win": {"p": [], "c": []},
+        "filtered_pnl": {"p": [], "c": []},
+        "filtered_win": {"p": [], "c": []},
+        "quote_error": {"p": [], "c": []},
+        "delay_move": {"p": [], "c": []},
+        "delta_breach": {"p": [], "c": []},
+    }
+
+    for symbol in close.columns:
+        series = close[symbol].dropna()
+        if len(series) < max(200, horizon_bars + 50):
+            continue
+
+        frame = pd.DataFrame({"close": series})
+        frame["ret"] = np.log(frame["close"] / frame["close"].shift(1))
+        frame["sigma"] = frame["ret"].rolling(INTRADAY_BARS_PER_DAY).std() * annualization
+        frame = frame.dropna()
+        if len(frame) < horizon_bars + 20:
+            continue
+
+        symbol_result = {}
+        for flag in ("p", "c"):
+            naive_pnl = []
+            filtered_pnl = []
+            naive_win = []
+            filtered_win = []
+            quote_error = []
+            delay_move = []
+            delta_breach = []
+
+            for i in range(1, len(frame) - horizon_bars):
+                delayed_spot = float(frame["close"].iloc[i - 1])
+                entry_spot = float(frame["close"].iloc[i])
+                exit_spot = float(frame["close"].iloc[i + horizon_bars])
+                sigma_entry = float(frame["sigma"].iloc[i])
+                sigma_exit = float(frame["sigma"].iloc[i + horizon_bars])
+                if sigma_entry <= 0 or sigma_exit <= 0:
+                    continue
+
+                strike = _target_delta_strike(flag, delayed_spot, sigma_entry, years_to_expiry, risk_free_rate)
+                delayed_price = option_price(flag, delayed_spot, strike, years_to_expiry, risk_free_rate, sigma_entry)
+                entry_price = option_price(flag, entry_spot, strike, years_to_expiry, risk_free_rate, sigma_entry)
+                exit_price = option_price(
+                    flag,
+                    exit_spot,
+                    strike,
+                    max(1.0 / 365.0, years_to_expiry - years_decay),
+                    risk_free_rate,
+                    sigma_exit,
+                )
+
+                if min(delayed_price, entry_price) <= 0:
+                    continue
+
+                live_delta = abs(option_greeks(flag, entry_spot, strike, years_to_expiry, risk_free_rate, sigma_entry)["delta"])
+                live_in_band = DELTA_MIN <= live_delta <= DELTA_MAX
+                move_pct = abs(entry_spot - delayed_spot) / max(delayed_spot, 1e-6)
+                pnl = float(entry_price - exit_price)
+
+                quote_error.append(abs(entry_price - delayed_price) / max(delayed_price, 0.05))
+                delay_move.append(move_pct)
+                delta_breach.append(0.0 if live_in_band else 1.0)
+                naive_pnl.append(pnl)
+                naive_win.append(1.0 if pnl > 0 else 0.0)
+
+                if live_in_band and move_pct <= OPTION_DELAY_MAX_UNDERLYING_MOVE_PCT:
+                    filtered_pnl.append(pnl)
+                    filtered_win.append(1.0 if pnl > 0 else 0.0)
+
+            if not naive_pnl:
+                continue
+
+            symbol_result["put" if flag == "p" else "call"] = {
+                "samples": len(naive_pnl),
+                "avg_quote_error_pct": safe_mean(quote_error),
+                "avg_delay_move_pct": safe_mean(delay_move),
+                "delta_band_breach_rate": safe_mean(delta_breach),
+                "naive_avg_short_pnl": safe_mean(naive_pnl),
+                "naive_win_rate": safe_mean(naive_win),
+                "delay_filtered_samples": len(filtered_pnl),
+                "delay_filtered_keep_rate": (len(filtered_pnl) / len(naive_pnl)) if naive_pnl else 0.0,
+                "delay_filtered_avg_short_pnl": safe_mean(filtered_pnl),
+                "delay_filtered_win_rate": safe_mean(filtered_win),
+            }
+
+            aggregate["naive_pnl"][flag].extend(naive_pnl)
+            aggregate["naive_win"][flag].extend(naive_win)
+            aggregate["filtered_pnl"][flag].extend(filtered_pnl)
+            aggregate["filtered_win"][flag].extend(filtered_win)
+            aggregate["quote_error"][flag].extend(quote_error)
+            aggregate["delay_move"][flag].extend(delay_move)
+            aggregate["delta_breach"][flag].extend(delta_breach)
+
+        if symbol_result:
+            per_symbol[str(symbol)] = symbol_result
+
+    if not per_symbol:
+        return {"error": "insufficient_intraday_samples", "summary": {"symbols": 0}}
+
+    naive_returns = []
+    filtered_returns = []
+    for flag in ("p", "c"):
+        naive_returns.extend(
+            pnl / max(0.25, TARGET_OPTION_ABS_DELTA)
+            for pnl in aggregate["naive_pnl"][flag]
+        )
+        filtered_returns.extend(
+            pnl / max(0.25, TARGET_OPTION_ABS_DELTA)
+            for pnl in aggregate["filtered_pnl"][flag]
+        )
+
+    summary = {
+        "symbols": len(per_symbol),
+        "horizon_days": int(horizon_days),
+        "vectorbt_available": _load_vectorbt_module() is not None,
+        "puts": {
+            "samples": len(aggregate["naive_pnl"]["p"]),
+            "avg_quote_error_pct": safe_mean(aggregate["quote_error"]["p"]),
+            "avg_delay_move_pct": safe_mean(aggregate["delay_move"]["p"]),
+            "delta_band_breach_rate": safe_mean(aggregate["delta_breach"]["p"]),
+            "naive_avg_short_pnl": safe_mean(aggregate["naive_pnl"]["p"]),
+            "naive_win_rate": safe_mean(aggregate["naive_win"]["p"]),
+            "delay_filtered_samples": len(aggregate["filtered_pnl"]["p"]),
+            "delay_filtered_avg_short_pnl": safe_mean(aggregate["filtered_pnl"]["p"]),
+            "delay_filtered_win_rate": safe_mean(aggregate["filtered_win"]["p"]),
+        },
+        "calls": {
+            "samples": len(aggregate["naive_pnl"]["c"]),
+            "avg_quote_error_pct": safe_mean(aggregate["quote_error"]["c"]),
+            "avg_delay_move_pct": safe_mean(aggregate["delay_move"]["c"]),
+            "delta_band_breach_rate": safe_mean(aggregate["delta_breach"]["c"]),
+            "naive_avg_short_pnl": safe_mean(aggregate["naive_pnl"]["c"]),
+            "naive_win_rate": safe_mean(aggregate["naive_win"]["c"]),
+            "delay_filtered_samples": len(aggregate["filtered_pnl"]["c"]),
+            "delay_filtered_avg_short_pnl": safe_mean(aggregate["filtered_pnl"]["c"]),
+            "delay_filtered_win_rate": safe_mean(aggregate["filtered_win"]["c"]),
+        },
+        "vectorbt_proxy": _build_vectorbt_summary(naive_returns, filtered_returns),
+    }
+    return {"per_symbol": per_symbol, "summary": summary}
+
+
+def run_delay_quote_suite(symbols: list[str], horizon_days: int):
+    intraday_symbols = list(dict.fromkeys(symbols))[:12]
+    close = _download_intraday_close(intraday_symbols, period="60d", interval="15m")
+    return _run_delay_quote_suite_from_close(close, horizon_days=horizon_days)
+
+
+def run_ml_alpha_suite(symbols: list[str]):
+    universe = list(dict.fromkeys(symbols))[:24]
+    return backtest_alpha_strategy(universe)
+
+
 def main():
     args = parse_args()
 
@@ -496,17 +944,49 @@ def main():
     pairs = run_pairs_suite(symbols=symbols, lookbacks=lookbacks, entry_z=args.pairs_entry_z, exit_z=args.pairs_exit_z, horizon_days=args.horizon_days)
     regime = run_regime_suite(horizon_days=args.horizon_days, lookbacks=lookbacks)
     strategy_proxy = run_strategy_proxy_suite(symbols=symbols, lookbacks=lookbacks, horizon_days=args.horizon_days)
+    strategy_profiles = run_strategy_profile_suite(symbols=symbols, lookbacks=lookbacks, horizon_days=args.horizon_days)
+    delay_quote = run_delay_quote_suite(symbols=symbols, horizon_days=args.horizon_days)
+    ml_alpha = run_ml_alpha_suite(symbols=symbols)
 
     report["movement_suite"] = movement
     report["pairs_suite"] = pairs
     report["regime_suite"] = regime
     report["strategy_proxy_suite"] = strategy_proxy
+    report["strategy_profile_suite"] = strategy_profiles
+    report["delay_quote_suite"] = delay_quote
+    report["ml_alpha_suite"] = ml_alpha
 
     aggregate_score_components = []
     aggregate_score_components.append(movement["summary"].get("avg_accuracy", 0.0))
     aggregate_score_components.append(max(0.0, min(1.0, pairs.get("summary", {}).get("win_rate", 0.0))))
     aggregate_score_components.append(max(0.0, min(1.0, regime.get("summary", {}).get("directional_accuracy_proxy", 0.0))))
     aggregate_score_components.append(max(0.0, min(1.0, strategy_proxy.get("summary", {}).get("overall_hit_rate", 0.0))))
+    aggregate_score_components.append(max(0.0, min(1.0, strategy_profiles.get("summary", {}).get("avg_best_profile_score", 0.0))))
+    aggregate_score_components.append(
+        max(
+            0.0,
+            min(
+                1.0,
+                (
+                    0.50
+                    + (
+                        float(delay_quote.get("summary", {}).get("puts", {}).get("delay_filtered_win_rate", 0.0))
+                        + float(delay_quote.get("summary", {}).get("calls", {}).get("delay_filtered_win_rate", 0.0))
+                    )
+                    / 4.0
+                ),
+            ),
+        )
+    )
+    aggregate_score_components.append(
+        max(
+            0.0,
+            min(
+                1.0,
+                0.50 + float(ml_alpha.get("summary", {}).get("avg_information_coefficient", 0.0)),
+            ),
+        )
+    )
 
     report["massive_overview"] = {
         "predictive_score": safe_mean(aggregate_score_components),
@@ -514,20 +994,39 @@ def main():
         "pairs_win_rate": pairs.get("summary", {}).get("win_rate", 0.0),
         "regime_directional_accuracy_proxy": regime.get("summary", {}).get("directional_accuracy_proxy", 0.0),
         "strategy_router_hit_rate": strategy_proxy.get("summary", {}).get("overall_hit_rate", 0.0),
+        "strategy_profile_score": strategy_profiles.get("summary", {}).get("avg_best_profile_score", 0.0),
+        "delay_filtered_put_win_rate": delay_quote.get("summary", {}).get("puts", {}).get("delay_filtered_win_rate", 0.0),
+        "delay_filtered_call_win_rate": delay_quote.get("summary", {}).get("calls", {}).get("delay_filtered_win_rate", 0.0),
+        "avg_recent_quote_error_pct": safe_mean(
+            [
+                delay_quote.get("summary", {}).get("puts", {}).get("avg_quote_error_pct", 0.0),
+                delay_quote.get("summary", {}).get("calls", {}).get("avg_quote_error_pct", 0.0),
+            ]
+        ),
+        "ml_alpha_information_coefficient": ml_alpha.get("summary", {}).get("avg_information_coefficient", 0.0),
+        "ml_alpha_long_short_sharpe": ml_alpha.get("summary", {}).get("long_short", {}).get("sharpe_ratio", 0.0),
+        "consensus_market_state": strategy_profiles.get("summary", {}).get("consensus_state"),
+        "consensus_strategy_profile": strategy_profiles.get("summary", {}).get("consensus_profile"),
         "window_movement_accuracy": movement["summary"].get("by_lookback", {}),
         "window_pairs_win_rate": _window_summary(pairs.get("results_by_lookback", {}), "win_rate"),
         "window_regime_accuracy": _window_summary(regime.get("results_by_lookback", {}), "directional_accuracy_proxy"),
         "window_strategy_hit_rate": _window_summary(strategy_proxy.get("results_by_lookback", {}), "overall_hit_rate"),
-        "note": "Proxy framework focuses on predictive quality. It is not a direct options PnL backtest.",
+        "window_strategy_profile_state": {
+            lookback: result.get("summary", {}).get("current_market_state")
+            for lookback, result in strategy_profiles.get("results_by_lookback", {}).items()
+        },
+        "note": "Proxy framework focuses on predictive quality. Delay quote analysis is a recent intraday theoretical options filter study, not a full broker-fill backtest.",
     }
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2))
+    archive_paths = archive_backtest_artifacts(report, output_path=out, reports_root=ROOT / "reports")
 
     print("\n=== MASSIVE PREDICTIVE OVERVIEW ===")
     print(json.dumps(report["massive_overview"], indent=2))
     print(f"Saved report: {out}")
+    print(f"Saved latest backtest summary: {archive_paths['latest_md']}")
 
 
 if __name__ == "__main__":
