@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.mega_neural_brain import MegaStrategyNet
+from core.torch_device import resolve_torch_runtime
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("Mega_Trainer")
@@ -22,26 +23,9 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'mega_universe
 MODEL_SAVE_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'trading_model.pth')
 
 
-def resolve_training_device() -> tuple[torch.device, bool]:
-    try:
-        gpu_available = torch.cuda.is_available()
-    except Exception as exc:
-        logger.error("❌ GPU detection failed (%s). Falling back to CPU.", exc)
-        return torch.device("cpu"), False
-
-    if gpu_available:
-        try:
-            gpu_name = torch.cuda.get_device_name(0)
-        except Exception:
-            gpu_name = "CUDA device"
-        logger.info("✅ GPU detected: %s. Training will run on CUDA.", gpu_name)
-        return torch.device("cuda"), True
-
-    logger.error("❌ No NVIDIA GPU detected. Falling back to CPU training.")
-    return torch.device("cpu"), False
-
-
-DEVICE, CUDA_AVAILABLE = resolve_training_device()
+TORCH_RUNTIME = resolve_torch_runtime()
+DEVICE = TORCH_RUNTIME.device
+CUDA_AVAILABLE = TORCH_RUNTIME.cuda_available
 
 BATCH_SIZE = 512
 EPOCHS = 120
@@ -248,9 +232,10 @@ def apply_dynamic_regularization(
 
 def train(target_annual_return: Optional[float] = None, target_accuracy: float = TARGET_ACCURACY):
     set_seed(SEED)
+    logger.info(TORCH_RUNTIME.message)
     logger.info(f"🚀 Training on {DEVICE} | seed={SEED}")
 
-    checkpoint = torch.load(DATA_PATH, weights_only=False)
+    checkpoint = torch.load(DATA_PATH, map_location="cpu", weights_only=False)
     X, y = checkpoint['X'], checkpoint['y']
     logger.info("📦 Dataset loaded: samples=%d, sequence_len=%d, features=%d", X.shape[0], X.shape[1], X.shape[2])
     future_returns = checkpoint.get('future_returns', torch.zeros(len(y), dtype=torch.float32))
@@ -324,7 +309,7 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
         criterion = build_weighted_loss_for_attempt(class_weights=class_weights, label_smoothing=attempt['label_smoothing'])
         optimizer = optim.AdamW(model.parameters(), lr=attempt['lr'], weight_decay=attempt['weight_decay'])
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=12, T_mult=2)
-        scaler = torch.amp.GradScaler(device="cuda", enabled=(DEVICE.type == 'cuda'))
+        scaler = torch.amp.GradScaler(device="cuda", enabled=(DEVICE.type == 'cuda')) if DEVICE.type == 'cuda' else None
         logger.info("🧠 Model initialized. Starting optimization...")
 
         stale = 0
@@ -342,15 +327,22 @@ def train(target_annual_return: Optional[float] = None, target_accuracy: float =
                 b_x, b_y = b_x.to(DEVICE), b_y.to(DEVICE)
                 optimizer.zero_grad(set_to_none=True)
 
-                with torch.amp.autocast(device_type="cuda", enabled=(DEVICE.type == 'cuda')):
+                if scaler is not None:
+                    with torch.amp.autocast(device_type="cuda", enabled=True):
+                        logits = model(b_x)
+                        loss = criterion(logits, b_y)
+
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
                     logits = model(b_x)
                     loss = criterion(logits, b_y)
-
-                scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-                scaler.step(optimizer)
-                scaler.update()
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    optimizer.step()
 
                 running_loss += loss.item()
                 preds = logits.argmax(1)

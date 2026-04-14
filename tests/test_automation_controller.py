@@ -185,6 +185,35 @@ class AutomationControllerTests(unittest.TestCase):
             )
             self.assertTrue(Path(args.latest_daily_report_path).exists())
 
+    def test_daily_maintenance_retries_when_post_close_training_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            controller = AutomationController(args)
+            executed = []
+
+            async def _fake_run_command(label, command, lock):
+                executed.append((label, command))
+                if label == "post-close-model-maintenance":
+                    return 1
+                return 0
+
+            controller._run_command = _fake_run_command
+            state = {}
+            now = datetime(2026, 4, 13, 16, 30, tzinfo=ZoneInfo("America/New_York"))
+
+            asyncio.run(controller._run_daily_maintenance_if_due(state, now))
+
+            self.assertNotIn("daily_maintenance", state)
+            self.assertEqual(
+                [name for name, _ in executed],
+                [
+                    "pre-open-self-check",
+                    "post-close-self-evaluate",
+                    "post-close-model-maintenance",
+                ],
+            )
+            self.assertTrue(Path(args.latest_daily_report_path).exists())
+
     def test_pre_open_self_check_runs_once_per_day(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = _args(Path(tmp))

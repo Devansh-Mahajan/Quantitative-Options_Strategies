@@ -239,6 +239,13 @@ def main():
     last_equity = float(account.last_equity) if account.last_equity else total_equity
     daily_pnl_dollars = total_equity - last_equity
     daily_pnl_pct = (daily_pnl_dollars / last_equity) * 100 if last_equity > 0 else 0
+    portfolio_risk_guard = client.get_portfolio_risk_snapshot(
+        positions=positions,
+        account=account,
+        write_runtime=True,
+        phase="cycle-pretrade",
+        order_label="run-strategy-cycle",
+    )
 
     # Grab VIX early so we can scale risk and print it on the dashboard
     current_vix = get_vix_level()
@@ -248,9 +255,24 @@ def main():
     alpha_signals = live_alpha_signal_map(alpha_universe)
     progress.advance("Scoring live market signals")
 
-    if daily_pnl_pct <= -10.0:
-        logger.critical(f"🔴 KILL SWITCH TRIGGERED 🔴 Daily P/L is {daily_pnl_pct:.2f}% (${daily_pnl_dollars:.2f}). Trading halted.")
-        send_alert(f"🚨 **KILL SWITCH TRIGGERED** 🚨\nDaily P/L is {daily_pnl_pct:.2f}%. Trading suspended.", "ERROR")
+    if portfolio_risk_guard.kill_switch_active:
+        hard_reasons = ", ".join(portfolio_risk_guard.hard_kill_reasons) or "portfolio-risk-limit"
+        logger.critical(
+            "🔴 KILL SWITCH TRIGGERED 🔴 Hard reasons=%s | Daily P/L %+.2f%% ($%+.2f) | CVaR %.2f%% | Stress %.2f%%. Trading halted.",
+            hard_reasons,
+            daily_pnl_pct,
+            daily_pnl_dollars,
+            portfolio_risk_guard.cvar_pct_equity * 100.0,
+            portfolio_risk_guard.stress_pct_equity * 100.0,
+        )
+        send_alert(
+            f"🚨 **KILL SWITCH TRIGGERED** 🚨\n"
+            f"Reasons: {hard_reasons}\n"
+            f"Daily P/L: {daily_pnl_pct:.2f}%\n"
+            f"Portfolio CVaR: {portfolio_risk_guard.cvar_pct_equity*100.0:.2f}%\n"
+            f"Stress Loss: {portfolio_risk_guard.stress_pct_equity*100.0:.2f}%",
+            "ERROR",
+        )
         buying_power = 0  
         dynamic_max_risk = 0
         port_delta = 0.0
@@ -266,6 +288,15 @@ def main():
         deployment_scale = 0.0
         adaptive_profile = None
     else:
+        if portfolio_risk_guard.breaches:
+            logger.warning(
+                "🛑 Active portfolio risk pressure: %s | VaR %.2f%% | CVaR %.2f%% | Stress %.2f%% | Top weight %.1f%%",
+                ", ".join(portfolio_risk_guard.breaches),
+                portfolio_risk_guard.var_pct_equity * 100.0,
+                portfolio_risk_guard.cvar_pct_equity * 100.0,
+                portfolio_risk_guard.stress_pct_equity * 100.0,
+                portfolio_risk_guard.max_underlying_weight * 100.0,
+            )
         max_risk_allowed = total_equity * RISK_ALLOCATION
         buying_power = max_risk_allowed - current_risk
 
@@ -415,6 +446,7 @@ def main():
         "open_positions": len(positions),
         "allowed_symbols": len(allowed_symbols),
         "risk_allocation_in_use": round(float(current_risk), 2),
+        "portfolio_risk_engine": portfolio_risk_guard.to_dict(),
         "resource_profile": resource_profile.to_dict(),
     }
     write_risk_snapshot(DEFAULT_RISK_SNAPSHOT_PATH, risk_snapshot)

@@ -1,0 +1,22 @@
+{
+  "generated_at_utc": "2026-04-14T21:40:14.205849+00:00",
+  "mode": "daily",
+  "runtime_message": "CPU detected and using.",
+  "resource_profile": {
+    "cpu_count": 28,
+    "memory_gb": 31.32,
+    "disk_gb": 96.37,
+    "reserved_cores": 4,
+    "controller_blas_threads": 6,
+    "backtest_workers": 15,
+    "research_rf_jobs": 10,
+    "model_parallelism": 3,
+    "daily_training_max_symbols": 39,
+    "risk_interval_seconds": 180,
+    "regime_interval_seconds": 480,
+    "strategy_interval_seconds": 900,
+    "telemetry_interval_seconds": 300
+  },
+  "steps": [],
+  "note": "Daily maintenance refreshes model packs and regime movement models between heavy weekend recalibration cycles."
+}

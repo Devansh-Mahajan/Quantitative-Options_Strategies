@@ -7,15 +7,16 @@ if __name__ != "__main__":
 
 import torch
 
+from core.torch_device import resolve_torch_runtime
+
 
 def main() -> None:
+    runtime = resolve_torch_runtime()
     print(f"PyTorch Version: {torch.__version__}")
-    if torch.cuda.is_available():
-        print(f"✅ GPU DETECTED: {torch.cuda.get_device_name(0)}")
+    print(runtime.message)
+    if runtime.cuda_available:
         total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
         print(f"Memory Available: {total_memory_gb:.2f} GB")
-    else:
-        print("❌ NO GPU DETECTED. PyTorch is running on CPU.")
 
 
 if __name__ == "__main__":

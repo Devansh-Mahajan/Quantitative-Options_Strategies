@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 import datetime
-from core.broker_client import BrokerClient
 from core.utils import get_ny_timestamp
 import json
+
+if TYPE_CHECKING:
+    from core.broker_client import BrokerClient
 
 
 @dataclass

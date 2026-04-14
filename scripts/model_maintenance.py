@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.resource_profile import load_resource_profile
+from core.runtime_env import apply_accelerator_policy
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,8 +51,9 @@ def _run_step(cmd: list[str], *, env: dict[str, str]) -> dict:
 def main() -> None:
     args = parse_args()
     profile = load_resource_profile(ROOT)
-    env = {**os.environ, **profile.to_env()}
+    env, runtime_message = apply_accelerator_policy({**os.environ, **profile.to_env()})
     python_exec = sys.executable
+    print(runtime_message)
 
     steps: list[list[str]] = []
     if not args.skip_foundry:
@@ -91,6 +93,7 @@ def main() -> None:
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "mode": args.mode,
+        "runtime_message": runtime_message,
         "resource_profile": profile.to_dict(),
         "steps": results,
         "note": "Daily maintenance refreshes model packs and regime movement models between heavy weekend recalibration cycles.",

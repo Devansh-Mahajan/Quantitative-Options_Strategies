@@ -10,7 +10,7 @@ from core.delay_aware_options import (
     effective_bid_price,
 )
 from models.contract import Contract
-from .utils import parse_option_symbol
+from .utils import get_option_days_to_expiry, parse_option_symbol, try_parse_option_symbol
 from config.params import PROFIT_TARGET, STOP_LOSS
 from core.state_manager import get_equity_overlay_metadata, get_straddle_metadata, remove_straddle_metadata 
 from config.params import PROFIT_TARGET, STOP_LOSS, SWEEP_TICKER, TARGET_CASH_BUFFER, MAX_RISK_BASE
@@ -129,11 +129,7 @@ def cleanup_stale_orders(client):
 
 def get_days_to_expiry(symbol):
     try:
-        date_match = re.search(r'\d{6}', symbol)
-        if date_match:
-            date_str = date_match.group()
-            expiry_date = datetime.strptime(date_str, "%y%m%d").replace(tzinfo=timezone.utc)
-            return (expiry_date - datetime.now(timezone.utc)).days
+        return get_option_days_to_expiry(symbol, reference_date=datetime.now(timezone.utc).date())
     except Exception:
         pass
     return 45 # Fallback
@@ -177,7 +173,7 @@ def sweep_idle_cash(client, current_equity):
             shares_to_buy = int(sweep_amount // sgov_price)
             
             if shares_to_buy > 0:
-                client.market_buy(SWEEP_TICKER, qty=shares_to_buy)
+                client.market_buy(SWEEP_TICKER, qty=shares_to_buy, order_label=f"Cash sweep into {SWEEP_TICKER}")
                 logger.info(f"🧹 CASH SWEEP: Parked ${shares_to_buy * sgov_price:.2f} of idle cash into {SWEEP_TICKER} (Yielding ~5.3%).")
                 send_alert(f"🧹 **CASH SWEEP**: Parked ${shares_to_buy * sgov_price:.2f} of idle cash into {SWEEP_TICKER}.", "INFO")
     except Exception as e:
@@ -212,7 +208,8 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
 
     closed_profits, closed_losses, closed_time, holding_status = [], [], [], []
     processed_straddles = set()
-    priced_position_contracts = _build_position_contract_map(client, positions)
+    option_positions = [pos for pos in positions if pos.asset_class == AssetClass.US_OPTION]
+    priced_position_contracts = _build_position_contract_map(client, option_positions)
 
     spreads = {}
     for pos in positions:
@@ -228,8 +225,14 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
             continue
 
         if pos.asset_class != AssetClass.US_OPTION: continue
-            
-        underlying, opt_type, strike = parse_option_symbol(pos.symbol)
+
+        parsed = try_parse_option_symbol(pos.symbol)
+        if parsed is None:
+            logger.warning("Skipping unsupported option position symbol during spread management: %s", pos.symbol)
+            holding_status.append(f"{pos.symbol} [UNSUPPORTED OPTION]: qty={pos.qty}")
+            continue
+
+        underlying, opt_type, strike = parsed
         key = f"{underlying}_{opt_type}" 
         
         if key not in spreads:
@@ -277,8 +280,8 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
                     )
                     logger.warning(f"🚨 [VEGA EXIT] {underlying} ({reason}). Attempting to exit Straddle.")
                     try:
-                        client.market_sell(straddle_meta['call_symbol'])
-                        client.market_sell(straddle_meta['put_symbol'])
+                        client.market_sell(straddle_meta['call_symbol'], order_label=f"Straddle exit call {straddle_meta['call_symbol']}")
+                        client.market_sell(straddle_meta['put_symbol'], order_label=f"Straddle exit put {straddle_meta['put_symbol']}")
                         closed_profits.append(f"{underlying}: Straddle Exited ({profit_pct*100:+.1f}%).")
                         remove_straddle_metadata(underlying)
                     except Exception as e:
@@ -401,7 +404,11 @@ def _build_position_contract_map(client, option_positions):
 
     raw_contracts = []
     for pos in option_positions:
-        underlying, opt_type, strike = parse_option_symbol(pos.symbol)
+        parsed = try_parse_option_symbol(pos.symbol)
+        if parsed is None:
+            logger.warning("Skipping non-OCC option symbol while building contract map: %s", pos.symbol)
+            continue
+        underlying, opt_type, strike = parsed
         raw_contracts.append(
             Contract(
                 underlying=underlying,
@@ -411,6 +418,9 @@ def _build_position_contract_map(client, option_positions):
                 strike=float(strike),
             )
         )
+
+    if not raw_contracts:
+        return {}
 
     try:
         snapshots = client.get_option_snapshot([contract.symbol for contract in raw_contracts])

@@ -10,6 +10,12 @@ from alpaca.trading.enums import ContractType, AssetStatus, AssetClass, OrderCla
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 import datetime
+import logging
+
+from core.order_monitor import MonitoredOrderLeg, monitor_multileg_order
+from core.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioTradeLeg
+
+logger = logging.getLogger(f"broker.{__name__}")
 
 class TradingClientSigned(UserAgentMixin, TradingClient):
     pass
@@ -25,46 +31,138 @@ class BrokerClient:
         self.trade_client = TradingClientSigned(api_key=api_key, secret_key=secret_key, paper=paper)
         self.stock_client = StockHistoricalDataClientSigned(api_key=api_key, secret_key=secret_key)
         self.option_client = OptionHistoricalDataClientSigned(api_key=api_key, secret_key=secret_key)
+        self.portfolio_risk_engine = PortfolioRiskEngine(self)
 
     def get_positions(self):
         return self.trade_client.get_all_positions()
 
-    def market_sell(self, symbol, qty=1):
+    def _enforce_portfolio_risk(self, order_label, trade_legs):
+        decision = self.portfolio_risk_engine.assess_trade(order_label, trade_legs)
+        if not decision.allowed:
+            logger.error(
+                "🚫 Portfolio risk gate blocked %s | reason=%s | breaches=%s | projected_cvar=%.2f%% | projected_stress=%.2f%%",
+                order_label,
+                decision.reason,
+                ",".join(decision.projected.breaches) or "none",
+                decision.projected.cvar_pct_equity * 100.0,
+                decision.projected.stress_pct_equity * 100.0,
+            )
+            raise PortfolioRiskBlockedError(decision)
+        return decision
+
+    def get_portfolio_risk_snapshot(self, *, positions=None, account=None, write_runtime=False, phase="cycle", order_label=None):
+        snapshot = self.portfolio_risk_engine.build_snapshot(positions=positions, account=account)
+        if write_runtime:
+            self.portfolio_risk_engine._write_guard_snapshot(
+                phase,
+                payload={
+                    "order_label": order_label or phase,
+                    "portfolio_risk_engine": snapshot.to_dict(),
+                },
+            )
+        return snapshot
+
+    def _record_post_trade_risk(self, order_label):
+        try:
+            self.portfolio_risk_engine.record_post_trade_snapshot(order_label=order_label)
+        except Exception as exc:
+            logger.debug("Could not refresh post-trade portfolio risk snapshot for %s: %s", order_label, exc)
+
+    def market_sell(self, symbol, qty=1, order_label=None):
+        order_label = order_label or f"Sell {symbol}"
+        self._enforce_portfolio_risk(
+            order_label,
+            [PortfolioTradeLeg(symbol=symbol, side="sell", quantity=qty)],
+        )
         req = MarketOrderRequest(
             symbol=symbol, qty=qty, side=OrderSide.SELL, time_in_force=TimeInForce.DAY
         )
-        self.trade_client.submit_order(req)
+        order = self.trade_client.submit_order(req)
+        self._record_post_trade_risk(order_label)
+        return order
 
-    def market_buy(self, symbol, qty=1):
+    def market_buy(self, symbol, qty=1, order_label=None):
+        order_label = order_label or f"Buy {symbol}"
+        self._enforce_portfolio_risk(
+            order_label,
+            [PortfolioTradeLeg(symbol=symbol, side="buy", quantity=qty)],
+        )
         req = MarketOrderRequest(
             symbol=symbol, qty=qty, side=OrderSide.BUY, time_in_force=TimeInForce.DAY
         )
-        self.trade_client.submit_order(req)
+        order = self.trade_client.submit_order(req)
+        self._record_post_trade_risk(order_label)
+        return order
+
+    def limit_buy(self, symbol, limit_price, qty=1, order_label=None):
+        order_label = order_label or f"Long option {symbol}"
+        self._enforce_portfolio_risk(
+            order_label,
+            [PortfolioTradeLeg(symbol=symbol, side="buy", quantity=qty)],
+        )
+        req = LimitOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY,
+            limit_price=limit_price,
+        )
+        order = self.trade_client.submit_order(req)
+        result = monitor_multileg_order(
+            client=self,
+            order=order,
+            order_label=order_label,
+            legs=[MonitoredOrderLeg(symbol=symbol, side="buy")],
+            is_credit=False,
+        )
+        if result.filled or result.partial_fill:
+            self._record_post_trade_risk(order_label)
+        return result
+
+    def _build_multileg_limit_order(self, legs, limit_price, qty=1):
+        return LimitOrderRequest(
+            qty=qty,
+            limit_price=limit_price,
+            time_in_force=TimeInForce.DAY,
+            order_class=OrderClass.MLEG,
+            legs=legs,
+        )
 
     def execute_credit_spread(self, short_symbol, long_symbol, limit_price, qty=1):
         """
         Executes a multi-leg options spread using a strict Limit Order.
         Per Alpaca documentation, limit_price MUST be negative to indicate a net credit.
         """
-        req = LimitOrderRequest(
-            qty=qty, 
-            limit_price=limit_price, 
-            time_in_force=TimeInForce.DAY,
-            order_class=OrderClass.MLEG,
-            legs=[
-                OptionLegRequest(
-                    symbol=short_symbol,
-                    ratio_qty=1,
-                    side=OrderSide.SELL
-                ),
-                OptionLegRequest(
-                    symbol=long_symbol,
-                    ratio_qty=1,
-                    side=OrderSide.BUY
-                )
-            ]
+        order_label = f"Credit spread {short_symbol} / {long_symbol}"
+        self._enforce_portfolio_risk(
+            order_label,
+            [
+                PortfolioTradeLeg(symbol=short_symbol, side="sell", quantity=qty),
+                PortfolioTradeLeg(symbol=long_symbol, side="buy", quantity=qty),
+            ],
         )
-        self.trade_client.submit_order(req)
+        req = self._build_multileg_limit_order(
+            qty=qty,
+            limit_price=limit_price,
+            legs=[
+                OptionLegRequest(symbol=short_symbol, ratio_qty=1, side=OrderSide.SELL),
+                OptionLegRequest(symbol=long_symbol, ratio_qty=1, side=OrderSide.BUY),
+            ],
+        )
+        order = self.trade_client.submit_order(req)
+        result = monitor_multileg_order(
+            client=self,
+            order=order,
+            order_label=order_label,
+            legs=[
+                MonitoredOrderLeg(symbol=short_symbol, side="sell"),
+                MonitoredOrderLeg(symbol=long_symbol, side="buy"),
+            ],
+            is_credit=True,
+        )
+        if result.filled or result.partial_fill:
+            self._record_post_trade_risk(order_label)
+        return result
 
     def get_option_snapshot(self, symbol):
         if isinstance(symbol, str):
@@ -140,25 +238,36 @@ class BrokerClient:
         Executes a multi-leg debit spread or straddle.
         Unlike credit spreads, both legs are BUY orders, and the limit_price MUST be positive.
         """
-        req = LimitOrderRequest(
-            qty=qty, 
-            limit_price=limit_price, 
-            time_in_force=TimeInForce.DAY,
-            order_class=OrderClass.MLEG,
-            legs=[
-                OptionLegRequest(
-                    symbol=call_symbol,
-                    ratio_qty=1,
-                    side=OrderSide.BUY  # We are BUYING the Call
-                ),
-                OptionLegRequest(
-                    symbol=put_symbol,
-                    ratio_qty=1,
-                    side=OrderSide.BUY  # We are ALSO BUYING the Put
-                )
-            ]
+        order_label = f"Debit spread {call_symbol} / {put_symbol}"
+        self._enforce_portfolio_risk(
+            order_label,
+            [
+                PortfolioTradeLeg(symbol=call_symbol, side="buy", quantity=qty),
+                PortfolioTradeLeg(symbol=put_symbol, side="buy", quantity=qty),
+            ],
         )
-        self.trade_client.submit_order(req)
+        req = self._build_multileg_limit_order(
+            qty=qty,
+            limit_price=limit_price,
+            legs=[
+                OptionLegRequest(symbol=call_symbol, ratio_qty=1, side=OrderSide.BUY),
+                OptionLegRequest(symbol=put_symbol, ratio_qty=1, side=OrderSide.BUY),
+            ],
+        )
+        order = self.trade_client.submit_order(req)
+        result = monitor_multileg_order(
+            client=self,
+            order=order,
+            order_label=order_label,
+            legs=[
+                MonitoredOrderLeg(symbol=call_symbol, side="buy"),
+                MonitoredOrderLeg(symbol=put_symbol, side="buy"),
+            ],
+            is_credit=False,
+        )
+        if result.filled or result.partial_fill:
+            self._record_post_trade_risk(order_label)
+        return result
     def get_portfolio_history(self, date_start=None, date_end=None, timeframe="1D"):
         """Fetch account equity history from Alpaca for a date range."""
         from alpaca.trading.requests import GetPortfolioHistoryRequest

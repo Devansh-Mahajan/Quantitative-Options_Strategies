@@ -17,7 +17,7 @@ from config.params import (
     OPTION_PRICING_RISK_FREE_RATE,
     OPTION_QUOTE_DELAY_MINUTES,
 )
-from core.utils import parse_option_symbol
+from core.utils import parse_option_symbol, try_parse_option_symbol
 from models.contract import Contract
 
 try:
@@ -393,13 +393,19 @@ def _contract_underlying(contract) -> str:
     underlying = getattr(contract, "underlying_symbol", None) or getattr(contract, "underlying", None)
     if underlying:
         return str(underlying)
-    return parse_option_symbol(_contract_symbol(contract))[0]
+    parsed = try_parse_option_symbol(_contract_symbol(contract))
+    if parsed is None:
+        raise ValueError(f"Could not infer underlying for non-option symbol: {_contract_symbol(contract)}")
+    return parsed[0]
 
 
 def _contract_type(contract) -> str:
     raw_type = getattr(contract, "type", None) or getattr(contract, "contract_type", None)
     if raw_type is None:
-        return "call" if parse_option_symbol(_contract_symbol(contract))[1] == "C" else "put"
+        parsed = try_parse_option_symbol(_contract_symbol(contract))
+        if parsed is None:
+            raise ValueError(f"Could not infer option type for non-option symbol: {_contract_symbol(contract)}")
+        return "call" if parsed[1] == "C" else "put"
     if hasattr(raw_type, "value"):
         raw_type = raw_type.value
     raw_text = str(raw_type).lower()
@@ -407,14 +413,20 @@ def _contract_type(contract) -> str:
         return "call"
     if "put" in raw_text:
         return "put"
-    return "call" if parse_option_symbol(_contract_symbol(contract))[1] == "C" else "put"
+    parsed = try_parse_option_symbol(_contract_symbol(contract))
+    if parsed is None:
+        raise ValueError(f"Could not infer option type for non-option symbol: {_contract_symbol(contract)}")
+    return "call" if parsed[1] == "C" else "put"
 
 
 def _contract_strike(contract) -> float | None:
     strike = getattr(contract, "strike_price", None) or getattr(contract, "strike", None)
     if strike is not None:
         return float(strike)
-    return float(parse_option_symbol(_contract_symbol(contract))[2])
+    parsed = try_parse_option_symbol(_contract_symbol(contract))
+    if parsed is None:
+        raise ValueError(f"Could not infer strike for non-option symbol: {_contract_symbol(contract)}")
+    return float(parsed[2])
 
 
 def _contract_open_interest(contract) -> float | None:

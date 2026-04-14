@@ -1,56 +1,406 @@
 {
-  "generated_at_utc": "2026-04-14T16:58:08.098475+00:00",
+  "generated_at_utc": "2026-04-14T20:55:12.156800+00:00",
   "requested_symbols": [
-    "AAPL",
-    "MSFT",
-    "NVDA",
-    "SPY",
-    "QQQ"
+    "BE",
+    "FCEL",
+    "LCID",
+    "KMX",
+    "SAM",
+    "ORCL",
+    "AMZN",
+    "JD",
+    "WFC",
+    "CVNA",
+    "AAL",
+    "CHKP",
+    "CHDN",
+    "ACI",
+    "MRVL",
+    "PII",
+    "RUN",
+    "CHH",
+    "BLK",
+    "CGNX",
+    "JBLU",
+    "TECH",
+    "FSLR",
+    "USB",
+    "SNAP",
+    "VALE",
+    "ZBH",
+    "INTC",
+    "WEN",
+    "VFC",
+    "SNEX",
+    "PCAR",
+    "ISRG",
+    "DAL",
+    "CPB",
+    "MBUU",
+    "C",
+    "UAL",
+    "ZBRA",
+    "SJM"
   ],
   "signals": [
     {
-      "symbol": "NVDA",
-      "predicted_return": 0.034064652316568675,
+      "symbol": "BE",
+      "predicted_return": 0.0814974331088053,
       "percentile": 1.0,
       "alpha_score": 1.0,
       "direction": "up",
-      "model_dispersion": 0.004354733737792317,
+      "model_dispersion": 0.018183989485828205,
       "source": "ml_alpha_ensemble"
     },
     {
-      "symbol": "MSFT",
-      "predicted_return": 0.025685675660674298,
+      "symbol": "INTC",
+      "predicted_return": 0.04072823449124797,
+      "percentile": 0.975,
+      "alpha_score": 0.95,
+      "direction": "up",
+      "model_dispersion": 0.004078773310290742,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "MRVL",
+      "predicted_return": 0.0378997406849767,
+      "percentile": 0.95,
+      "alpha_score": 0.8999999999999999,
+      "direction": "up",
+      "model_dispersion": 0.022717773779440363,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "RUN",
+      "predicted_return": 0.03200777640486054,
+      "percentile": 0.925,
+      "alpha_score": 0.8500000000000001,
+      "direction": "up",
+      "model_dispersion": 0.03981015320150729,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "JBLU",
+      "predicted_return": 0.0305483859860751,
+      "percentile": 0.9,
+      "alpha_score": 0.8,
+      "direction": "up",
+      "model_dispersion": 0.013916794508886362,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "CGNX",
+      "predicted_return": 0.026947293162575638,
+      "percentile": 0.875,
+      "alpha_score": 0.75,
+      "direction": "up",
+      "model_dispersion": 0.020555991427607265,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "SNAP",
+      "predicted_return": 0.01832580330020882,
+      "percentile": 0.85,
+      "alpha_score": 0.7,
+      "direction": "up",
+      "model_dispersion": 0.016382913007658574,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "FSLR",
+      "predicted_return": 0.017250774961840895,
+      "percentile": 0.825,
+      "alpha_score": 0.6499999999999999,
+      "direction": "up",
+      "model_dispersion": 0.010032079639040105,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "CVNA",
+      "predicted_return": 0.017025074085409257,
       "percentile": 0.8,
       "alpha_score": 0.6000000000000001,
       "direction": "up",
-      "model_dispersion": 0.0029315688432628067,
+      "model_dispersion": 0.011232705379771418,
       "source": "ml_alpha_ensemble"
     },
     {
-      "symbol": "AAPL",
-      "predicted_return": 0.019741140098797422,
+      "symbol": "FCEL",
+      "predicted_return": 0.016946468317754218,
+      "percentile": 0.775,
+      "alpha_score": 0.55,
+      "direction": "up",
+      "model_dispersion": 0.036327974205886876,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "LCID",
+      "predicted_return": 0.014892428117849098,
+      "percentile": 0.75,
+      "alpha_score": 0.5,
+      "direction": "up",
+      "model_dispersion": 0.018078268535355446,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "KMX",
+      "predicted_return": 0.013566193373888973,
+      "percentile": 0.725,
+      "alpha_score": 0.44999999999999996,
+      "direction": "up",
+      "model_dispersion": 0.016916433104781258,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "AAL",
+      "predicted_return": 0.013066123527741346,
+      "percentile": 0.7,
+      "alpha_score": 0.3999999999999999,
+      "direction": "up",
+      "model_dispersion": 0.005573530867911027,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "PII",
+      "predicted_return": 0.013032582846524782,
+      "percentile": 0.675,
+      "alpha_score": 0.3500000000000001,
+      "direction": "up",
+      "model_dispersion": 0.020766485839793177,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "CHKP",
+      "predicted_return": 0.012059067331656653,
+      "percentile": 0.65,
+      "alpha_score": 0.30000000000000004,
+      "direction": "up",
+      "model_dispersion": 0.006867229028640642,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "UAL",
+      "predicted_return": 0.011991578371623547,
+      "percentile": 0.625,
+      "alpha_score": 0.25,
+      "direction": "up",
+      "model_dispersion": 0.008270494920383713,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "DAL",
+      "predicted_return": 0.01157616622857777,
       "percentile": 0.6,
       "alpha_score": 0.19999999999999996,
       "direction": "up",
-      "model_dispersion": 0.0027664131170849738,
+      "model_dispersion": 0.01501334689498685,
       "source": "ml_alpha_ensemble"
     },
     {
-      "symbol": "QQQ",
-      "predicted_return": 0.01191315358432443,
+      "symbol": "CPB",
+      "predicted_return": 0.01147168476612647,
+      "percentile": 0.575,
+      "alpha_score": 0.1499999999999999,
+      "direction": "flat",
+      "model_dispersion": 0.007992833968546645,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "MBUU",
+      "predicted_return": 0.011022181212217218,
+      "percentile": 0.55,
+      "alpha_score": 0.10000000000000009,
+      "direction": "flat",
+      "model_dispersion": 0.00923742958447913,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "ORCL",
+      "predicted_return": 0.01033175310518173,
+      "percentile": 0.525,
+      "alpha_score": 0.050000000000000044,
+      "direction": "flat",
+      "model_dispersion": 0.01997154199267635,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "WEN",
+      "predicted_return": 0.009916628492912104,
+      "percentile": 0.5,
+      "alpha_score": 0.0,
+      "direction": "flat",
+      "model_dispersion": 0.0013027781319352215,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "AMZN",
+      "predicted_return": 0.009184523080043585,
+      "percentile": 0.475,
+      "alpha_score": 0.050000000000000044,
+      "direction": "flat",
+      "model_dispersion": 0.0034812067666471092,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "VFC",
+      "predicted_return": 0.008578897182440974,
+      "percentile": 0.45,
+      "alpha_score": 0.09999999999999998,
+      "direction": "flat",
+      "model_dispersion": 0.004631127352718328,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "CHDN",
+      "predicted_return": 0.008341172376612246,
+      "percentile": 0.425,
+      "alpha_score": 0.15000000000000002,
+      "direction": "flat",
+      "model_dispersion": 0.003071835555043054,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "JD",
+      "predicted_return": 0.007029110889248447,
       "percentile": 0.4,
       "alpha_score": 0.19999999999999996,
       "direction": "down",
-      "model_dispersion": 0.001493199725207546,
+      "model_dispersion": 0.003553115578199144,
       "source": "ml_alpha_ensemble"
     },
     {
-      "symbol": "SPY",
-      "predicted_return": 0.008234982441195499,
+      "symbol": "SAM",
+      "predicted_return": 0.007015047467380902,
+      "percentile": 0.375,
+      "alpha_score": 0.25,
+      "direction": "down",
+      "model_dispersion": 0.0033301133715962004,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "ZBRA",
+      "predicted_return": 0.0067805517717254,
+      "percentile": 0.35,
+      "alpha_score": 0.30000000000000004,
+      "direction": "down",
+      "model_dispersion": 0.011624714610832492,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "CHH",
+      "predicted_return": 0.006284254271175517,
+      "percentile": 0.325,
+      "alpha_score": 0.35,
+      "direction": "down",
+      "model_dispersion": 0.006149383253195734,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "C",
+      "predicted_return": 0.006231054001646591,
+      "percentile": 0.3,
+      "alpha_score": 0.4,
+      "direction": "down",
+      "model_dispersion": 0.0075685856692571775,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "VALE",
+      "predicted_return": 0.0060953065702145995,
+      "percentile": 0.275,
+      "alpha_score": 0.44999999999999996,
+      "direction": "down",
+      "model_dispersion": 0.00969248646862785,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "BLK",
+      "predicted_return": 0.005542105284884707,
+      "percentile": 0.25,
+      "alpha_score": 0.5,
+      "direction": "down",
+      "model_dispersion": 0.002459859213174645,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "SNEX",
+      "predicted_return": 0.005118056078143842,
+      "percentile": 0.225,
+      "alpha_score": 0.55,
+      "direction": "down",
+      "model_dispersion": 0.01349618288097589,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "WFC",
+      "predicted_return": 0.005012291132138608,
       "percentile": 0.2,
       "alpha_score": 0.6,
       "direction": "down",
-      "model_dispersion": 0.0037496789597467562,
+      "model_dispersion": 0.001030726767217378,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "PCAR",
+      "predicted_return": 0.00452947740848648,
+      "percentile": 0.175,
+      "alpha_score": 0.65,
+      "direction": "down",
+      "model_dispersion": 0.003688789083003795,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "TECH",
+      "predicted_return": 0.003863207663456272,
+      "percentile": 0.15,
+      "alpha_score": 0.7,
+      "direction": "down",
+      "model_dispersion": 0.0032252429790231314,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "SJM",
+      "predicted_return": 0.0033735862791416183,
+      "percentile": 0.125,
+      "alpha_score": 0.75,
+      "direction": "down",
+      "model_dispersion": 0.006705447782835317,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "USB",
+      "predicted_return": 0.0031332849113326214,
+      "percentile": 0.1,
+      "alpha_score": 0.8,
+      "direction": "down",
+      "model_dispersion": 0.0019244487443791378,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "ACI",
+      "predicted_return": 0.002684343857829879,
+      "percentile": 0.075,
+      "alpha_score": 0.85,
+      "direction": "down",
+      "model_dispersion": 0.0024331608722717056,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "ISRG",
+      "predicted_return": 0.002484697618728002,
+      "percentile": 0.05,
+      "alpha_score": 0.9,
+      "direction": "down",
+      "model_dispersion": 0.011764343268959539,
+      "source": "ml_alpha_ensemble"
+    },
+    {
+      "symbol": "ZBH",
+      "predicted_return": 0.001411896422997821,
+      "percentile": 0.025,
+      "alpha_score": 0.95,
+      "direction": "down",
+      "model_dispersion": 0.005044673014278851,
       "source": "ml_alpha_ensemble"
     }
   ]

@@ -25,6 +25,7 @@ from core.delay_aware_options import option_greeks, option_price
 from core.ml_alpha import backtest_alpha_strategy
 from core.movement_predictor import LOOKBACK_MAP, backtest_symbol_movement, lookback_days
 from core.operations_reporting import archive_backtest_artifacts
+from core.quant_models import black_scholes_price, binomial_option_price, monte_carlo_option_price
 from core.resource_profile import load_resource_profile
 from core.strategy_regime import BUCKETS, STRATEGY_PROFILES, classify_market_state, combine_profile_with_state, clamp
 from core.universe_maintenance import download_close_matrix, load_symbol_file
@@ -902,6 +903,151 @@ def run_delay_quote_suite(symbols: list[str], horizon_days: int):
     return _run_delay_quote_suite_from_close(close, horizon_days=horizon_days)
 
 
+def _run_option_model_suite_from_close(close: pd.DataFrame, horizon_days: int):
+    if close.empty:
+        return {"error": "no_intraday_data", "summary": {"symbols": 0}}
+
+    horizon_bars = max(1, int(horizon_days * INTRADAY_BARS_PER_DAY))
+    years_to_expiry = 45.0 / 365.0
+    years_decay = horizon_bars / float(INTRADAY_BARS_PER_DAY * 252)
+    risk_free_rate = float(OPTION_PRICING_RISK_FREE_RATE)
+    annualization = math.sqrt(INTRADAY_BARS_PER_DAY * 252)
+    edge_threshold_pct = 0.03
+    sample_stride = 2
+
+    model_names = ("black_scholes", "binomial", "monte_carlo", "ensemble")
+    per_symbol: dict[str, dict[str, object]] = {}
+    aggregate = {
+        model_name: {
+            "signals": [],
+            "pnl": [],
+            "wins": [],
+            "edge_pct": [],
+        }
+        for model_name in model_names
+    }
+
+    for symbol in close.columns:
+        series = close[symbol].dropna()
+        if len(series) < max(220, horizon_bars + 60):
+            continue
+
+        frame = pd.DataFrame({"close": series})
+        frame["ret"] = np.log(frame["close"] / frame["close"].shift(1))
+        frame["sigma"] = frame["ret"].rolling(INTRADAY_BARS_PER_DAY).std() * annualization
+        frame = frame.dropna()
+        if len(frame) < horizon_bars + 30:
+            continue
+
+        symbol_result = {}
+        for flag in ("p", "c"):
+            model_stats = {
+                model_name: {
+                    "signals": 0,
+                    "pnl": [],
+                    "wins": [],
+                    "edge_pct": [],
+                }
+                for model_name in model_names
+            }
+
+            for i in range(1, len(frame) - horizon_bars, sample_stride):
+                delayed_spot = float(frame["close"].iloc[i - 1])
+                entry_spot = float(frame["close"].iloc[i])
+                exit_spot = float(frame["close"].iloc[i + horizon_bars])
+                sigma_entry = float(frame["sigma"].iloc[i])
+                sigma_exit = float(frame["sigma"].iloc[i + horizon_bars])
+                if sigma_entry <= 0 or sigma_exit <= 0:
+                    continue
+
+                strike = _target_delta_strike(flag, delayed_spot, sigma_entry, years_to_expiry, risk_free_rate)
+                market_price = option_price(flag, delayed_spot, strike, years_to_expiry, risk_free_rate, sigma_entry)
+                if market_price <= 0:
+                    continue
+
+                remaining_years = max(1.0 / 365.0, years_to_expiry - years_decay)
+                exit_price = option_price(flag, exit_spot, strike, remaining_years, risk_free_rate, sigma_exit)
+                fair_values = {
+                    "black_scholes": black_scholes_price(flag, entry_spot, strike, years_to_expiry, risk_free_rate, sigma_entry),
+                    "binomial": binomial_option_price(
+                        flag,
+                        entry_spot,
+                        strike,
+                        years_to_expiry,
+                        risk_free_rate,
+                        sigma_entry,
+                        steps=60,
+                    ),
+                    "monte_carlo": monte_carlo_option_price(
+                        flag,
+                        entry_spot,
+                        strike,
+                        years_to_expiry,
+                        risk_free_rate,
+                        sigma_entry,
+                        n_simulations=160,
+                        seed=1000 + i,
+                    ),
+                }
+                fair_values["ensemble"] = safe_mean(list(fair_values.values()))
+
+                for model_name, fair_value in fair_values.items():
+                    edge_pct = (fair_value - market_price) / max(market_price, 0.05)
+                    if edge_pct < edge_threshold_pct:
+                        continue
+                    pnl = float(exit_price - market_price)
+                    model_stats[model_name]["signals"] += 1
+                    model_stats[model_name]["pnl"].append(pnl)
+                    model_stats[model_name]["wins"].append(1.0 if pnl > 0 else 0.0)
+                    model_stats[model_name]["edge_pct"].append(edge_pct)
+
+            option_results = {
+                model_name: {
+                    "signals": int(stats["signals"]),
+                    "avg_edge_pct": safe_mean(stats["edge_pct"]),
+                    "avg_long_pnl": safe_mean(stats["pnl"]),
+                    "long_win_rate": safe_mean(stats["wins"]),
+                }
+                for model_name, stats in model_stats.items()
+                if stats["signals"] > 0
+            }
+            if option_results:
+                symbol_result["put" if flag == "p" else "call"] = option_results
+                for model_name in option_results:
+                    aggregate[model_name]["signals"].append(float(option_results[model_name]["signals"]))
+                    aggregate[model_name]["pnl"].extend(model_stats[model_name]["pnl"])
+                    aggregate[model_name]["wins"].extend(model_stats[model_name]["wins"])
+                    aggregate[model_name]["edge_pct"].extend(model_stats[model_name]["edge_pct"])
+
+        if symbol_result:
+            per_symbol[str(symbol)] = symbol_result
+
+    if not per_symbol:
+        return {"error": "insufficient_intraday_samples", "summary": {"symbols": 0}}
+
+    summary = {
+        "symbols": len(per_symbol),
+        "edge_threshold_pct": edge_threshold_pct,
+        "sample_stride_bars": sample_stride,
+        "models": {
+            model_name: {
+                "avg_signals_per_symbol": safe_mean(aggregate[model_name]["signals"]),
+                "avg_edge_pct": safe_mean(aggregate[model_name]["edge_pct"]),
+                "avg_long_pnl": safe_mean(aggregate[model_name]["pnl"]),
+                "long_win_rate": safe_mean(aggregate[model_name]["wins"]),
+            }
+            for model_name in model_names
+        },
+    }
+    return {"per_symbol": per_symbol, "summary": summary}
+
+
+def run_option_model_suite(symbols: list[str], horizon_days: int):
+    intraday_symbols = list(dict.fromkeys(symbols))[:10]
+    close = _download_intraday_close(intraday_symbols, period="60d", interval="15m")
+    return _run_option_model_suite_from_close(close, horizon_days=horizon_days)
+
+
 def run_ml_alpha_suite(symbols: list[str]):
     universe = list(dict.fromkeys(symbols))[:24]
     return backtest_alpha_strategy(universe)
@@ -946,6 +1092,7 @@ def main():
     strategy_proxy = run_strategy_proxy_suite(symbols=symbols, lookbacks=lookbacks, horizon_days=args.horizon_days)
     strategy_profiles = run_strategy_profile_suite(symbols=symbols, lookbacks=lookbacks, horizon_days=args.horizon_days)
     delay_quote = run_delay_quote_suite(symbols=symbols, horizon_days=args.horizon_days)
+    option_model = run_option_model_suite(symbols=symbols, horizon_days=args.horizon_days)
     ml_alpha = run_ml_alpha_suite(symbols=symbols)
 
     report["movement_suite"] = movement
@@ -954,6 +1101,7 @@ def main():
     report["strategy_proxy_suite"] = strategy_proxy
     report["strategy_profile_suite"] = strategy_profiles
     report["delay_quote_suite"] = delay_quote
+    report["option_model_suite"] = option_model
     report["ml_alpha_suite"] = ml_alpha
 
     aggregate_score_components = []
@@ -983,6 +1131,15 @@ def main():
             0.0,
             min(
                 1.0,
+                0.50 + float(option_model.get("summary", {}).get("models", {}).get("ensemble", {}).get("long_win_rate", 0.0)) / 2.0,
+            ),
+        )
+    )
+    aggregate_score_components.append(
+        max(
+            0.0,
+            min(
+                1.0,
                 0.50 + float(ml_alpha.get("summary", {}).get("avg_information_coefficient", 0.0)),
             ),
         )
@@ -997,6 +1154,8 @@ def main():
         "strategy_profile_score": strategy_profiles.get("summary", {}).get("avg_best_profile_score", 0.0),
         "delay_filtered_put_win_rate": delay_quote.get("summary", {}).get("puts", {}).get("delay_filtered_win_rate", 0.0),
         "delay_filtered_call_win_rate": delay_quote.get("summary", {}).get("calls", {}).get("delay_filtered_win_rate", 0.0),
+        "option_model_ensemble_win_rate": option_model.get("summary", {}).get("models", {}).get("ensemble", {}).get("long_win_rate", 0.0),
+        "option_model_ensemble_edge_pct": option_model.get("summary", {}).get("models", {}).get("ensemble", {}).get("avg_edge_pct", 0.0),
         "avg_recent_quote_error_pct": safe_mean(
             [
                 delay_quote.get("summary", {}).get("puts", {}).get("avg_quote_error_pct", 0.0),
@@ -1015,7 +1174,7 @@ def main():
             lookback: result.get("summary", {}).get("current_market_state")
             for lookback, result in strategy_profiles.get("results_by_lookback", {}).items()
         },
-        "note": "Proxy framework focuses on predictive quality. Delay quote analysis is a recent intraday theoretical options filter study, not a full broker-fill backtest.",
+        "note": "Proxy framework focuses on predictive quality. Delay quote analysis and option model suite are theoretical options studies, not full broker-fill backtests.",
     }
 
     out = Path(args.output)

@@ -12,6 +12,7 @@ import joblib
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.mega_neural_brain import MegaStrategyNet
+from core.torch_device import resolve_torch_runtime
 from scripts.mega_matrix import MACRO_TICKERS, TICKERS, get_hmm_probabilities
 
 warnings.filterwarnings("ignore")
@@ -61,8 +62,9 @@ def _build_feature_frame(
 
 
 def _infer(confidence_threshold=75.0):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = torch.load(DATA_PATH, weights_only=False)
+    runtime = resolve_torch_runtime()
+    device = runtime.device
+    dataset = torch.load(DATA_PATH, map_location="cpu", weights_only=False)
     scaler = dataset['scaler']
     feature_cols = dataset['features_list']
 
@@ -169,6 +171,7 @@ def _infer(confidence_threshold=75.0):
 
 def scan_market():
     logger.info("🔌 Booting Mega Inference Engine...")
+    logger.info(resolve_torch_runtime().message)
     results = _infer(confidence_threshold=0.0)
 
     pretty = {

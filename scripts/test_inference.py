@@ -11,6 +11,7 @@ import torch
 import yfinance as yf
 
 from core.mega_neural_brain import MegaStrategyNet
+from core.torch_device import resolve_torch_runtime
 
 # Path Setup
 MODEL_PATH = "config/trading_model.pth"
@@ -18,10 +19,11 @@ HMM_PATH = "config/hmm_macro_model.pkl"
 
 
 def run_live_test(ticker="NVDA"):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    runtime = resolve_torch_runtime()
+    device = runtime.device
 
     # 1. Load the Brain + Scaler + HMM
-    checkpoint = torch.load(MODEL_PATH, weights_only=False)
+    checkpoint = torch.load(MODEL_PATH, map_location=device, weights_only=False)
     hmm_data = joblib.load(HMM_PATH)
 
     scaler = checkpoint['scaler']
@@ -40,6 +42,7 @@ def run_live_test(ticker="NVDA"):
     # 2. Download Live Macro + Stock Data (Last 90 days for technicals)
     logger_msg = f"--- 🧠 TESTING {ticker} ON LIVE DATA ---"
     print(f"\n{logger_msg}")
+    print(runtime.message)
 
     # Macro tickers needed for the HMM
     macro_tickers = {'SPY': 'SPY', '^VIX': 'VIX', '^TNX': 'TNX', 'DX-Y.NYB': 'DXY', 'HYG': 'HYG', 'LQD': 'LQD'}

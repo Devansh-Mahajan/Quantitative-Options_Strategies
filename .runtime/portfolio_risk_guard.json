@@ -1,26 +1,6 @@
 {
-  "generated_at_utc": "2026-04-14T21:40:25.434634Z",
-  "mode": "manage-only",
-  "daily_pnl_pct": -0.2005,
-  "daily_pnl_dollars": -18.63,
-  "total_equity": 9273.47,
-  "buying_power_budget": 4630.73,
-  "vix": 18.36,
-  "portfolio_delta": -12.2588,
-  "portfolio_theta": -3.3117,
-  "portfolio_vega": 0.0988,
-  "target_delta": -0.8361,
-  "target_theta": 38.0811,
-  "target_vega": 10.8487,
-  "movement_bias": "neutral",
-  "macro_regime": "THETA_ENGINE",
-  "macro_confidence": 99.9994,
-  "runtime_regime_policy": null,
-  "runtime_market_state": null,
-  "runtime_profile": null,
-  "open_positions": 2,
-  "allowed_symbols": 503,
-  "risk_allocation_in_use": 6.0,
+  "phase": "cycle-pretrade",
+  "order_label": "run-strategy-cycle",
   "portfolio_risk_engine": {
     "portfolio_equity": 9273.47,
     "modeled_portfolio_value": 9347.43,
@@ -66,19 +46,5 @@
     "horizon_days": 1.0,
     "confidence": 0.95
   },
-  "resource_profile": {
-    "cpu_count": 28,
-    "memory_gb": 31.32,
-    "disk_gb": 96.37,
-    "reserved_cores": 4,
-    "controller_blas_threads": 6,
-    "backtest_workers": 15,
-    "research_rf_jobs": 10,
-    "model_parallelism": 3,
-    "daily_training_max_symbols": 39,
-    "risk_interval_seconds": 180,
-    "regime_interval_seconds": 480,
-    "strategy_interval_seconds": 900,
-    "telemetry_interval_seconds": 300
-  }
+  "generated_at_utc": "2026-04-14T21:39:56Z"
 }

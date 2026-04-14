@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from core.operations_reporting import write_daily_ops_report
 from core.resource_profile import load_resource_profile
+from core.runtime_env import apply_accelerator_policy
 from core.system_preflight import run_preflight
 from core.system_telemetry import DEFAULT_SYSTEM_SNAPSHOT_PATH, write_system_resource_snapshot
 from core.terminal_ui import format_status_line
@@ -44,6 +45,7 @@ class AutomationController:
         self.preflight_lock = asyncio.Lock()
         self.resource_profile = load_resource_profile(self.repo_root)
         self.process_env = self._build_process_env()
+        self.runtime_policy_message = self.process_env.get("OPTIONS_STACK_RUNTIME_MESSAGE", "CPU detected and using.")
         self.state_path = self._resolve_repo_path(args.state_path)
         self.preflight_state_path = self._resolve_repo_path(args.preflight_state_path)
         self.system_snapshot_path = self._resolve_repo_path(args.system_snapshot_path)
@@ -62,7 +64,7 @@ class AutomationController:
         return self.repo_root / path
 
     def _build_process_env(self) -> dict[str, str]:
-        environment = os.environ.copy()
+        environment, runtime_message = apply_accelerator_policy(os.environ.copy())
 
         venv_bin = self.repo_root / ".venv" / "bin"
         if venv_bin.exists():
@@ -78,6 +80,7 @@ class AutomationController:
             else str(self.repo_root)
         )
         environment["PYTHONUNBUFFERED"] = "1"
+        environment["OPTIONS_STACK_RUNTIME_MESSAGE"] = runtime_message
         environment.update(self.resource_profile.to_env())
         return environment
 
@@ -148,6 +151,7 @@ class AutomationController:
                 blas_threads=self.resource_profile.controller_blas_threads,
             )
         )
+        self._emit_console(self.runtime_policy_message)
 
     def _preflight_progress(self, percent: int, message: str, detail: str | None = None) -> None:
         suffix = f" | {detail}" if detail else ""
@@ -426,8 +430,23 @@ class AutomationController:
                         self.execution_lock,
                     )
                     maintenance_context["post_close_backtest_rc"] = backtest_rc
+        maintenance_complete = (
+            maintenance_context["post_close_eval_rc"] == 0
+            and maintenance_context["post_close_train_rc"] == 0
+        )
+        if now.weekday() == 4:
+            maintenance_complete = (
+                maintenance_complete
+                and maintenance_context["post_close_tune_rc"] == 0
+                and maintenance_context["post_close_backtest_rc"] == 0
+            )
         self._build_daily_report(now, context=maintenance_context)
-        state["daily_maintenance"] = today_key
+        if maintenance_complete:
+            state["daily_maintenance"] = today_key
+        else:
+            self._emit_console(
+                f"⚠ post-close maintenance incomplete for {today_key}; controller will retry on the next poll."
+            )
         self._save_state(state)
 
     async def weekend_pipeline_loop(self):

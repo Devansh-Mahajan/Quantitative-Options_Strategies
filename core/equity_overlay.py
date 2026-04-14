@@ -489,7 +489,7 @@ def rebalance_equity_overlay(
 
         if should_exit:
             try:
-                client.market_sell(symbol, qty=current_qty)
+                client.market_sell(symbol, qty=current_qty, order_label=f"Overlay exit {symbol}")
                 remove_equity_overlay_metadata(symbol)
                 action = f"Closed {mode.replace('_', ' ')} overlay in {symbol} ({current_qty} shares)."
                 actions.append(action)
@@ -503,7 +503,7 @@ def rebalance_equity_overlay(
         if current_qty > target_qty:
             trim_qty = current_qty - target_qty
             try:
-                client.market_sell(symbol, qty=trim_qty)
+                client.market_sell(symbol, qty=trim_qty, order_label=f"Overlay trim {symbol}")
                 action = f"Trimmed {mode.replace('_', ' ')} overlay in {symbol} by {trim_qty} shares."
                 actions.append(action)
                 logger.info(action)
@@ -530,7 +530,7 @@ def rebalance_equity_overlay(
             continue
 
         try:
-            client.market_buy(symbol, qty=buy_qty)
+            client.market_buy(symbol, qty=buy_qty, order_label=f"Overlay entry {symbol}")
             buying_power -= spend
             register_equity_overlay(
                 symbol,

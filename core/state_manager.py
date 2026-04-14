@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from .utils import parse_option_symbol
+from .utils import parse_option_symbol, try_parse_option_symbol
 from alpaca.trading.enums import AssetClass
 from config.params import SWEEP_TICKER  # <-- NEW: Import the sweep ticker
 
@@ -114,7 +114,11 @@ def calculate_risk(positions):
             risk += float(p.avg_entry_price) * abs(int(p.qty))
             
         elif p.asset_class == AssetClass.US_OPTION:
-            underlying, option_type, strike = parse_option_symbol(p.symbol)
+            parsed = try_parse_option_symbol(p.symbol)
+            if parsed is None:
+                logger.warning("Skipping malformed option symbol in risk calculation: %s", p.symbol)
+                continue
+            underlying, option_type, strike = parsed
             qty = int(p.qty)
             
             if underlying not in options_by_underlying:
@@ -178,7 +182,11 @@ def update_state(all_positions):
                 state[underlying] = {"type": "long_shares", "price": float(p.avg_entry_price), "qty": int(p.qty)}
 
         elif p.asset_class == AssetClass.US_OPTION:
-            underlying, option_type, _ = parse_option_symbol(p.symbol)
+            parsed = try_parse_option_symbol(p.symbol)
+            if parsed is None:
+                logger.warning("Skipping malformed option symbol in state update: %s", p.symbol)
+                continue
+            underlying, option_type, _ = parsed
 
             # --- LONG OPTION LOGIC ---
             if int(p.qty) > 0:

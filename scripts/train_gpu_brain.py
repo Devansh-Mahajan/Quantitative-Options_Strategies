@@ -9,6 +9,7 @@ import logging
 # Ensure Python can find our core modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.neural_brain import StrategySelectorNet
+from core.torch_device import resolve_torch_runtime
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("gpu_training")
@@ -18,12 +19,14 @@ MODEL_SAVE_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'brain
 
 def train():
     # 1. Hardware Initialization
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"🚀 Igniting Deep Learning Sequence on: {device.type.upper()} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
+    runtime = resolve_torch_runtime()
+    device = runtime.device
+    logger.info(runtime.message)
+    logger.info(f"🚀 Igniting Deep Learning Sequence on: {device.type.upper()}")
 
     # 2. Load the Tensors
     logger.info(f"📂 Loading Deep Macro Matrix from {DATA_PATH}...")
-    dataset = torch.load(DATA_PATH, weights_only=False)
+    dataset = torch.load(DATA_PATH, map_location="cpu", weights_only=False)
     X = dataset['X']
     y = dataset['y']
 

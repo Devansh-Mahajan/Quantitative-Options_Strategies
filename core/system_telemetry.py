@@ -12,6 +12,7 @@ from core.resource_profile import ResourceProfile, load_resource_profile
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SYSTEM_SNAPSHOT_PATH = ROOT / ".runtime" / "system_resource_snapshot.json"
 DEFAULT_RISK_SNAPSHOT_PATH = ROOT / ".runtime" / "risk_snapshot.json"
+DEFAULT_PORTFOLIO_RISK_GUARD_SNAPSHOT_PATH = ROOT / ".runtime" / "portfolio_risk_guard.json"
 
 
 def _utc_now() -> str:

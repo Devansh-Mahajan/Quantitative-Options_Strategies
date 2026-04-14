@@ -8,6 +8,7 @@ import warnings
 
 # Import your custom network architecture
 from core.neural_brain import StrategySelectorNet
+from core.torch_device import resolve_torch_runtime
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(f"strategy.{__name__}")
@@ -28,8 +29,11 @@ def get_brain_prediction():
     and returns the highest probability strategy.
     """
     try:
+        runtime = resolve_torch_runtime()
+        device = runtime.device
+
         # 1. Load the Scaler from our training dataset
-        dataset = torch.load(DATA_PATH, weights_only=False)
+        dataset = torch.load(DATA_PATH, map_location="cpu", weights_only=False)
         scaler = dataset['scaler']
         features_list = dataset['features_list']
         
@@ -69,7 +73,6 @@ def get_brain_prediction():
         X_tensor = torch.tensor(np.array([X_scaled]), dtype=torch.float32) # Add Batch dimension
         
         # 6. Load the Neural Network
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         X_tensor = X_tensor.to(device)
         
         input_size = len(features_list)

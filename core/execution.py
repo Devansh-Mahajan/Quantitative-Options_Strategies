@@ -1,12 +1,29 @@
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from config.params import (
+    CORNWALL_MAX_ALLOCATION_PCT,
+    CORNWALL_MAX_DTE,
+    CORNWALL_MAX_PRICE_PER_LEG,
+    CORNWALL_MAX_SPREAD,
+    CORNWALL_MAX_STRIKE_DISTANCE_PCT,
+    CORNWALL_MAX_TRADES_PER_RUN,
+    CORNWALL_MAX_VOL_RANK,
+    CORNWALL_MIN_DTE,
+    CORNWALL_MIN_FAT_TAIL_PROBABILITY,
+    CORNWALL_MIN_MODEL_EDGE,
+    CORNWALL_MIN_PRICE_PER_LEG,
+    CORNWALL_MIN_PRICING_CONFIDENCE,
+    CORNWALL_MIN_STRIKE_DISTANCE_PCT,
+    CORNWALL_MIN_TAIL_PAYOFF_MULTIPLE,
+    CORNWALL_MONTE_CARLO_PATHS,
     EXPIRATION_MAX,
     EXPIRATION_MIN,
     MAX_BID_ASK_SPREAD,
     MAX_RELATIVE_SPREAD,
     OPTION_DELAY_MIN_PRICING_CONFIDENCE,
+    OPTION_PRICING_RISK_FREE_RATE,
     SLIPPAGE_ALLOWANCE,
 )
 from core.delay_aware_options import (
@@ -15,6 +32,7 @@ from core.delay_aware_options import (
     effective_bid_price,
     effective_mid_price,
 )
+from core.quant_models import LongOptionTailSnapshot, analyze_long_option_tail
 from .strategy import filter_underlying, filter_options, score_options, select_options
 from models.contract import Contract
 import numpy as np
@@ -23,12 +41,153 @@ from core.notifications import send_alert  # <-- THE NEW DISCORD WEBHOOK
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
+
+@dataclass(frozen=True)
+class AsymmetricTailCandidate:
+    symbol: str
+    option_type: str
+    ask_price: float
+    bid_price: float
+    score: float
+    strike: float
+    dte: int
+    strike_distance_pct: float
+    pricing_confidence: float
+    analytics: LongOptionTailSnapshot
+
 def parse_occ_symbol(symbol):
     match = re.match(r'^([A-Z]{1,6})(\d{6})([CP])(\d{8})$', symbol)
     if match:
         root, exp, type_, strike = match.groups()
         return root, exp, type_, float(strike) / 1000.0
     return None, None, None, None
+
+
+def _annualized_realized_vol(price_series) -> float:
+    returns = price_series.pct_change().dropna()
+    if returns.empty:
+        return 0.35
+    vol = float(returns.std() * np.sqrt(252))
+    return min(2.5, max(0.12, vol))
+
+
+def _compute_vol_rank(price_series) -> float | None:
+    returns = price_series.pct_change()
+    rolling_vol = returns.rolling(window=20).std() * np.sqrt(252)
+    rolling_vol = rolling_vol.dropna()
+    if rolling_vol.empty:
+        return None
+    vol_min, vol_max, current_vol = float(rolling_vol.min()), float(rolling_vol.max()), float(rolling_vol.iloc[-1])
+    if vol_max <= vol_min:
+        return None
+    return ((current_vol - vol_min) / (vol_max - vol_min)) * 100.0
+
+
+def _score_asymmetric_tail_candidate(
+    ask_price: float,
+    bid_price: float,
+    pricing_confidence: float,
+    analytics: LongOptionTailSnapshot,
+) -> float:
+    premium = max(ask_price, 0.01)
+    spread_ratio = max(0.0, (ask_price - bid_price) / premium) if ask_price > 0 and bid_price >= 0 else 1.0
+    edge_ratio = analytics.model_edge / premium
+    expected_pnl_ratio = analytics.expected_pnl / premium
+    tail_multiple = min(analytics.tail_payoff_multiple, 30.0)
+    return (
+        (edge_ratio * 2.4)
+        + (expected_pnl_ratio * 1.4)
+        + (analytics.fat_tail_probability * 12.0)
+        + (analytics.profit_probability * 1.2)
+        + (tail_multiple * 0.10)
+        + (pricing_confidence * 0.75)
+        - (spread_ratio * 1.5)
+    )
+
+
+def _select_best_asymmetric_leg(
+    options,
+    priced_map,
+    spot_price: float,
+    realized_vol: float,
+    option_type: str,
+) -> AsymmetricTailCandidate | None:
+    best_candidate: AsymmetricTailCandidate | None = None
+
+    for opt in options[:40]:
+        priced_contract = priced_map.get(opt.symbol)
+        if priced_contract is None:
+            continue
+
+        bid_price = effective_bid_price(priced_contract)
+        ask_price = effective_ask_price(priced_contract)
+        pricing_confidence = float(priced_contract.pricing_confidence or 0.0)
+        if ask_price < CORNWALL_MIN_PRICE_PER_LEG or ask_price > CORNWALL_MAX_PRICE_PER_LEG:
+            continue
+        if (ask_price - bid_price) > CORNWALL_MAX_SPREAD:
+            continue
+        if pricing_confidence < CORNWALL_MIN_PRICING_CONFIDENCE:
+            continue
+
+        root, exp, parsed_type, strike = parse_occ_symbol(opt.symbol)
+        if not root or parsed_type != option_type:
+            continue
+        expiry_date = datetime.strptime(exp, "%y%m%d").date()
+        dte = (expiry_date - datetime.now(timezone.utc).date()).days
+        if dte < CORNWALL_MIN_DTE or dte > CORNWALL_MAX_DTE:
+            continue
+
+        if option_type == "C":
+            strike_distance_pct = (strike / max(spot_price, 0.01)) - 1.0
+            flag = "c"
+        else:
+            strike_distance_pct = 1.0 - (strike / max(spot_price, 0.01))
+            flag = "p"
+
+        if strike_distance_pct < CORNWALL_MIN_STRIKE_DISTANCE_PCT or strike_distance_pct > CORNWALL_MAX_STRIKE_DISTANCE_PCT:
+            continue
+
+        volatility = max(realized_vol, float(priced_contract.implied_volatility or 0.0), 0.18)
+        analytics = analyze_long_option_tail(
+            flag=flag,
+            spot=spot_price,
+            strike=float(strike),
+            years_to_expiry=max(1.0 / 365.0, dte / 365.0),
+            risk_free_rate=OPTION_PRICING_RISK_FREE_RATE,
+            volatility=volatility,
+            premium=ask_price,
+            n_simulations=CORNWALL_MONTE_CARLO_PATHS,
+            fat_tail_multiple=5.0,
+        )
+        if analytics.model_edge < CORNWALL_MIN_MODEL_EDGE:
+            continue
+        if analytics.tail_payoff_multiple < CORNWALL_MIN_TAIL_PAYOFF_MULTIPLE:
+            continue
+        if analytics.fat_tail_probability < CORNWALL_MIN_FAT_TAIL_PROBABILITY:
+            continue
+
+        score = _score_asymmetric_tail_candidate(
+            ask_price=ask_price,
+            bid_price=bid_price,
+            pricing_confidence=pricing_confidence,
+            analytics=analytics,
+        )
+        candidate = AsymmetricTailCandidate(
+            symbol=opt.symbol,
+            option_type="call" if option_type == "C" else "put",
+            ask_price=float(ask_price),
+            bid_price=float(bid_price),
+            score=float(score),
+            strike=float(strike),
+            dte=int(dte),
+            strike_distance_pct=float(strike_distance_pct),
+            pricing_confidence=pricing_confidence,
+            analytics=analytics,
+        )
+        if best_candidate is None or candidate.score > best_candidate.score:
+            best_candidate = candidate
+
+    return best_candidate
 
 
 def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logger=None, is_condor=False, override_expiry=None):
@@ -207,7 +366,10 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
                 except Exception as e:
                     logger.error(f"Failed Call Wing: {e}")
             elif purchase_price is not None:
-                client.market_sell(p.symbol)
+                try:
+                    client.market_sell(p.symbol, order_label=f"Covered call {p.symbol}")
+                except Exception as e:
+                    logger.error(f"Failed covered call sale {p.symbol}: {e}")
 
                 
 def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_manager=None, strat_logger=None):
@@ -351,7 +513,7 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
                 
                 if qty_to_buy > 0:
                     try:
-                        client.market_buy(opt.symbol, qty=qty_to_buy)
+                        client.market_buy(opt.symbol, qty=qty_to_buy, order_label=f"Delta hedge {opt.symbol}")
                         logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${ask_price*100:.2f} each.")
                         
                         from core.notifications import send_alert
@@ -371,39 +533,50 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
     import math
     from datetime import datetime, timezone, timedelta
     
-    max_allocation = total_equity * 0.03
-    max_price_per_leg = 0.30 
+    max_allocation = total_equity * CORNWALL_MAX_ALLOCATION_PCT
     
     active_bets_cost = sum(float(p.market_value) for p in positions if float(p.market_value) < 100 and float(p.qty) > 0)
     if active_bets_cost >= max_allocation: return
         
     budget_remaining = max_allocation - active_bets_cost
-    if budget_remaining < 60.0: return
+    if budget_remaining < (CORNWALL_MIN_PRICE_PER_LEG * 100): return
         
-    lottery_targets = [s for s in ['TSLA', 'NVDA', 'SMH', 'AMD', 'COIN', 'MSTR'] if s in symbols_list]
+    normalized_symbols = []
+    for item in symbols_list or []:
+        if isinstance(item, dict):
+            symbol = item.get('symbol')
+        else:
+            symbol = item
+        if symbol:
+            normalized_symbols.append(str(symbol))
+
+    preferred_tail_universe = ['TSLA', 'NVDA', 'SMH', 'AMD', 'COIN', 'MSTR', 'PLTR', 'SOXL', 'TSLL']
+    lottery_targets = [s for s in preferred_tail_universe if s in normalized_symbols]
     if not lottery_targets: return
-        
+
+    trades_placed = 0
     for sym in lottery_targets:
-        if budget_remaining < 60.0: break
+        if trades_placed >= CORNWALL_MAX_TRADES_PER_RUN:
+            break
+        if budget_remaining < (CORNWALL_MIN_PRICE_PER_LEG * 100):
+            break
         try:
             ticker = yf.Ticker(sym)
             hist_1y = ticker.history(period="1y")
             if hist_1y.empty or len(hist_1y) < 60: continue
             
-            rolling_vol = hist_1y['Close'].pct_change().rolling(window=20).std() * math.sqrt(252)
-            vol_min, vol_max, current_vol = rolling_vol.min(), rolling_vol.max(), rolling_vol.iloc[-1]
-            
-            if vol_max > vol_min: vol_rank = ((current_vol - vol_min) / (vol_max - vol_min)) * 100
-            else: continue
-                
-            if vol_rank > 15.0: continue
+            spot_price = float(hist_1y['Close'].iloc[-1])
+            realized_vol = _annualized_realized_vol(hist_1y['Close'])
+            vol_rank = _compute_vol_rank(hist_1y['Close'])
+            if vol_rank is None or vol_rank > CORNWALL_MAX_VOL_RANK:
+                continue
 
-            calls = client.get_options_contracts([sym], 'call', min_days=90, max_days=180)
-            puts = client.get_options_contracts([sym], 'put', min_days=90, max_days=180)
+            calls = client.get_options_contracts([sym], 'call', min_days=CORNWALL_MIN_DTE, max_days=CORNWALL_MAX_DTE)
+            puts = client.get_options_contracts([sym], 'put', min_days=CORNWALL_MIN_DTE, max_days=CORNWALL_MAX_DTE)
             if not calls or not puts: continue
             
-            target_min = datetime.now(timezone.utc).date() + timedelta(days=90)
-            target_max = datetime.now(timezone.utc).date() + timedelta(days=180)
+            target_min = datetime.now(timezone.utc).date() + timedelta(days=CORNWALL_MIN_DTE)
+            target_max = datetime.now(timezone.utc).date() + timedelta(days=CORNWALL_MAX_DTE)
             
             valid_calls = [o for o in calls if target_min < datetime.strptime(parse_occ_symbol(o.symbol)[1], "%y%m%d").date() < target_max]
             valid_puts = [o for o in puts if target_min < datetime.strptime(parse_occ_symbol(o.symbol)[1], "%y%m%d").date() < target_max]
@@ -418,38 +591,54 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
             priced_call_map = {contract.symbol: contract for contract in priced_calls}
             priced_put_map = {contract.symbol: contract for contract in priced_puts}
             
-            best_call, best_put = None, None
-            
-            for opt in valid_calls[:30]:
-                priced_contract = priced_call_map.get(opt.symbol)
-                if priced_contract:
-                    sb, sa = effective_bid_price(priced_contract), effective_ask_price(priced_contract)
-                    if sa > 0 and sb > 0 and (sa - sb) <= 0.15: 
-                        if 0.05 <= sa <= max_price_per_leg:
-                            best_call = (opt.symbol, sa)
-                            break
-                            
-            for opt in valid_puts[:30]:
-                priced_contract = priced_put_map.get(opt.symbol)
-                if priced_contract:
-                    sb, sa = effective_bid_price(priced_contract), effective_ask_price(priced_contract)
-                    if sa > 0 and sb > 0 and (sa - sb) <= 0.15: 
-                        if 0.05 <= sa <= max_price_per_leg:
-                            best_put = (opt.symbol, sa)
-                            break
-            
-            if best_call or best_put:
-                if best_call:
-                    client.market_buy(best_call[0], qty=1)
-                    budget_remaining -= (best_call[1] * 100)
-                    # --- DISCORD ALERT ---
-                    send_alert(f"🎲 **NEW TRADE: Cornwall Call**\n**Bought:** {best_call[0]}\n**Cost:** ~${best_call[1]*100:.2f}", "INFO")
-                    
-                if best_put:
-                    client.market_buy(best_put[0], qty=1)
-                    budget_remaining -= (best_put[1] * 100)
-                    # --- DISCORD ALERT ---
-                    send_alert(f"🎲 **NEW TRADE: Cornwall Put**\n**Bought:** {best_put[0]}\n**Cost:** ~${best_put[1]*100:.2f}", "INFO")
+            selected_legs = [
+                _select_best_asymmetric_leg(valid_calls, priced_call_map, spot_price, realized_vol, "C"),
+                _select_best_asymmetric_leg(valid_puts, priced_put_map, spot_price, realized_vol, "P"),
+            ]
+
+            selected_legs = [candidate for candidate in selected_legs if candidate is not None]
+            selected_legs.sort(key=lambda candidate: candidate.score, reverse=True)
+
+            for candidate in selected_legs:
+                estimated_cost = candidate.ask_price * 100.0
+                if estimated_cost > budget_remaining:
+                    continue
+                result = client.limit_buy(
+                    candidate.symbol,
+                    limit_price=round(candidate.ask_price, 2),
+                    qty=1,
+                    order_label=f"Cornwall {candidate.option_type.upper()} {candidate.symbol}",
+                )
+                fill_ratio = min(1.0, max(0.0, float(result.filled_qty or 0.0)))
+                if result.filled:
+                    fill_ratio = 1.0
+                if fill_ratio > 0.0:
+                    budget_remaining -= (estimated_cost * fill_ratio)
+                    trades_placed += 1
+                logger.info(
+                    "🎲 Cornwall %s selected | %s | score=%.2f | edge=%.3f | fat_tail=%.2f%% | p99=%.2fx premium | dte=%d | strike_gap=%.1f%%",
+                    candidate.option_type.upper(),
+                    candidate.symbol,
+                    candidate.score,
+                    candidate.analytics.model_edge,
+                    candidate.analytics.fat_tail_probability * 100.0,
+                    candidate.analytics.tail_payoff_multiple,
+                    candidate.dte,
+                    candidate.strike_distance_pct * 100.0,
+                )
+                send_alert(
+                    f"🎲 **NEW TRADE: Cornwall {candidate.option_type.title()}**\n"
+                    f"**Bought:** {candidate.symbol}\n"
+                    f"**Target Debit:** ${candidate.ask_price*100:.2f}\n"
+                    f"**Model Edge:** ${candidate.analytics.model_edge*100:.2f}\n"
+                    f"**Fat-Tail Prob:** {candidate.analytics.fat_tail_probability*100:.1f}%\n"
+                    f"**P99 Payoff:** {candidate.analytics.tail_payoff_multiple:.1f}x premium\n"
+                    f"**Order Status:** {result.final_status}",
+                    "INFO",
+                )
+                if trades_placed >= CORNWALL_MAX_TRADES_PER_RUN:
+                    break
                 
         except Exception as e:
+            logger.debug("Cornwall deployment skipped for %s: %s", sym, e)
             continue
