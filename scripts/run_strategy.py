@@ -1,6 +1,12 @@
 import re
+import os
 from pathlib import Path
 from datetime import datetime
+
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
 from core.broker_client import BrokerClient
 from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
 from core.equity_overlay import rebalance_equity_overlay

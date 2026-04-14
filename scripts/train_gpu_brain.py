@@ -1,13 +1,20 @@
 import os
 import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import logging
 
-# Ensure Python can find our core modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.neural_brain import StrategySelectorNet
 from core.torch_device import resolve_torch_runtime
 

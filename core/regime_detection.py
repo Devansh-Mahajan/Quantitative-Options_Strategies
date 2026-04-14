@@ -1,4 +1,8 @@
 import os
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
 import torch
 import numpy as np
 import pandas as pd
@@ -31,6 +35,9 @@ def get_brain_prediction():
     try:
         runtime = resolve_torch_runtime()
         device = runtime.device
+        if os.environ.get("OPTIONS_STACK_DEVICE_MESSAGE_EMITTED") != "1":
+            logger.info(runtime.message)
+            os.environ["OPTIONS_STACK_DEVICE_MESSAGE_EMITTED"] = "1"
 
         # 1. Load the Scaler from our training dataset
         dataset = torch.load(DATA_PATH, map_location="cpu", weights_only=False)

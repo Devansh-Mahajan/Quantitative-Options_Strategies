@@ -5,6 +5,12 @@ if __name__ != "__main__":
 
     pytest.importorskip("torch")
 
+import os
+
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
 import torch
 
 from core.torch_device import resolve_torch_runtime

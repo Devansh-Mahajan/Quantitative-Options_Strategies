@@ -135,6 +135,38 @@ class AutomationController:
         )
         return open_mark <= current < close_mark
 
+    def _offhours_cycle_kind(self, ts: Optional[datetime] = None) -> Optional[str]:
+        current = ts or self.now()
+        if self.is_market_session(current):
+            return None
+
+        if current.weekday() >= 5:
+            weekend_mark = current.replace(
+                hour=self.args.weekend_hour,
+                minute=self.args.weekend_minute,
+                second=0,
+                microsecond=0,
+            )
+            if current >= weekend_mark:
+                return "weekend"
+            return None
+
+        open_mark = current.replace(
+            hour=self.market_window.open_hour,
+            minute=self.market_window.open_minute,
+            second=0,
+            microsecond=0,
+        )
+        post_close_mark = current.replace(
+            hour=self.args.post_close_hour,
+            minute=self.args.post_close_minute,
+            second=0,
+            microsecond=0,
+        )
+        if current < open_mark or current >= post_close_mark:
+            return "overnight"
+        return None
+
     def _emit_console(self, message: str) -> None:
         print(f"[{self.now().isoformat()}] {message}")
 
@@ -362,7 +394,7 @@ class AutomationController:
     def _save_state(self, state: dict):
         self.state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
-    async def _run_daily_maintenance_if_due(self, state: dict, now: datetime):
+    async def _run_daily_maintenance_if_due(self, state: dict, now: datetime) -> bool:
         today_key = now.date().isoformat()
         pre_open_mark = now.replace(
             hour=self.args.pre_open_hour,
@@ -378,7 +410,7 @@ class AutomationController:
         )
 
         if now < pre_open_mark:
-            return
+            return False
 
         if state.get("pre_open_self_check") != today_key:
             pre_open_rc = await self._run_command(
@@ -391,10 +423,10 @@ class AutomationController:
                 self._save_state(state)
 
         if now < post_close_mark:
-            return
+            return False
 
         if state.get("daily_maintenance") == today_key:
-            return
+            return False
         maintenance_context = {
             "date": today_key,
             "post_close_eval_rc": None,
@@ -448,45 +480,53 @@ class AutomationController:
                 f"⚠ post-close maintenance incomplete for {today_key}; controller will retry on the next poll."
             )
         self._save_state(state)
+        return True
 
-    async def weekend_pipeline_loop(self):
+    async def _run_offhours_training_cycle(self, state: dict, now: datetime) -> Optional[str]:
+        daily_maintenance_started = False
+        if now.weekday() < 5:
+            daily_maintenance_started = await self._run_daily_maintenance_if_due(state, now)
+
+        cycle_kind = self._offhours_cycle_kind(now)
+        if cycle_kind == "overnight":
+            if daily_maintenance_started:
+                return cycle_kind
+            await self._run_command(
+                "overnight-model-maintenance",
+                self.args.post_close_train_command,
+                self.execution_lock,
+            )
+            return cycle_kind
+
+        if cycle_kind == "weekend":
+            recalibrate_rc = await self._run_command(
+                "weekend-recalibration",
+                self.args.weekend_recalibration_command,
+                self.execution_lock,
+            )
+            if recalibrate_rc == 0:
+                backtest_rc = await self._run_command(
+                    "massive-backtest",
+                    self.args.weekend_backtest_command,
+                    self.execution_lock,
+                )
+                if backtest_rc == 0:
+                    self._build_weekend_report()
+            return cycle_kind
+
+        return None
+
+    async def offhours_training_loop(self):
         while True:
             now = self.now()
             state = self._load_state()
-
-            if now.weekday() < 5:
-                await self._run_daily_maintenance_if_due(state, now)
-
-            if now.weekday() not in {5, 6}:
-                await asyncio.sleep(self.args.poll_seconds)
+            cycle_kind = await self._run_offhours_training_cycle(state, now)
+            if cycle_kind == "overnight":
+                await asyncio.sleep(max(60, self.args.overnight_training_interval_seconds))
                 continue
-
-            run_mark = now.replace(
-                hour=self.args.weekend_hour,
-                minute=self.args.weekend_minute,
-                second=0,
-                microsecond=0,
-            )
-            week_key = f"{now.isocalendar().year}-W{now.isocalendar().week:02d}"
-            already_ran = state.get("weekend_pipeline") == week_key
-
-            if now >= run_mark and not already_ran:
-                recalibrate_rc = await self._run_command(
-                    "weekend-recalibration",
-                    self.args.weekend_recalibration_command,
-                    self.execution_lock,
-                )
-                if recalibrate_rc == 0:
-                    backtest_rc = await self._run_command(
-                        "massive-backtest",
-                        self.args.weekend_backtest_command,
-                        self.execution_lock,
-                    )
-                    if backtest_rc == 0:
-                        self._build_weekend_report()
-                state["weekend_pipeline"] = week_key
-                self._save_state(state)
-
+            if cycle_kind == "weekend":
+                await asyncio.sleep(max(60, self.args.weekend_training_interval_seconds))
+                continue
             await asyncio.sleep(self.args.poll_seconds)
 
     async def market_boundary_watch(self):
@@ -565,7 +605,7 @@ class AutomationController:
             f"- Pairs suite win-rate: {(pairs.get('summary') or {}).get('win_rate', 'n/a')}",
             "",
             "## Operational Actions",
-            "- Weekend recalibration and the backtest engine are chained automatically inside the 24/7 automation controller.",
+            "- Weekend recalibration and the backtest engine rerun continuously throughout the weekend research window.",
             "- Confirm runtime calibration artifacts are loaded before Monday open.",
             "- Validate delta/theta targets against PM and risk desk tolerances.",
             "- Keep portfolio manager, risk monitor, critical-window monitor, and regime-shift daemons active through the week.",
@@ -590,7 +630,7 @@ class AutomationController:
             self.critical_window_loop(),
             self.regime_shift_watch_loop(),
             self.resource_telemetry_loop(),
-            self.weekend_pipeline_loop(),
+            self.offhours_training_loop(),
             self.market_boundary_watch(),
         )
 
@@ -613,6 +653,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--strategy-interval-seconds", type=int, default=resource_profile.strategy_interval_seconds)
     parser.add_argument("--risk-interval-seconds", type=int, default=resource_profile.risk_interval_seconds)
     parser.add_argument("--regime-interval-seconds", type=int, default=resource_profile.regime_interval_seconds)
+    parser.add_argument("--overnight-training-interval-seconds", type=int, default=1800)
+    parser.add_argument("--weekend-training-interval-seconds", type=int, default=1800)
     parser.add_argument("--burst-interval-seconds", type=int, default=45)
     parser.add_argument("--regime-watch-interval-seconds", type=int, default=120)
     parser.add_argument("--telemetry-interval-seconds", type=int, default=resource_profile.telemetry_interval_seconds)
@@ -783,7 +825,7 @@ def parse_args() -> argparse.Namespace:
         ),
     )
 
-    parser.add_argument("--weekend-hour", type=int, default=8)
+    parser.add_argument("--weekend-hour", type=int, default=0)
     parser.add_argument("--weekend-minute", type=int, default=0)
     parser.add_argument(
         "--weekend-recalibration-command",

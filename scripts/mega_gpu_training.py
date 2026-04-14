@@ -1,6 +1,15 @@
 import os
-import random
 import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
+import random
 import logging
 import argparse
 from typing import Optional
@@ -12,7 +21,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.mega_neural_brain import MegaStrategyNet
 from core.torch_device import resolve_torch_runtime
 

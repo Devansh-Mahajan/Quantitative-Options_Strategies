@@ -8,7 +8,7 @@ from alpaca.trading.enums import AssetClass
 from core.broker_client import BrokerClient
 from core.manager import manage_open_spreads
 from core.order_monitor import ExecutionPricingSnapshot, MonitoredOrderLeg, monitor_multileg_order
-from core.runtime_env import apply_accelerator_policy
+from core.runtime_env import apply_accelerator_policy, host_has_nvidia_device
 from core.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioRiskSnapshot, PortfolioTradeLeg
 from core.quant_models import (
     OptionLegModel,
@@ -131,6 +131,13 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(env["OPTIONS_STACK_FORCE_CPU"], "1")
         self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "")
         self.assertEqual(message, "CPU detected and using.")
+
+    def test_host_gpu_detection_ignores_driver_nodes_without_real_gpu(self):
+        with patch("core.runtime_env._nvidia_proc_gpu_present", return_value=False), patch(
+            "core.runtime_env._nvidia_pci_gpu_present",
+            return_value=False,
+        ):
+            self.assertFalse(host_has_nvidia_device())
 
     def test_quant_risk_models_return_var_metrics(self):
         risk = monte_carlo_multileg_risk(

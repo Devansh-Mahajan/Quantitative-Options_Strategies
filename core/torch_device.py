@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
 import torch
 
 

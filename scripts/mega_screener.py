@@ -1,6 +1,15 @@
 import os
-import re
 import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from core.runtime_env import apply_accelerator_policy
+
+os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
+
+import re
 import logging
 import warnings
 
@@ -10,7 +19,6 @@ import torch
 import yfinance as yf
 import joblib
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.mega_neural_brain import MegaStrategyNet
 from core.torch_device import resolve_torch_runtime
 from scripts.mega_matrix import MACRO_TICKERS, TICKERS, get_hmm_probabilities
@@ -64,6 +72,9 @@ def _build_feature_frame(
 def _infer(confidence_threshold=75.0):
     runtime = resolve_torch_runtime()
     device = runtime.device
+    if os.environ.get("OPTIONS_STACK_DEVICE_MESSAGE_EMITTED") != "1":
+        logger.info(runtime.message)
+        os.environ["OPTIONS_STACK_DEVICE_MESSAGE_EMITTED"] = "1"
     dataset = torch.load(DATA_PATH, map_location="cpu", weights_only=False)
     scaler = dataset['scaler']
     feature_cols = dataset['features_list']
@@ -171,7 +182,6 @@ def _infer(confidence_threshold=75.0):
 
 def scan_market():
     logger.info("🔌 Booting Mega Inference Engine...")
-    logger.info(resolve_torch_runtime().message)
     results = _infer(confidence_threshold=0.0)
 
     pretty = {

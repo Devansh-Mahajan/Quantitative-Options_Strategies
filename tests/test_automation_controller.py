@@ -23,6 +23,8 @@ def _args(tmp_path: Path) -> Namespace:
         strategy_interval_seconds=1800,
         risk_interval_seconds=300,
         regime_interval_seconds=900,
+        overnight_training_interval_seconds=1800,
+        weekend_training_interval_seconds=1800,
         burst_interval_seconds=45,
         regime_watch_interval_seconds=120,
         open_burst_minutes=12,
@@ -93,6 +95,21 @@ class AutomationControllerTests(unittest.TestCase):
             self.assertTrue(controller._is_critical_window(just_after_open))
             self.assertFalse(controller._is_critical_window(midday))
             self.assertTrue(controller._is_critical_window(just_before_close))
+
+    def test_offhours_cycle_kind_detection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            controller = AutomationController(_args(Path(tmp)))
+            tz = ZoneInfo("America/New_York")
+
+            overnight = datetime(2026, 4, 13, 20, 0, tzinfo=tz)
+            pre_open = datetime(2026, 4, 14, 8, 0, tzinfo=tz)
+            weekend = datetime(2026, 4, 12, 11, 0, tzinfo=tz)
+            session = datetime(2026, 4, 13, 11, 0, tzinfo=tz)
+
+            self.assertEqual(controller._offhours_cycle_kind(overnight), "overnight")
+            self.assertEqual(controller._offhours_cycle_kind(pre_open), "overnight")
+            self.assertEqual(controller._offhours_cycle_kind(weekend), "weekend")
+            self.assertIsNone(controller._offhours_cycle_kind(session))
 
     def test_weekend_report_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -214,6 +231,58 @@ class AutomationControllerTests(unittest.TestCase):
             )
             self.assertTrue(Path(args.latest_daily_report_path).exists())
 
+    def test_offhours_training_cycle_runs_continuous_weekday_training_after_daily_maintenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            controller = AutomationController(args)
+            executed = []
+
+            async def _fake_run_command(label, command, lock):
+                executed.append((label, command))
+                return 0
+
+            controller._run_command = _fake_run_command
+            state = {
+                "pre_open_self_check": "2026-04-13",
+                "daily_maintenance": "2026-04-13",
+            }
+            now = datetime(2026, 4, 13, 20, 30, tzinfo=ZoneInfo("America/New_York"))
+
+            cycle_kind = asyncio.run(controller._run_offhours_training_cycle(state, now))
+
+            self.assertEqual(cycle_kind, "overnight")
+            self.assertEqual(
+                [name for name, _ in executed],
+                ["overnight-model-maintenance"],
+            )
+
+    def test_offhours_training_cycle_runs_weekend_research_chain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            controller = AutomationController(args)
+            executed = []
+
+            async def _fake_run_command(label, command, lock):
+                executed.append((label, command))
+                return 0
+
+            controller._run_command = _fake_run_command
+            controller._build_weekend_report = lambda: executed.append(("weekend-report", "built"))
+            state = {}
+            now = datetime(2026, 4, 12, 11, 0, tzinfo=ZoneInfo("America/New_York"))
+
+            cycle_kind = asyncio.run(controller._run_offhours_training_cycle(state, now))
+
+            self.assertEqual(cycle_kind, "weekend")
+            self.assertEqual(
+                [name for name, _ in executed],
+                [
+                    "weekend-recalibration",
+                    "massive-backtest",
+                    "weekend-report",
+                ],
+            )
+
     def test_pre_open_self_check_runs_once_per_day(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = _args(Path(tmp))
@@ -240,6 +309,8 @@ class AutomationControllerTests(unittest.TestCase):
         self.assertTrue(args.restart_on_failure)
         self.assertEqual(args.restart_delay_seconds, 15)
         self.assertEqual(args.preflight_max_age_seconds, 300)
+        self.assertEqual(args.overnight_training_interval_seconds, 1800)
+        self.assertEqual(args.weekend_training_interval_seconds, 1800)
 
     def test_parse_args_default_commands_use_python_modules(self):
         with patch.object(sys, "argv", ["automate-stack"]):
