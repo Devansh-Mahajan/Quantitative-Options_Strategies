@@ -2,10 +2,10 @@
   "ok": true,
   "skipped": false,
   "summary": "Preflight passed.",
-  "completed_at_utc": "2026-04-14T16:57:36Z",
-  "signature": "b36600ef07020be6f83853054b4167acd3dcf55253cd9ac4f12e055c818febb8",
+  "completed_at_utc": "2026-04-14T20:23:56Z",
+  "signature": "84869130f19f4341ca2fb7318e4e268dce79b4fb5c707fe091367378a991ddf5",
   "source_files": 80,
-  "json_files": 8,
+  "json_files": 9,
   "artifacts_checked": 7,
   "issues": [
     {
@@ -14,5 +14,5 @@
       "detail": "Optional artifact not present yet: config/market_regime_policy.json"
     }
   ],
-  "completed_at_epoch": 1776185856.3624697
+  "completed_at_epoch": 1776198236.2462978
 }

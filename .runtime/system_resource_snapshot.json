@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-14T16:58:45Z",
+  "generated_at_utc": "2026-04-14T20:23:46Z",
   "resource_profile": {
     "cpu_count": 28,
     "memory_gb": 31.32,
@@ -16,21 +16,21 @@
     "telemetry_interval_seconds": 300
   },
   "host_metrics": {
-    "loadavg_1m": 0.63,
-    "loadavg_5m": 0.58,
-    "loadavg_15m": 0.46,
-    "normalized_cpu_load_pct": 2.24,
+    "loadavg_1m": 0.5,
+    "loadavg_5m": 0.19,
+    "loadavg_15m": 0.11,
+    "normalized_cpu_load_pct": 1.8,
     "memory": {
       "total_gb": 31.32,
-      "available_gb": 28.97,
-      "used_gb": 2.35,
-      "usage_pct": 7.51
+      "available_gb": 29.23,
+      "used_gb": 2.09,
+      "usage_pct": 6.66
     },
     "disk": {
       "total_gb": 96.37,
-      "used_gb": 38.17,
-      "free_gb": 53.26,
-      "usage_pct": 39.61
+      "used_gb": 38.15,
+      "free_gb": 53.28,
+      "usage_pct": 39.59
     }
   },
   "status": {
