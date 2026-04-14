@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "last_updated_utc": "2026-04-14T22:12:06.281309+00:00",
+  "last_updated_utc": "2026-04-14T22:18:16.442547+00:00",
   "lookback": 30,
   "daily_returns": [
-    -0.19554245003820525,
     -0.20049289181133453,
     -0.20049289181133453,
     -0.20049289181133453,
@@ -32,10 +31,10 @@
     -0.19554245003820525,
     -0.20318334929672535,
     -0.19769481602652578,
-    -0.20049289181133453
+    -0.20049289181133453,
+    -0.1979100526253617
   ],
   "confidence_samples": [
-    0.5138875516349233,
     0.5141072836411735,
     0.5191856847672287,
     0.5191857503248399,
@@ -64,15 +63,16 @@
     0.5192664685645594,
     0.5192665401799867,
     0.5192665643205288,
-    0.5192665738958476
+    0.5192665738958476,
+    0.5192666299001145
   ],
-  "risk_multiplier": 0.8045,
-  "deployment_multiplier": 0.8548,
-  "trade_intensity_multiplier": 0.8548,
+  "risk_multiplier": 0.8046,
+  "deployment_multiplier": 0.8549,
+  "trade_intensity_multiplier": 0.8549,
   "regime": "defensive",
   "notes": "Foundry profile controls are optimization levers, not profit guarantees.",
   "foundry_mode": "zero-calibration",
   "foundry_min_confidence": 0.54,
-  "rolling_avg_return_pct": -0.2018,
-  "rolling_avg_confidence": 0.5189
+  "rolling_avg_return_pct": -0.2019,
+  "rolling_avg_confidence": 0.519
 }
