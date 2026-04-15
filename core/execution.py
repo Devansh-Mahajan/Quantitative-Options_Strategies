@@ -32,6 +32,7 @@ from core.delay_aware_options import (
     effective_bid_price,
     effective_mid_price,
 )
+from core.manager import release_cash_from_sweep
 from core.quant_models import LongOptionTailSnapshot, analyze_long_option_tail
 from .strategy import filter_underlying, filter_options, score_options, select_options
 from models.contract import Contract
@@ -437,6 +438,7 @@ def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_mana
             limit_price = round(natural_debit - ((natural_debit - mid_debit) * dynamic_fill_factor), 2)
             
             logger.info(f"🎯 Executing Long Straddle on {symbol}: BUY {best_call} & BUY {best_put} | Target Debit: ${limit_price}")
+            release_cash_from_sweep(client, required_cash=max_risk, reason=f"Vega straddle {symbol}")
             client.execute_debit_spread(best_call, best_put, limit_price)
             buying_power -= max_risk
             
@@ -513,6 +515,11 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
                 
                 if qty_to_buy > 0:
                     try:
+                        release_cash_from_sweep(
+                            client,
+                            required_cash=ask_price * 100.0 * qty_to_buy,
+                            reason=f"delta hedge {opt.symbol}",
+                        )
                         client.market_buy(opt.symbol, qty=qty_to_buy, order_label=f"Delta hedge {opt.symbol}")
                         logger.info(f"🛡️ DELTA NEUTRAL HEDGE DEPLOYED: Bought {qty_to_buy}x {opt.symbol} for ~${ask_price*100:.2f} each.")
                         
@@ -603,6 +610,11 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
                 estimated_cost = candidate.ask_price * 100.0
                 if estimated_cost > budget_remaining:
                     continue
+                release_cash_from_sweep(
+                    client,
+                    required_cash=estimated_cost,
+                    reason=f"Cornwall {candidate.option_type.upper()} {candidate.symbol}",
+                )
                 result = client.limit_buy(
                     candidate.symbol,
                     limit_price=round(candidate.ask_price, 2),

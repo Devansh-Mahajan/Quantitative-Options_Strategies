@@ -38,6 +38,7 @@ from config.params import (
     SWEEP_TICKER,
 )
 from core.movement_predictor import MovementSignal
+from core.manager import release_cash_from_sweep
 from core.ml_alpha import AlphaSignal
 from core.notifications import send_alert
 from core.state_manager import (
@@ -530,6 +531,7 @@ def rebalance_equity_overlay(
             continue
 
         try:
+            release_cash_from_sweep(client, required_cash=spend, reason=f"equity overlay {symbol}")
             client.market_buy(symbol, qty=buy_qty, order_label=f"Overlay entry {symbol}")
             buying_power -= spend
             register_equity_overlay(

@@ -505,9 +505,6 @@ def main():
             f"**📦 CURRENT HOLDINGS:**\n{holdings_str}"
         )
         send_alert(dashboard_msg, "INFO")
-        
-        # --- IDLE CASH SWEEP ---
-        sweep_idle_cash(client, total_equity)
     # ==========================================================
 
     risk_snapshot = {
@@ -824,7 +821,10 @@ def main():
                 logger.info("📈 Direct equity overlay actions: %s", " | ".join(overlay_actions))
         except Exception as exc:
             logger.error("Direct equity overlay rebalance failed: %s", exc)
-    progress.advance("Rebalancing stock overlay and delta hedge")
+
+    # Sweep only after all entries/trims for this cycle so live cash stays available for fills.
+    sweep_idle_cash(client, total_equity)
+    progress.advance("Rebalancing stock overlay, delta hedge, and cash sweep")
 
     strat_logger.save()
     progress.advance("Persisting strategy artifacts")

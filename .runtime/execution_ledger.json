@@ -1,0 +1,177 @@
+[
+  {
+    "recorded_at_utc": "2026-04-15T21:48:46.113515+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "7f74d5e1-5754-446d-8abb-3a43c89f29a5",
+    "order_label": "76ca2f89-dbc5-4742-8565-cb88c82ed55a",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 1.0,
+    "qty": 1.0,
+    "limit_price": null,
+    "filled_avg_price": 1.11,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-04-14T13:30:09.987626+00:00",
+    "updated_at_utc": "2026-04-14T13:30:10.125276+00:00",
+    "filled_at_utc": "2026-04-14T13:30:10.122857+00:00",
+    "legs": [
+      {
+        "symbol": "NVDA260424C00200000",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-04-15T21:48:46.113464+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "d4125bb0-a44c-4b2b-a618-235d3419003e",
+    "order_label": "cb157d0e-67ab-4aa0-b6d8-c9f2da2d37d8",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 1.0,
+    "qty": 1.0,
+    "limit_price": null,
+    "filled_avg_price": 0.05,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-04-14T13:30:10.037670+00:00",
+    "updated_at_utc": "2026-04-14T13:30:10.135308+00:00",
+    "filled_at_utc": "2026-04-14T13:30:10.133283+00:00",
+    "legs": [
+      {
+        "symbol": "SMH260424P00350000",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-04-15T21:48:46.113490+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "6c79e7bf-4860-4847-9192-eeaf08795aa2",
+    "order_label": "5ef335fc-cdd3-4e66-82f0-97080ee9e28d",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 1.0,
+    "qty": 1.0,
+    "limit_price": null,
+    "filled_avg_price": 0.67,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-04-14T13:30:10.002769+00:00",
+    "updated_at_utc": "2026-04-14T13:30:10.159148+00:00",
+    "filled_at_utc": "2026-04-14T13:30:10.157000+00:00",
+    "legs": [
+      {
+        "symbol": "NVDA260501P00170000",
+        "side": "orderside.buy"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-04-15T21:48:46.113433+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "92ed97dd-da54-43a0-b6fa-8c1463a82f4c",
+    "order_label": "50674a3a-127e-42f0-a623-b488829ba2ea",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 1.0,
+    "qty": 1.0,
+    "limit_price": null,
+    "filled_avg_price": 0.5,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-04-14T13:30:10.051237+00:00",
+    "updated_at_utc": "2026-04-14T13:30:10.178019+00:00",
+    "filled_at_utc": "2026-04-14T13:30:10.174340+00:00",
+    "legs": [
+      {
+        "symbol": "SPY260424P00645000",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-04-15T21:48:46.113344+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "89599038-2784-4067-b090-08bfe62e54b0",
+    "order_label": "134f512a-33bc-4364-a1b6-ad35ea4cd047",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 1.0,
+    "qty": 1.0,
+    "limit_price": null,
+    "filled_avg_price": 0.37,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-04-14T13:30:17.438785+00:00",
+    "updated_at_utc": "2026-04-14T13:30:17.588892+00:00",
+    "filled_at_utc": "2026-04-14T13:30:17.587155+00:00",
+    "legs": [
+      {
+        "symbol": "NVDA260501P00165000",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  }
+]

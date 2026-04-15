@@ -1,6 +1,6 @@
 {
-  "symbols_input": 504,
-  "symbols_valid": 504,
+  "symbols_input": 503,
+  "symbols_valid": 503,
   "symbols_invalid": 0,
   "valid_symbols": [
     "WMT",
@@ -345,7 +345,6 @@
     "CF",
     "NTR",
     "SMG",
-    "PX",
     "PPG",
     "RPM",
     "AXTA",
@@ -856,7 +855,6 @@
     "CF": "CF",
     "NTR": "NTR",
     "SMG": "SMG",
-    "PX": "PX",
     "PPG": "PPG",
     "RPM": "RPM",
     "AXTA": "AXTA",

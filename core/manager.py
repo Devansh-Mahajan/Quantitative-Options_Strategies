@@ -1,4 +1,5 @@
 import logging
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -157,6 +158,66 @@ def calculate_dynamic_risk(current_vix):
     else:
         return MAX_RISK_BASE * 0.25  # Panic market: 25% size ($250)
 
+def release_cash_from_sweep(client, required_cash=0.0, positions=None, reason="cash management"):
+    """Liquidates just enough SGOV to restore the live cash buffer for debit entries."""
+    try:
+        account = client.trade_client.get_account()
+        raw_cash = float(getattr(account, "cash", 0.0) or 0.0)
+        target_cash = max(0.0, float(TARGET_CASH_BUFFER) + max(0.0, float(required_cash or 0.0)))
+        cash_deficit = max(0.0, target_cash - raw_cash)
+        if cash_deficit < 1.0:
+            return 0.0
+
+        current_positions = positions if positions is not None else client.trade_client.get_all_positions()
+        sweep_position = next(
+            (
+                pos for pos in current_positions
+                if getattr(pos, "asset_class", None) == AssetClass.US_EQUITY
+                and str(getattr(pos, "symbol", "")).upper() == SWEEP_TICKER
+                and float(getattr(pos, "qty", 0.0) or 0.0) > 0.0
+            ),
+            None,
+        )
+        if sweep_position is None:
+            return 0.0
+
+        latest_trade = client.get_stock_latest_trade(SWEEP_TICKER)
+        sgov_price = float(latest_trade[SWEEP_TICKER].price)
+        if sgov_price <= 0:
+            return 0.0
+
+        shares_held = max(0, int(math.floor(float(getattr(sweep_position, "qty", 0.0) or 0.0))))
+        if shares_held <= 0:
+            return 0.0
+
+        shares_to_sell = min(shares_held, max(1, int(math.ceil(cash_deficit / sgov_price))))
+        if shares_to_sell <= 0:
+            return 0.0
+
+        order_label = f"Cash release from {SWEEP_TICKER} for {reason}"
+        client.market_sell(SWEEP_TICKER, qty=shares_to_sell, order_label=order_label)
+        released_value = shares_to_sell * sgov_price
+        logger.info(
+            "💧 CASH RELEASE: Sold %d %s shares (~$%.2f) for %s. Cash $%.2f -> target $%.2f.",
+            shares_to_sell,
+            SWEEP_TICKER,
+            released_value,
+            reason,
+            raw_cash,
+            target_cash,
+        )
+        send_alert(
+            f"💧 **CASH RELEASE**: Sold {shares_to_sell} {SWEEP_TICKER} shares (~${released_value:.2f}) for {reason}.",
+            "INFO",
+        )
+        return released_value
+    except Exception as e:
+        if "market hours" in str(e).lower():
+            logger.warning(f"⏳ Market closed. Cannot release {SWEEP_TICKER} cash for {reason} yet.")
+        else:
+            logger.error(f"Cash release from {SWEEP_TICKER} failed: {e}")
+        return 0.0
+
 def sweep_idle_cash(client, current_equity):
     """Parks idle cash in Treasury Bills (SGOV) to earn risk-free yield."""
     try:
@@ -199,6 +260,13 @@ def manage_open_spreads(client, profit_target=PROFIT_TARGET, stop_loss=STOP_LOSS
         logger.info(f"Today's P/L: ${daily_pnl_dollars:.2f} ({daily_pnl_pct:.2f}%) | Total Equity: ${equity:.2f}")
     except Exception as e:
         logger.warning(f"Could not fetch account daily P/L: {e}")
+
+    released_cash = release_cash_from_sweep(client, positions=positions, reason="maintain cash buffer")
+    if released_cash > 0:
+        try:
+            positions = client.trade_client.get_all_positions()
+        except Exception as exc:
+            logger.debug("Could not refresh positions after %s cash release: %s", SWEEP_TICKER, exc)
 
     if not positions:
         logger.info("No active positions to manage.")

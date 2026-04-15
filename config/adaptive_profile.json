@@ -1,20 +1,46 @@
 {
   "version": 2,
-  "last_updated_utc": "2026-04-14T23:02:50.115073+00:00",
+  "last_updated_utc": "2026-04-15T21:58:54.415037+00:00",
   "lookback": 30,
   "daily_returns": [
-    -0.20049289181133453
+    0.004313207905243525,
+    0.007979434624705427,
+    0.004313207905243525,
+    0.009273396996288291,
+    0.006901132648389641,
+    0.006793302450756101,
+    0.0008626415810487052,
+    0.00905773660102121,
+    0.009273396996288291,
+    0.0014017925691967906,
+    -0.0007548113834151653,
+    0.0008626415810487052,
+    -0.0007548113834151653,
+    -0.0007548113834151653
   ],
   "confidence_samples": [
-    0.019269592332768926
+    0.5141922617877803,
+    0.5141923378014699,
+    0.5141922780894477,
+    0.5141923657228816,
+    0.5141921942941502,
+    0.5141922527879536,
+    0.514192271202947,
+    0.5141923089023981,
+    0.5141922748395801,
+    0.5141927783048664,
+    0.5141927334738925,
+    0.5141926787808655,
+    0.514192555926168,
+    0.5141925875186898
   ],
-  "risk_multiplier": 0.6846,
-  "deployment_multiplier": 0.7274,
-  "trade_intensity_multiplier": 0.7274,
+  "risk_multiplier": 0.8034,
+  "deployment_multiplier": 0.8536,
+  "trade_intensity_multiplier": 0.8536,
   "regime": "defensive",
   "notes": "Foundry profile controls are optimization levers, not profit guarantees.",
   "foundry_mode": "weekend-calibrate",
   "foundry_min_confidence": 0.55,
-  "rolling_avg_return_pct": -0.2005,
-  "rolling_avg_confidence": 0.0193
+  "rolling_avg_return_pct": 0.0042,
+  "rolling_avg_confidence": 0.5142
 }

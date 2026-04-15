@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-14T23:00:57.745179+00:00",
+  "generated_at_utc": "2026-04-15T21:24:19.282436+00:00",
   "mode": "daily",
   "runtime_message": "CPU detected and using.",
   "resource_profile": {
@@ -36,9 +36,9 @@
         "3"
       ],
       "return_code": 0,
-      "started_at_utc": "2026-04-14T22:57:41.841556+00:00",
-      "finished_at_utc": "2026-04-14T23:00:54.470922+00:00",
-      "duration_seconds": 192.63
+      "started_at_utc": "2026-04-15T21:23:16.289771+00:00",
+      "finished_at_utc": "2026-04-15T21:24:15.717857+00:00",
+      "duration_seconds": 59.43
     },
     {
       "command": [
@@ -48,9 +48,9 @@
         "0.56"
       ],
       "return_code": 0,
-      "started_at_utc": "2026-04-14T23:00:54.470986+00:00",
-      "finished_at_utc": "2026-04-14T23:00:57.745122+00:00",
-      "duration_seconds": 3.27
+      "started_at_utc": "2026-04-15T21:24:15.717931+00:00",
+      "finished_at_utc": "2026-04-15T21:24:19.282389+00:00",
+      "duration_seconds": 3.56
     }
   ],
   "note": "Daily maintenance refreshes model packs and regime movement models between heavy weekend recalibration cycles."

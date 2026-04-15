@@ -6,11 +6,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import pandas as pd
 from alpaca.trading.enums import AssetClass
 
 from core.broker_client import BrokerClient
+from core.execution import buy_straddles
 from core.execution_ledger import load_execution_feedback, reconcile_recent_order_fills
-from core.manager import manage_open_spreads
+from core.manager import manage_open_spreads, release_cash_from_sweep
 from core.order_monitor import ExecutionPricingSnapshot, MonitoredOrderLeg, monitor_multileg_order
 from core.runtime_env import apply_accelerator_policy, host_has_nvidia_device
 from core.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioRiskSnapshot, PortfolioTradeLeg
@@ -61,11 +63,8 @@ class _MonitorBrokerClient:
 
 
 class _ManagerTradeClient:
-    def get_orders(self, filter=None):
-        return []
-
-    def get_all_positions(self):
-        return [
+    def __init__(self, positions=None, account=None):
+        self._positions = list(positions) if positions is not None else [
             SimpleNamespace(
                 symbol="SGOV",
                 asset_class=AssetClass.US_EQUITY,
@@ -74,9 +73,7 @@ class _ManagerTradeClient:
                 unrealized_pl="1.25",
             )
         ]
-
-    def get_account(self):
-        return SimpleNamespace(
+        self._account = account or SimpleNamespace(
             equity="10050",
             last_equity="10000",
             buying_power="8000",
@@ -84,10 +81,48 @@ class _ManagerTradeClient:
             portfolio_value="10050",
         )
 
+    def get_orders(self, filter=None):
+        return []
+
+    def get_all_positions(self):
+        return list(self._positions)
+
+    def get_account(self):
+        return self._account
+
 
 class _ManagerBrokerClient:
+    def __init__(self, positions=None, account=None, prices=None):
+        self.trade_client = _ManagerTradeClient(positions=positions, account=account)
+        self.prices = {"SGOV": 100.0}
+        self.prices.update(prices or {})
+        self.sell_orders = []
+
+    def get_stock_latest_trade(self, symbol):
+        return {symbol: SimpleNamespace(price=float(self.prices[symbol]))}
+
+    def market_sell(self, symbol, qty=1, order_label=None):
+        self.sell_orders.append((symbol, qty, order_label))
+        return SimpleNamespace(id=f"sell-{symbol}", symbol=symbol, qty=qty)
+
+
+class _StraddleBrokerClient:
     def __init__(self):
-        self.trade_client = _ManagerTradeClient()
+        self.call_symbol = "AAPL260515C00100000"
+        self.put_symbol = "AAPL260515P00100000"
+        self.debit_orders = []
+
+    def get_options_contracts(self, _symbols, contract_type, min_days=1, max_days=60):
+        if contract_type == "call":
+            return [SimpleNamespace(symbol=self.call_symbol)]
+        return [SimpleNamespace(symbol=self.put_symbol)]
+
+    def get_option_snapshot(self, _symbols):
+        return {}
+
+    def execute_debit_spread(self, call_symbol, put_symbol, limit_price, qty=1):
+        self.debit_orders.append((call_symbol, put_symbol, float(limit_price), qty))
+        return SimpleNamespace(id="debit-1")
 
 
 def _build_close_series(start_price, pattern, length=120):
@@ -204,6 +239,84 @@ class RuntimeHardeningTests(unittest.TestCase):
 
         self.assertEqual(len(holding_status), 1)
         self.assertIn("SGOV [SHARES]", holding_status[0])
+
+    @patch("core.manager.send_alert")
+    def test_release_cash_from_sweep_sells_only_needed_shares(self, _mock_alert):
+        broker = _ManagerBrokerClient(
+            account=SimpleNamespace(
+                equity="10050",
+                last_equity="10000",
+                buying_power="8000",
+                cash="925",
+                portfolio_value="10050",
+            )
+        )
+
+        released = release_cash_from_sweep(broker, required_cash=250.0, reason="test funding")
+
+        self.assertEqual(released, 400.0)
+        self.assertEqual(len(broker.sell_orders), 1)
+        self.assertEqual(broker.sell_orders[0][0], "SGOV")
+        self.assertEqual(broker.sell_orders[0][1], 4)
+        self.assertIn("test funding", broker.sell_orders[0][2])
+
+    @patch("core.manager.send_alert")
+    def test_manage_open_spreads_releases_sgov_when_cash_buffer_short(self, _mock_alert):
+        broker = _ManagerBrokerClient(
+            account=SimpleNamespace(
+                equity="10050",
+                last_equity="10000",
+                buying_power="8000",
+                cash="700",
+                portfolio_value="10050",
+            )
+        )
+
+        manage_open_spreads(broker)
+
+        self.assertEqual(len(broker.sell_orders), 1)
+        self.assertEqual(broker.sell_orders[0][0], "SGOV")
+        self.assertEqual(broker.sell_orders[0][1], 3)
+
+    @patch("core.execution.send_alert")
+    @patch("core.execution.release_cash_from_sweep")
+    @patch("core.execution.effective_mid_price", return_value=1.90)
+    @patch("core.execution.effective_bid_price", return_value=1.80)
+    @patch("core.execution.effective_ask_price", return_value=2.00)
+    @patch(
+        "core.execution.build_delay_adjusted_contracts",
+        return_value=[
+            SimpleNamespace(symbol="AAPL260515C00100000", pricing_confidence=0.95),
+            SimpleNamespace(symbol="AAPL260515P00100000", pricing_confidence=0.95),
+        ],
+    )
+    @patch("yfinance.Ticker")
+    def test_buy_straddles_releases_sgov_cash_before_debit_entry(
+        self,
+        mock_ticker,
+        _mock_priced_contracts,
+        _mock_ask,
+        _mock_bid,
+        _mock_mid,
+        mock_release_cash,
+        _mock_alert,
+    ):
+        mock_ticker.return_value.history.return_value = pd.DataFrame({"Close": [100.0]})
+        broker = _StraddleBrokerClient()
+
+        buying_power = buy_straddles(
+            client=broker,
+            symbols_list=["AAPL"],
+            buying_power=500.0,
+            max_risk_limit=1000.0,
+        )
+
+        self.assertEqual(buying_power, 100.0)
+        mock_release_cash.assert_called_once_with(broker, required_cash=400.0, reason="Vega straddle AAPL")
+        self.assertEqual(
+            broker.debit_orders,
+            [("AAPL260515C00100000", "AAPL260515P00100000", 4.0, 1)],
+        )
 
     @patch("core.order_monitor.send_alert")
     def test_order_monitor_reprices_then_marks_fill(self, _mock_alert):
