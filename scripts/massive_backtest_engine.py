@@ -70,7 +70,8 @@ def annual_to_daily(annual_return: float) -> float:
 
 
 def safe_mean(values):
-    return float(sum(values) / len(values)) if values else 0.0
+    clean = [float(value) for value in values if value is not None and np.isfinite(value)]
+    return float(sum(clean) / len(clean)) if clean else 0.0
 
 
 def _bootstrap_mean_ci(values, *, n_bootstrap: int = 300, seed: int = 42) -> dict:
@@ -115,35 +116,210 @@ def _window_metric_summary(metric_map: dict[str, float], *, threshold: float) ->
     }
 
 
+def _safe_float_or_none(value) -> float | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if np.isfinite(numeric) else None
+
+
+def _extract_valid_metric_windows(
+    rows_by_lookback: dict | None,
+    *,
+    metric_key: str,
+    min_count_key: str | None = None,
+    min_count: float = 1.0,
+) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for lookback, row in (rows_by_lookback or {}).items():
+        if not isinstance(row, dict):
+            continue
+        if "error" in row:
+            continue
+        summary = row.get("summary", row)
+        if not isinstance(summary, dict):
+            continue
+        if min_count_key is not None:
+            count = _safe_float_or_none(summary.get(min_count_key, 0.0)) or 0.0
+            if count < float(min_count):
+                continue
+        numeric = _safe_float_or_none(summary.get(metric_key))
+        if numeric is None:
+            continue
+        out[str(lookback)] = numeric
+    return out
+
+
+def _extract_movement_window_scores(report: dict) -> dict[str, float]:
+    movement_summary = (report.get("movement_suite") or {}).get("summary") or {}
+    return _extract_valid_metric_windows(
+        movement_summary.get("by_lookback"),
+        metric_key="avg_accuracy",
+        min_count_key="valid_runs",
+        min_count=1,
+    )
+
+
+def _extract_pairs_window_scores(report: dict) -> dict[str, float]:
+    return _extract_valid_metric_windows(
+        (report.get("pairs_suite") or {}).get("results_by_lookback"),
+        metric_key="win_rate",
+        min_count_key="pairs_evaluated",
+        min_count=1,
+    )
+
+
+def _extract_regime_window_scores(report: dict) -> dict[str, float]:
+    return _extract_valid_metric_windows(
+        (report.get("regime_suite") or {}).get("results_by_lookback"),
+        metric_key="directional_accuracy_proxy",
+        min_count_key="n_samples",
+        min_count=120,
+    )
+
+
+def _extract_strategy_window_scores(report: dict) -> tuple[str, dict[str, float]]:
+    strategy_profiles = (report.get("strategy_profile_suite") or {}).get("results_by_lookback") or {}
+    profile_scores: dict[str, float] = {}
+    for lookback, result in strategy_profiles.items():
+        if not isinstance(result, dict) or "error" in result:
+            continue
+        summary = result.get("summary") or {}
+        if (_safe_float_or_none(summary.get("samples")) or 0.0) < 1:
+            continue
+        current_state = summary.get("current_state_best_profile") or {}
+        best_overall = summary.get("best_profile_overall") or {}
+        numeric = _safe_float_or_none(current_state.get("score"))
+        if numeric is None:
+            numeric = _safe_float_or_none(best_overall.get("score"))
+        if numeric is None:
+            continue
+        profile_scores[str(lookback)] = numeric
+    if profile_scores:
+        return "strategy_profile", profile_scores
+
+    proxy_scores = _extract_valid_metric_windows(
+        (report.get("strategy_proxy_suite") or {}).get("results_by_lookback"),
+        metric_key="overall_hit_rate",
+        min_count_key="samples",
+        min_count=400,
+    )
+    return "strategy_proxy", proxy_scores
+
+
+def _infer_total_windows(report: dict, *window_maps: dict[str, float]) -> int:
+    configured = (report.get("config") or {}).get("lookbacks") or []
+    if configured:
+        return max(1, len(configured))
+    discovered = [len(metric_map) for metric_map in window_maps if metric_map]
+    return max([1, *discovered])
+
+
+def _window_coverage(valid_windows: int, total_windows: int) -> float:
+    return clamp(valid_windows / max(total_windows, 1), 0.0, 1.0)
+
+
+def _option_signal_score(report: dict, overview: dict) -> float:
+    delay_summary = (report.get("delay_quote_suite") or {}).get("summary") or {}
+    put_summary = delay_summary.get("puts") or {}
+    call_summary = delay_summary.get("calls") or {}
+    short_win_rate = safe_mean(
+        [
+            _safe_float_or_none(put_summary.get("delay_filtered_win_rate")),
+            _safe_float_or_none(call_summary.get("delay_filtered_win_rate")),
+        ]
+    )
+    if short_win_rate <= 0:
+        short_win_rate = safe_mean(
+            [
+                _safe_float_or_none(overview.get("delay_filtered_put_win_rate")),
+                _safe_float_or_none(overview.get("delay_filtered_call_win_rate")),
+            ]
+        )
+
+    ensemble_summary = (((report.get("option_model_suite") or {}).get("summary") or {}).get("models") or {}).get("ensemble") or {}
+    long_win_rate = _safe_float_or_none(ensemble_summary.get("long_win_rate"))
+    if long_win_rate is None:
+        long_win_rate = _safe_float_or_none(overview.get("option_model_ensemble_win_rate")) or 0.0
+
+    edge_pct = _safe_float_or_none(ensemble_summary.get("avg_edge_pct"))
+    if edge_pct is None:
+        edge_pct = _safe_float_or_none(overview.get("option_model_ensemble_edge_pct")) or 0.0
+    edge_score = clamp(0.50 + (edge_pct * 3.0), 0.0, 1.0)
+
+    return clamp((0.55 * short_win_rate) + (0.25 * long_win_rate) + (0.20 * edge_score), 0.0, 1.0)
+
+
+def _alpha_signal_score(report: dict, overview: dict) -> float:
+    ml_summary = (report.get("ml_alpha_suite") or {}).get("summary") or {}
+    info_coeff = _safe_float_or_none(ml_summary.get("avg_information_coefficient"))
+    if info_coeff is None:
+        info_coeff = _safe_float_or_none(overview.get("ml_alpha_information_coefficient")) or 0.0
+    long_only_summary = ml_summary.get("long_only") or {}
+    long_only_sharpe = _safe_float_or_none(long_only_summary.get("sharpe_ratio"))
+    if long_only_sharpe is None:
+        long_only_sharpe = _safe_float_or_none(overview.get("ml_alpha_long_only_sharpe")) or 0.0
+    return clamp(0.45 + (info_coeff * 6.0) + (long_only_sharpe * 0.08), 0.0, 1.0)
+
+
+def _methodology_score(report: dict, *, total_windows: int, windows: dict[str, dict]) -> tuple[float, dict[str, float]]:
+    delay_summary = (report.get("delay_quote_suite") or {}).get("summary") or {}
+    delay_puts = delay_summary.get("puts") or {}
+    delay_calls = delay_summary.get("calls") or {}
+    avg_delay_samples = safe_mean(
+        [
+            _safe_float_or_none(delay_puts.get("delay_filtered_samples")),
+            _safe_float_or_none(delay_calls.get("delay_filtered_samples")),
+        ]
+    )
+    delay_sample_score = clamp(avg_delay_samples / 5000.0, 0.0, 1.0)
+
+    ensemble_summary = (((report.get("option_model_suite") or {}).get("summary") or {}).get("models") or {}).get("ensemble") or {}
+    option_signal_density = clamp(
+        (_safe_float_or_none(ensemble_summary.get("avg_signals_per_symbol")) or 0.0) / 100.0,
+        0.0,
+        1.0,
+    )
+
+    ml_summary = (report.get("ml_alpha_suite") or {}).get("summary") or {}
+    alpha_horizon_score = clamp((_safe_float_or_none(ml_summary.get("months_tested")) or 0.0) / 36.0, 0.0, 1.0)
+
+    coverage = {
+        "movement_coverage": _window_coverage(windows["movement"]["valid_windows"], total_windows),
+        "pairs_coverage": _window_coverage(windows["pairs"]["valid_windows"], total_windows),
+        "regime_coverage": _window_coverage(windows["regime"]["valid_windows"], total_windows),
+        "strategy_coverage": _window_coverage(windows["strategy"]["valid_windows"], total_windows),
+        "delay_sample_depth": delay_sample_score,
+        "option_signal_depth": option_signal_density,
+        "alpha_horizon_depth": alpha_horizon_score,
+    }
+    methodology_score = safe_mean(list(coverage.values()))
+    return methodology_score, coverage
+
+
 def _build_institutional_robustness(report: dict) -> dict:
     overview = report.get("massive_overview") or {}
-    movement_by_lookback = {
-        str(lookback): float(summary.get("avg_accuracy", 0.0))
-        for lookback, summary in ((report.get("movement_suite") or {}).get("summary") or {}).get("by_lookback", {}).items()
-    }
-    pairs_by_lookback = {
-        str(lookback): float((result.get("summary") or {}).get("win_rate", 0.0))
-        for lookback, result in ((report.get("pairs_suite") or {}).get("results_by_lookback") or {}).items()
-        if isinstance(result, dict) and "error" not in result
-    }
-    regime_by_lookback = {
-        str(lookback): float(summary.get("directional_accuracy_proxy", 0.0))
-        for lookback, summary in ((report.get("regime_suite") or {}).get("summary") or {}).get("by_lookback", {}).items()
-    }
-    strategy_by_lookback = {
-        str(lookback): float((result.get("summary") or {}).get("overall_hit_rate", 0.0))
-        for lookback, result in ((report.get("strategy_proxy_suite") or {}).get("results_by_lookback") or {}).items()
-        if isinstance(result, dict) and "error" not in result
-    }
+    movement_by_lookback = _extract_movement_window_scores(report)
+    pairs_by_lookback = _extract_pairs_window_scores(report)
+    regime_by_lookback = _extract_regime_window_scores(report)
+    strategy_label, strategy_by_lookback = _extract_strategy_window_scores(report)
+    total_windows = _infer_total_windows(
+        report,
+        movement_by_lookback,
+        pairs_by_lookback,
+        regime_by_lookback,
+        strategy_by_lookback,
+    )
 
-    movement_summary = _window_metric_summary(movement_by_lookback, threshold=0.52)
+    movement_summary = _window_metric_summary(movement_by_lookback, threshold=0.505)
     pairs_summary = _window_metric_summary(pairs_by_lookback, threshold=0.52)
-    regime_summary = _window_metric_summary(regime_by_lookback, threshold=0.52)
-    strategy_summary = _window_metric_summary(strategy_by_lookback, threshold=0.51)
+    regime_summary = _window_metric_summary(regime_by_lookback, threshold=0.505)
+    strategy_summary = _window_metric_summary(strategy_by_lookback, threshold=0.58 if strategy_label == "strategy_profile" else 0.51)
 
-    avg_quote_error = float(overview.get("avg_recent_quote_error_pct", 0.0))
-    option_win_rate = float(overview.get("option_model_ensemble_win_rate", 0.0))
-    ml_alpha_ic = float(overview.get("ml_alpha_information_coefficient", 0.0))
+    avg_quote_error = _safe_float_or_none(overview.get("avg_recent_quote_error_pct")) or 0.0
+    option_score = _option_signal_score(report, overview)
+    alpha_score = _alpha_signal_score(report, overview)
 
     breadth_score = safe_mean(
         [
@@ -162,15 +338,24 @@ def _build_institutional_robustness(report: dict) -> dict:
         ]
     )
     execution_score = clamp(1.0 - (avg_quote_error * 8.0), 0.0, 1.0)
-    alpha_score = clamp(0.5 + (ml_alpha_ic * 8.0), 0.0, 1.0)
-    option_score = clamp(option_win_rate, 0.0, 1.0)
+    methodology_score, methodology_breakdown = _methodology_score(
+        report,
+        total_windows=total_windows,
+        windows={
+            "movement": movement_summary,
+            "pairs": pairs_summary,
+            "regime": regime_summary,
+            "strategy": strategy_summary,
+        },
+    )
 
     institutional_score = round(
         (
-            0.28 * float(overview.get("predictive_score", 0.0))
-            + 0.22 * breadth_score
-            + 0.20 * stability_score
-            + 0.15 * execution_score
+            0.24 * float(overview.get("predictive_score", 0.0))
+            + 0.18 * breadth_score
+            + 0.17 * stability_score
+            + 0.14 * execution_score
+            + 0.12 * methodology_score
             + 0.10 * option_score
             + 0.05 * alpha_score
         ),
@@ -178,17 +363,27 @@ def _build_institutional_robustness(report: dict) -> dict:
     )
 
     gates = {
-        "predictive_score": bool(float(overview.get("predictive_score", 0.0)) >= 0.58),
-        "movement_breadth": bool(movement_summary["pass_rate"] >= 0.40),
-        "regime_breadth": bool(regime_summary["pass_rate"] >= 0.50),
-        "strategy_breadth": bool(strategy_summary["pass_rate"] >= 0.40),
+        "predictive_score": bool(float(overview.get("predictive_score", 0.0)) >= 0.54),
+        "movement_breadth": bool(movement_summary["pass_rate"] >= 0.50),
+        "pairs_breadth": bool(pairs_summary["pass_rate"] >= 0.50),
+        "regime_breadth": bool(regime_summary["pass_rate"] >= 0.60),
+        "strategy_breadth": bool(strategy_summary["pass_rate"] >= 0.67),
         "execution_quality": bool(avg_quote_error <= 0.08),
-        "option_quality": bool(option_win_rate >= 0.52),
+        "option_quality": bool(option_score >= 0.55),
+        "evidence_quality": bool(methodology_score >= 0.75),
     }
 
-    if institutional_score >= 0.70 and all(gates.values()):
+    passed_gates = sum(1 for value in gates.values() if value)
+    critical_gates = (
+        gates["predictive_score"]
+        and gates["strategy_breadth"]
+        and gates["execution_quality"]
+        and gates["evidence_quality"]
+    )
+
+    if institutional_score >= 0.69 and critical_gates and passed_gates >= 6:
         deployment_tier = "institutional_candidate"
-    elif institutional_score >= 0.58 and sum(1 for value in gates.values() if value) >= 4:
+    elif institutional_score >= 0.58 and passed_gates >= 4:
         deployment_tier = "paper_candidate"
     else:
         deployment_tier = "research_only"
@@ -199,16 +394,18 @@ def _build_institutional_robustness(report: dict) -> dict:
         "breadth_score": round(breadth_score, 6),
         "stability_score": round(stability_score, 6),
         "execution_quality_score": round(execution_score, 6),
+        "methodology_score": round(methodology_score, 6),
         "option_quality_score": round(option_score, 6),
         "alpha_quality_score": round(alpha_score, 6),
         "gates": gates,
+        "evidence": methodology_breakdown,
         "windows": {
             "movement": movement_summary,
             "pairs": pairs_summary,
             "regime": regime_summary,
-            "strategy_proxy": strategy_summary,
+            strategy_label: strategy_summary,
         },
-        "note": "Institutional robustness score emphasizes breadth, stability, and execution realism. It is a deployment filter, not a profit guarantee.",
+        "note": "Institutional robustness emphasizes valid-window breadth, stability, execution realism, and evidence depth. It is a deployment filter, not a profit guarantee.",
     }
 
 
@@ -1311,6 +1508,7 @@ def main():
             ]
         ),
         "ml_alpha_information_coefficient": ml_alpha.get("summary", {}).get("avg_information_coefficient", 0.0),
+        "ml_alpha_long_only_sharpe": ml_alpha.get("summary", {}).get("long_only", {}).get("sharpe_ratio", 0.0),
         "ml_alpha_long_short_sharpe": ml_alpha.get("summary", {}).get("long_short", {}).get("sharpe_ratio", 0.0),
         "consensus_market_state": strategy_profiles.get("summary", {}).get("consensus_state"),
         "consensus_strategy_profile": strategy_profiles.get("summary", {}).get("consensus_profile"),
@@ -1322,11 +1520,12 @@ def main():
             lookback: result.get("summary", {}).get("current_market_state")
             for lookback, result in strategy_profiles.get("results_by_lookback", {}).items()
         },
-        "note": "Proxy framework focuses on predictive quality. Delay quote analysis and option model suite are theoretical options studies, not full broker-fill backtests.",
+        "note": "Framework emphasizes walk-forward predictive quality, state-conditioned strategy routing, and delay-aware execution realism. It is still a deployment filter rather than an exact broker-fill simulator.",
     }
     report["institutional_robustness"] = _build_institutional_robustness(report)
     report["massive_overview"]["institutional_score"] = report["institutional_robustness"]["institutional_score"]
     report["massive_overview"]["deployment_tier"] = report["institutional_robustness"]["deployment_tier"]
+    report["massive_overview"]["methodology_score"] = report["institutional_robustness"]["methodology_score"]
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

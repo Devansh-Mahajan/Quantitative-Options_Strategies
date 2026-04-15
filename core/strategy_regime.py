@@ -148,6 +148,94 @@ STRATEGY_PROFILES = {
         "vega_enabled": True,
         "directional_enabled": True,
     },
+    "trend_acceleration": {
+        "label": "Trend Acceleration",
+        "thesis": "Lean harder into directional books when trend conviction is high and breadth is supportive.",
+        "bucket_weights": {"THETA": 0.42, "VEGA": 0.72, "BULL": 1.42, "BEAR": 1.42},
+        "risk_bias": 1.04,
+        "deployment_bias": 1.07,
+        "trade_intensity_bias": 1.10,
+        "dynamic_top_k": 15,
+        "predictor_universe_cap": 26,
+        "mega_confidence_threshold": 73.0,
+        "min_signal_confidence": 0.16,
+        "max_symbol_weight": 0.08,
+        "min_vix_for_directional_credit": 16.0,
+        "max_vix_for_short_premium": 25.0,
+        "theta_enabled": True,
+        "vega_enabled": True,
+        "directional_enabled": True,
+    },
+    "defensive_carry": {
+        "label": "Defensive Carry",
+        "thesis": "Harvest measured theta while keeping hedges and bearish convexity ready in fragile tapes.",
+        "bucket_weights": {"THETA": 1.18, "VEGA": 0.84, "BULL": 0.42, "BEAR": 0.96},
+        "risk_bias": 0.82,
+        "deployment_bias": 0.84,
+        "trade_intensity_bias": 0.86,
+        "dynamic_top_k": 10,
+        "predictor_universe_cap": 18,
+        "mega_confidence_threshold": 78.0,
+        "min_signal_confidence": 0.20,
+        "max_symbol_weight": 0.06,
+        "min_vix_for_directional_credit": 17.0,
+        "max_vix_for_short_premium": 20.0,
+        "theta_enabled": True,
+        "vega_enabled": True,
+        "directional_enabled": True,
+    },
+    "volatility_rotation": {
+        "label": "Volatility Rotation",
+        "thesis": "Rotate toward convexity and faster directional books as volatility regimes transition.",
+        "bucket_weights": {"THETA": 0.28, "VEGA": 1.42, "BULL": 0.96, "BEAR": 0.96},
+        "risk_bias": 0.88,
+        "deployment_bias": 0.93,
+        "trade_intensity_bias": 0.98,
+        "dynamic_top_k": 12,
+        "predictor_universe_cap": 24,
+        "mega_confidence_threshold": 77.0,
+        "min_signal_confidence": 0.20,
+        "max_symbol_weight": 0.07,
+        "min_vix_for_directional_credit": 18.0,
+        "max_vix_for_short_premium": 20.0,
+        "theta_enabled": True,
+        "vega_enabled": True,
+        "directional_enabled": True,
+    },
+    "crash_reversal": {
+        "label": "Crash Reversal",
+        "thesis": "Keep convexity on but allow selective bullish rebound exposure when panic becomes one-sided.",
+        "bucket_weights": {"THETA": 0.05, "VEGA": 1.32, "BULL": 1.08, "BEAR": 0.46},
+        "risk_bias": 0.68,
+        "deployment_bias": 0.74,
+        "trade_intensity_bias": 0.72,
+        "dynamic_top_k": 9,
+        "predictor_universe_cap": 16,
+        "mega_confidence_threshold": 81.0,
+        "min_signal_confidence": 0.23,
+        "max_symbol_weight": 0.05,
+        "min_vix_for_directional_credit": 22.0,
+        "max_vix_for_short_premium": 14.0,
+        "theta_enabled": False,
+        "vega_enabled": True,
+        "directional_enabled": True,
+    },
+}
+
+STATE_PROFILE_PRIORS = {
+    "calm_bull": ("trend_acceleration", "bull_trend", "all_weather"),
+    "calm_bear": ("defensive_carry", "bear_trend", "all_weather"),
+    "calm_range": ("theta_harvest", "mean_reversion", "defensive_carry"),
+    "volatile_bull": ("volatility_rotation", "trend_acceleration", "long_vol_breakout"),
+    "volatile_bear": ("defensive_carry", "bear_trend", "panic_hedge"),
+    "panic": ("panic_hedge", "crash_reversal", "defensive_carry"),
+    "transition": ("all_weather", "volatility_rotation", "defensive_carry"),
+}
+
+MACRO_STRATEGY_TO_STATE_HINT = {
+    "THETA_ENGINE": "calm_range",
+    "VEGA_SNIPER": "volatile_bull",
+    "TAIL_HEDGE": "panic",
 }
 
 MACRO_REGIME_TO_STATE = {
@@ -198,6 +286,134 @@ def macro_regime_to_market_state(regime_label: str | None, fallback: str = "tran
     if not regime_label:
         return fallback
     return MACRO_REGIME_TO_STATE.get(str(regime_label).upper(), fallback)
+
+
+def infer_live_market_state(
+    *,
+    vix_level: float,
+    macro_strategy: str | None,
+    movement_bias: str | None,
+    signal_confidence: float,
+    adaptive_profile: Mapping[str, object] | None = None,
+) -> str:
+    vix = float(vix_level)
+    macro = str(macro_strategy or "").upper()
+    bias = str(movement_bias or "neutral").lower()
+    confidence = clamp(signal_confidence)
+    rolling_avg_return = float((adaptive_profile or {}).get("rolling_avg_return_pct", 0.0) or 0.0)
+
+    if macro == "TAIL_HEDGE" or vix >= 36.0:
+        return "panic"
+
+    if macro == "VEGA_SNIPER":
+        if bias == "bearish" or vix >= 27.0:
+            return "volatile_bear"
+        if bias == "bullish":
+            return "volatile_bull"
+        return "transition" if vix < 24.0 else "volatile_bull"
+
+    if bias == "bullish" and confidence >= 0.55 and vix <= 20.0:
+        return "calm_bull"
+    if bias == "bearish" and confidence >= 0.55 and vix <= 22.0:
+        return "calm_bear"
+    if bias == "neutral" and vix <= 18.0:
+        return "calm_range"
+
+    if vix >= 28.0:
+        if bias == "bearish" or rolling_avg_return <= -0.30:
+            return "volatile_bear"
+        return "volatile_bull"
+
+    if rolling_avg_return <= -0.45 and bias != "bullish":
+        return "volatile_bear"
+    if rolling_avg_return >= 0.45 and bias == "bullish":
+        return "calm_bull"
+
+    state_hint = MACRO_STRATEGY_TO_STATE_HINT.get(macro)
+    if state_hint:
+        return state_hint
+    return "transition"
+
+
+def select_strategy_profile(
+    *,
+    market_state: str,
+    macro_strategy: str | None,
+    movement_bias: str | None,
+    signal_confidence: float,
+    vix_level: float,
+) -> str:
+    state = str(market_state or "transition")
+    macro = str(macro_strategy or "").upper()
+    bias = str(movement_bias or "neutral").lower()
+    confidence = clamp(signal_confidence)
+    vix = float(vix_level)
+
+    if macro == "TAIL_HEDGE":
+        if bias == "bullish" and confidence >= 0.68 and vix < 45.0:
+            return "crash_reversal"
+        return "panic_hedge"
+
+    if macro == "VEGA_SNIPER":
+        if state == "panic" and bias == "bullish" and confidence >= 0.66:
+            return "crash_reversal"
+        if state in {"volatile_bull", "volatile_bear", "transition"}:
+            return "volatility_rotation"
+        return "long_vol_breakout"
+
+    if bias == "bullish" and confidence >= 0.64:
+        if state in {"calm_bull", "volatile_bull", "transition"}:
+            return "trend_acceleration"
+        return "bull_trend"
+
+    if bias == "bearish" and confidence >= 0.62:
+        if state in {"volatile_bear", "panic"}:
+            return "defensive_carry"
+        return "bear_trend"
+
+    priors = STATE_PROFILE_PRIORS.get(state, ("all_weather",))
+    return priors[0] if priors else "all_weather"
+
+
+def synthesize_live_controls(
+    *,
+    macro_strategy: str | None,
+    movement_bias: str | None,
+    signal_confidence: float,
+    macro_confidence: float,
+    vix_level: float,
+    adaptive_profile: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    predictive_score = clamp((0.55 * clamp(signal_confidence)) + (0.45 * clamp(macro_confidence)))
+    market_state = infer_live_market_state(
+        vix_level=vix_level,
+        macro_strategy=macro_strategy,
+        movement_bias=movement_bias,
+        signal_confidence=signal_confidence,
+        adaptive_profile=adaptive_profile,
+    )
+    profile_name = select_strategy_profile(
+        market_state=market_state,
+        macro_strategy=macro_strategy,
+        movement_bias=movement_bias,
+        signal_confidence=signal_confidence,
+        vix_level=vix_level,
+    )
+    controls = build_live_controls(
+        profile_name=profile_name,
+        market_state=market_state,
+        predictive_score=predictive_score,
+        state_confidence=clamp(macro_confidence),
+        adaptive_profile=adaptive_profile,
+    )
+    controls["control_source"] = "synthetic_live_policy"
+    controls["macro_strategy"] = str(macro_strategy or "")
+    controls["movement_bias"] = str(movement_bias or "neutral")
+    controls["predictive_score"] = round(predictive_score, 4)
+    controls["macro_confidence"] = round(clamp(macro_confidence), 4)
+    controls["signal_confidence"] = round(clamp(signal_confidence), 4)
+    controls["vix_level"] = round(float(vix_level), 4)
+    return controls
 
 
 def profile_bucket_weights(profile_name: str) -> dict[str, float]:

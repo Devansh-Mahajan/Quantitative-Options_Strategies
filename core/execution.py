@@ -613,10 +613,11 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
                 if result.filled:
                     fill_ratio = 1.0
                 if fill_ratio > 0.0:
-                    budget_remaining -= (estimated_cost * fill_ratio)
+                    realized_leg_cost = abs(float(result.filled_avg_price or candidate.ask_price)) * 100.0
+                    budget_remaining -= (realized_leg_cost * fill_ratio)
                     trades_placed += 1
                 logger.info(
-                    "🎲 Cornwall %s selected | %s | score=%.2f | edge=%.3f | fat_tail=%.2f%% | p99=%.2fx premium | dte=%d | strike_gap=%.1f%%",
+                    "🎲 Cornwall %s selected | %s | score=%.2f | edge=%.3f | fat_tail=%.2f%% | p99=%.2fx premium | dte=%d | strike_gap=%.1f%% | fill=%s | exec=%s",
                     candidate.option_type.upper(),
                     candidate.symbol,
                     candidate.score,
@@ -625,14 +626,18 @@ def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
                     candidate.analytics.tail_payoff_multiple,
                     candidate.dte,
                     candidate.strike_distance_pct * 100.0,
+                    f"{result.filled_avg_price:+.2f}" if result.filled_avg_price is not None else "n/a",
+                    result.execution_quality_tier or "n/a",
                 )
                 send_alert(
                     f"🎲 **NEW TRADE: Cornwall {candidate.option_type.title()}**\n"
                     f"**Bought:** {candidate.symbol}\n"
                     f"**Target Debit:** ${candidate.ask_price*100:.2f}\n"
+                    f"**Fill Avg:** `{result.filled_avg_price}`\n"
                     f"**Model Edge:** ${candidate.analytics.model_edge*100:.2f}\n"
                     f"**Fat-Tail Prob:** {candidate.analytics.fat_tail_probability*100:.1f}%\n"
                     f"**P99 Payoff:** {candidate.analytics.tail_payoff_multiple:.1f}x premium\n"
+                    f"**Execution Tier:** {result.execution_quality_tier or 'n/a'}\n"
                     f"**Order Status:** {result.final_status}",
                     "INFO",
                 )

@@ -4,6 +4,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass
+from datetime import timezone
 from types import SimpleNamespace
 from typing import Callable
 
@@ -21,6 +22,8 @@ from config.params import (
     ORDER_MONITOR_VAR_HORIZON_DAYS,
     OPTION_PRICING_RISK_FREE_RATE,
 )
+from core.execution_ledger import load_execution_feedback, record_monitored_order
+from core.execution_quality import assess_execution_quality
 from core.delay_aware_options import (
     build_delay_adjusted_contracts,
     effective_ask_price,
@@ -88,6 +91,83 @@ class MonitoredOrderResult:
     mc_expected_price: float | None = None
     mc_var_95: float | None = None
     mc_cvar_95: float | None = None
+    filled_avg_price: float | None = None
+    submitted_at: str | None = None
+    updated_at: str | None = None
+    filled_at: str | None = None
+    fill_source: str | None = None
+    broker_fill_observed: bool = False
+    limit_edge_bps: float | None = None
+    reference_edge_bps: float | None = None
+    execution_quality_score: float | None = None
+    execution_quality_tier: str | None = None
+
+
+def _safe_float(value) -> float | None:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_timestamp(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if hasattr(value, "tzinfo"):
+        dt = value
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
+def _normalize_fill_price(fill_price: float | None, *, current_limit: float, is_credit: bool) -> float | None:
+    price = _safe_float(fill_price)
+    if price is None:
+        return None
+    if is_credit or current_limit < 0:
+        return -abs(price)
+    return abs(price)
+
+
+def _build_quality_payload(
+    *,
+    order,
+    current_limit: float,
+    is_credit: bool,
+    pricing_snapshot: ExecutionPricingSnapshot | None,
+    filled_qty: float,
+    order_qty: float,
+):
+    fill_price = _normalize_fill_price(
+        getattr(order, "filled_avg_price", None),
+        current_limit=current_limit,
+        is_credit=is_credit,
+    )
+    fill_ratio = 1.0 if _status_text(getattr(order, "status", None)) in FILLED_ORDER_STATUSES else 0.0
+    if fill_ratio <= 0.0:
+        if order_qty > 0:
+            fill_ratio = max(0.0, min(1.0, filled_qty / order_qty))
+        elif filled_qty > 0.0:
+            fill_ratio = 1.0
+
+    assessment = assess_execution_quality(
+        fill_price=fill_price,
+        limit_price=current_limit,
+        reference_price=getattr(pricing_snapshot, "fair_price", None),
+        pricing_confidence=getattr(pricing_snapshot, "pricing_confidence", None),
+        staleness_pct=getattr(pricing_snapshot, "staleness_pct", None),
+        is_credit=is_credit,
+        fill_ratio=fill_ratio,
+        broker_fill_observed=fill_price is not None,
+    )
+    return fill_price, assessment
 
 
 def build_execution_pricing_snapshot(
@@ -200,6 +280,8 @@ def suggest_repriced_limit(
         target_abs = max(natural_abs, preferred_abs)
     else:
         progress = min(1.0, float(attempt_number) * float(ORDER_MONITOR_REPRICE_FRACTION))
+        feedback = load_execution_feedback()
+        progress = min(1.0, progress * float(feedback.get("adaptive_reprice_factor", 1.0) or 1.0))
         confidence = max(0.0, min(1.0, float(snapshot.pricing_confidence)))
         tail_risk_ratio = min(1.0, float(snapshot.mc_cvar_95 or 0.0) / max(preferred_abs, 0.01))
 
@@ -246,6 +328,7 @@ def monitor_multileg_order(
     max_reprices: int = ORDER_MONITOR_MAX_REPRICES,
     snapshot_builder: Callable[..., ExecutionPricingSnapshot | None] = build_execution_pricing_snapshot,
     limit_reprice_func: Callable[[ExecutionPricingSnapshot | None, float, int, bool], float | None] = suggest_repriced_limit,
+    execution_recorder: Callable[..., dict] | None = record_monitored_order,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> MonitoredOrderResult:
     active_order = order
@@ -259,6 +342,15 @@ def monitor_multileg_order(
     if not ORDER_MONITOR_ENABLED:
         status = _status_text(getattr(order, "status", None))
         filled_qty = float(getattr(order, "filled_qty", 0.0) or 0.0)
+        order_qty = float(getattr(order, "qty", 0.0) or 0.0)
+        fill_price, assessment = _build_quality_payload(
+            order=order,
+            current_limit=current_limit,
+            is_credit=is_credit,
+            pricing_snapshot=None,
+            filled_qty=filled_qty,
+            order_qty=order_qty,
+        )
         return MonitoredOrderResult(
             order_id=active_order_id,
             final_status=status,
@@ -267,6 +359,16 @@ def monitor_multileg_order(
             reprices=0,
             filled=status in FILLED_ORDER_STATUSES,
             partial_fill=filled_qty > 0 and status not in FILLED_ORDER_STATUSES,
+            filled_avg_price=fill_price,
+            submitted_at=_normalize_timestamp(getattr(order, "submitted_at", None)),
+            updated_at=_normalize_timestamp(getattr(order, "updated_at", None)),
+            filled_at=_normalize_timestamp(getattr(order, "filled_at", None)),
+            fill_source=assessment.fill_source,
+            broker_fill_observed=assessment.broker_fill_observed,
+            limit_edge_bps=assessment.limit_edge_bps,
+            reference_edge_bps=assessment.reference_edge_bps,
+            execution_quality_score=assessment.score,
+            execution_quality_tier=assessment.tier,
         )
 
     logger.info(
@@ -298,8 +400,18 @@ def monitor_multileg_order(
             last_filled_qty = filled_qty
 
         if status in FILLED_ORDER_STATUSES:
+            if last_snapshot is None:
+                last_snapshot = snapshot_builder(client=client, legs=legs)
+            fill_price, assessment = _build_quality_payload(
+                order=active_order,
+                current_limit=current_limit,
+                is_credit=is_credit,
+                pricing_snapshot=last_snapshot,
+                filled_qty=filled_qty,
+                order_qty=order_qty,
+            )
             send_alert(f"✅ **ORDER FILLED**\n{order_label}\nOrder ID: `{active_order_id}`", "SUCCESS")
-            return MonitoredOrderResult(
+            result = MonitoredOrderResult(
                 order_id=active_order_id,
                 final_status=status,
                 filled_qty=filled_qty,
@@ -313,7 +425,27 @@ def monitor_multileg_order(
                 mc_expected_price=getattr(last_snapshot, "mc_expected_price", None),
                 mc_var_95=getattr(last_snapshot, "mc_var_95", None),
                 mc_cvar_95=getattr(last_snapshot, "mc_cvar_95", None),
+                filled_avg_price=fill_price,
+                submitted_at=_normalize_timestamp(getattr(active_order, "submitted_at", None)),
+                updated_at=_normalize_timestamp(getattr(active_order, "updated_at", None)),
+                filled_at=_normalize_timestamp(getattr(active_order, "filled_at", None)),
+                fill_source=assessment.fill_source,
+                broker_fill_observed=assessment.broker_fill_observed,
+                limit_edge_bps=assessment.limit_edge_bps,
+                reference_edge_bps=assessment.reference_edge_bps,
+                execution_quality_score=assessment.score,
+                execution_quality_tier=assessment.tier,
             )
+            if execution_recorder is not None:
+                execution_recorder(
+                    order_label=order_label,
+                    order=active_order,
+                    result=result,
+                    legs=legs,
+                    is_credit=is_credit,
+                    pricing_snapshot=last_snapshot,
+                )
+            return result
 
         if status in TERMINAL_ORDER_STATUSES:
             break
@@ -348,6 +480,9 @@ def monitor_multileg_order(
 
     final_status = _status_text(getattr(active_order, "status", None))
     final_filled_qty = float(getattr(active_order, "filled_qty", 0.0) or 0.0)
+    final_order_qty = float(getattr(active_order, "qty", 0.0) or 0.0)
+    if last_snapshot is None and (final_filled_qty > 0.0 or final_status in OPEN_ORDER_STATUSES):
+        last_snapshot = snapshot_builder(client=client, legs=legs)
 
     if final_status in OPEN_ORDER_STATUSES:
         try:
@@ -361,7 +496,15 @@ def monitor_multileg_order(
         f"Filled qty: `{final_filled_qty}`\nReprices: `{reprices}`",
         "WARNING",
     )
-    return MonitoredOrderResult(
+    fill_price, assessment = _build_quality_payload(
+        order=active_order,
+        current_limit=current_limit,
+        is_credit=is_credit,
+        pricing_snapshot=last_snapshot,
+        filled_qty=final_filled_qty,
+        order_qty=final_order_qty,
+    )
+    result = MonitoredOrderResult(
         order_id=active_order_id,
         final_status=final_status,
         filled_qty=final_filled_qty,
@@ -375,4 +518,24 @@ def monitor_multileg_order(
         mc_expected_price=getattr(last_snapshot, "mc_expected_price", None),
         mc_var_95=getattr(last_snapshot, "mc_var_95", None),
         mc_cvar_95=getattr(last_snapshot, "mc_cvar_95", None),
+        filled_avg_price=fill_price,
+        submitted_at=_normalize_timestamp(getattr(active_order, "submitted_at", None)),
+        updated_at=_normalize_timestamp(getattr(active_order, "updated_at", None)),
+        filled_at=_normalize_timestamp(getattr(active_order, "filled_at", None)),
+        fill_source=assessment.fill_source,
+        broker_fill_observed=assessment.broker_fill_observed,
+        limit_edge_bps=assessment.limit_edge_bps,
+        reference_edge_bps=assessment.reference_edge_bps,
+        execution_quality_score=assessment.score,
+        execution_quality_tier=assessment.tier,
     )
+    if execution_recorder is not None:
+        execution_recorder(
+            order_label=order_label,
+            order=active_order,
+            result=result,
+            legs=legs,
+            is_credit=is_credit,
+            pricing_snapshot=last_snapshot,
+        )
+    return result

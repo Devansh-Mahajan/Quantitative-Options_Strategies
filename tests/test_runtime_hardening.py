@@ -1,11 +1,15 @@
+import json
+import tempfile
 import unittest
 from dataclasses import dataclass
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from alpaca.trading.enums import AssetClass
 
 from core.broker_client import BrokerClient
+from core.execution_ledger import load_execution_feedback, reconcile_recent_order_fills
 from core.manager import manage_open_spreads
 from core.order_monitor import ExecutionPricingSnapshot, MonitoredOrderLeg, monitor_multileg_order
 from core.runtime_env import apply_accelerator_policy, host_has_nvidia_device
@@ -26,6 +30,10 @@ class _FakeOrder:
     limit_price: float
     filled_qty: float = 0.0
     qty: float = 1.0
+    filled_avg_price: float | None = None
+    submitted_at: str | None = None
+    updated_at: str | None = None
+    filled_at: str | None = None
 
 
 class _SequencedTradeClient:
@@ -105,6 +113,14 @@ class _RiskTradeClient:
     def submit_order(self, request):
         self.submitted_orders.append(request)
         return request
+
+
+class _ReconcileTradeClient:
+    def __init__(self, orders):
+        self._orders = list(orders)
+
+    def get_orders(self, filter=None):
+        return list(self._orders)
 
 
 class _RiskBrokerHarness:
@@ -191,11 +207,20 @@ class RuntimeHardeningTests(unittest.TestCase):
 
     @patch("core.order_monitor.send_alert")
     def test_order_monitor_reprices_then_marks_fill(self, _mock_alert):
+        recorded = []
         broker = _MonitorBrokerClient(
             [
                 _FakeOrder(id="ord-1", status="new", limit_price=-1.10, filled_qty=0.0, qty=1.0),
                 _FakeOrder(id="ord-1", status="new", limit_price=-1.10, filled_qty=0.0, qty=1.0),
-                _FakeOrder(id="ord-1", status="filled", limit_price=-1.08, filled_qty=1.0, qty=1.0),
+                _FakeOrder(
+                    id="ord-1",
+                    status="filled",
+                    limit_price=-1.08,
+                    filled_qty=1.0,
+                    qty=1.0,
+                    filled_avg_price=1.07,
+                    filled_at="2026-04-15T10:31:00Z",
+                ),
             ]
         )
 
@@ -224,12 +249,66 @@ class RuntimeHardeningTests(unittest.TestCase):
             max_reprices=1,
             snapshot_builder=lambda **_: snapshot,
             limit_reprice_func=lambda *_args: -1.08,
+            execution_recorder=lambda **kwargs: recorded.append(kwargs),
             sleep_fn=lambda *_args: None,
         )
 
         self.assertTrue(result.filled)
         self.assertEqual(result.reprices, 1)
+        self.assertEqual(result.filled_avg_price, -1.07)
+        self.assertTrue(result.broker_fill_observed)
+        self.assertEqual(result.execution_quality_tier, "acceptable")
         self.assertEqual(broker.trade_client.replacements, [("ord-1", -1.08)])
+        self.assertEqual(len(recorded), 1)
+
+    def test_reconcile_recent_order_fills_updates_execution_summary(self):
+        orders = [
+            _FakeOrder(
+                id="ord-credit",
+                status="filled",
+                limit_price=-1.08,
+                filled_qty=1.0,
+                qty=1.0,
+                filled_avg_price=1.06,
+                filled_at="2026-04-15T10:35:00Z",
+                updated_at="2026-04-15T10:35:05Z",
+            ),
+            _FakeOrder(
+                id="ord-debit",
+                status="partially_filled",
+                limit_price=0.44,
+                filled_qty=0.5,
+                qty=1.0,
+                filled_avg_price=0.43,
+                filled_at="2026-04-15T10:36:00Z",
+                updated_at="2026-04-15T10:36:03Z",
+            ),
+        ]
+        broker = BrokerClient.__new__(BrokerClient)
+        broker.trade_client = _ReconcileTradeClient(orders)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger_path = Path(tmp) / "execution_ledger.json"
+            summary_path = Path(tmp) / "execution_quality_snapshot.json"
+            result = reconcile_recent_order_fills(
+                broker,
+                lookback_hours=48.0,
+                max_orders=16,
+                ledger_path=ledger_path,
+                summary_path=summary_path,
+            )
+
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            records = json.loads(ledger_path.read_text(encoding="utf-8"))
+            feedback = load_execution_feedback(summary_path)
+
+        self.assertEqual(result["reconciled_records"], 2)
+        self.assertEqual(len(records), 2)
+        self.assertAlmostEqual(summary["fill_rate"], 1.0)
+        self.assertAlmostEqual(summary["full_fill_rate"], 0.5)
+        self.assertAlmostEqual(summary["broker_fill_price_coverage"], 1.0)
+        self.assertGreaterEqual(float(feedback["adaptive_reprice_factor"]), 0.85)
+        self.assertEqual(records[0]["execution_quality"]["broker_fill_observed"], True)
 
     @patch("core.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
     def test_portfolio_risk_snapshot_detects_concentration(self):

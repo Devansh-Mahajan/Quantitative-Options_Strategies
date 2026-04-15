@@ -13,10 +13,12 @@ from zoneinfo import ZoneInfo
 
 from core.operations_reporting import write_daily_ops_report
 from core.resource_profile import load_resource_profile
+from core.runtime_calibration import MARKET_POLICY_PATH
 from core.runtime_env import apply_accelerator_policy
 from core.system_preflight import run_preflight
 from core.system_telemetry import DEFAULT_SYSTEM_SNAPSHOT_PATH, write_system_resource_snapshot
 from core.terminal_ui import format_status_line
+from scripts.model_maintenance import DEFAULT_REPORT_PATH as DAILY_MAINTENANCE_REPORT_PATH
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,6 +55,8 @@ class AutomationController:
         self.latest_daily_report_path = self._resolve_repo_path(args.latest_daily_report_path)
         self.weekend_report_path = self._resolve_repo_path(args.weekend_report_path)
         self.massive_backtest_report_path = self._resolve_repo_path(args.massive_backtest_report_path)
+        self.market_policy_path = self._resolve_repo_path(str(MARKET_POLICY_PATH))
+        self.daily_maintenance_report_path = self._resolve_repo_path(str(DAILY_MAINTENANCE_REPORT_PATH))
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         self.daily_report_dir.mkdir(parents=True, exist_ok=True)
         self.weekend_report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -394,6 +398,79 @@ class AutomationController:
     def _save_state(self, state: dict):
         self.state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
+    def _artifact_age_hours(self, path: Path, ts: Optional[datetime] = None) -> float | None:
+        if not path.exists():
+            return None
+        current = ts or self.now()
+        modified = datetime.fromtimestamp(path.stat().st_mtime, tz=current.tzinfo)
+        return max(0.0, (current - modified).total_seconds() / 3600.0)
+
+    def _artifact_is_stale(self, path: Path, *, max_age_hours: float, ts: Optional[datetime] = None) -> bool:
+        age_hours = self._artifact_age_hours(path, ts)
+        return age_hours is None or age_hours > float(max_age_hours)
+
+    def _self_heal_plan(self, ts: Optional[datetime] = None) -> list[tuple[str, str]]:
+        if not self.args.self_heal:
+            return []
+
+        now = ts or self.now()
+        if self._artifact_is_stale(self.market_policy_path, max_age_hours=self.args.market_policy_max_age_hours, ts=now):
+            return [("self-heal-weekend-recalibration", self.args.weekend_recalibration_command)]
+
+        plan: list[tuple[str, str]] = []
+        if self._artifact_is_stale(
+            self.daily_maintenance_report_path,
+            max_age_hours=self.args.model_maintenance_max_age_hours,
+            ts=now,
+        ):
+            plan.append(("self-heal-model-maintenance", self.args.post_close_train_command))
+        if self._artifact_is_stale(
+            self.massive_backtest_report_path,
+            max_age_hours=self.args.backtest_max_age_hours,
+            ts=now,
+        ):
+            plan.append(("self-heal-backtest", self.args.post_close_backtest_command))
+        return plan
+
+    async def _run_self_heal_if_needed(self, state: dict, now: datetime) -> list[str]:
+        plan = self._self_heal_plan(now)
+        if not plan:
+            return []
+
+        signature = "|".join(label for label, _ in plan)
+        last_payload = state.get("last_self_heal") or {}
+        last_signature = last_payload.get("signature")
+        last_at_raw = last_payload.get("completed_at")
+        if last_signature == signature and last_at_raw:
+            try:
+                last_at = datetime.fromisoformat(str(last_at_raw))
+                if last_at.tzinfo is None:
+                    last_at = last_at.replace(tzinfo=now.tzinfo)
+                if (now - last_at).total_seconds() < max(300, int(self.args.self_heal_interval_seconds)):
+                    return []
+            except ValueError:
+                pass
+
+        actions = [label for label, _ in plan]
+        self._emit_console(f"🛠 self-heal plan: {', '.join(actions)}")
+        success = True
+        for label, command in plan:
+            rc = await self._run_command(label, command, self.execution_lock)
+            if rc != 0:
+                success = False
+                break
+
+        state["last_self_heal"] = {
+            "completed_at": now.isoformat(),
+            "signature": signature,
+            "actions": actions,
+            "success": success,
+        }
+        self._save_state(state)
+        if success and "self-heal-weekend-recalibration" in actions and self.massive_backtest_report_path.exists():
+            self._build_weekend_report()
+        return actions if success else []
+
     async def _run_daily_maintenance_if_due(self, state: dict, now: datetime) -> bool:
         today_key = now.date().isoformat()
         pre_open_mark = now.replace(
@@ -483,6 +560,12 @@ class AutomationController:
         return True
 
     async def _run_offhours_training_cycle(self, state: dict, now: datetime) -> Optional[str]:
+        self_heal_actions = await self._run_self_heal_if_needed(state, now)
+        if self_heal_actions:
+            if any("weekend-recalibration" in action for action in self_heal_actions):
+                return "weekend"
+            return "overnight"
+
         daily_maintenance_started = False
         if now.weekday() < 5:
             daily_maintenance_started = await self._run_daily_maintenance_if_due(state, now)
@@ -582,6 +665,7 @@ class AutomationController:
 
         payload = json.loads(backtest_file.read_text(encoding="utf-8"))
         overview = payload.get("massive_overview", {})
+        robustness = payload.get("institutional_robustness", {})
         movement = payload.get("movement_suite", {})
         pairs = payload.get("pairs_suite", {})
         regime = payload.get("regime_suite", {})
@@ -596,6 +680,8 @@ class AutomationController:
             "",
             "## Executive Summary",
             f"- Predictive score: {overview.get('predictive_score', 'n/a')}",
+            f"- Institutional score: {robustness.get('institutional_score', 'n/a')}",
+            f"- Deployment tier: {robustness.get('deployment_tier', 'n/a')}",
             f"- Consensus market state: {current_state}",
             f"- Consensus live strategy profile: {current_profile}",
             "",
@@ -603,6 +689,7 @@ class AutomationController:
             f"- Movement suite accuracy: {(movement.get('summary') or {}).get('avg_accuracy', 'n/a')}",
             f"- Regime suite score: {(regime.get('summary') or {}).get('directional_accuracy_proxy', 'n/a')}",
             f"- Pairs suite win-rate: {(pairs.get('summary') or {}).get('win_rate', 'n/a')}",
+            f"- Methodology score: {robustness.get('methodology_score', 'n/a')}",
             "",
             "## Operational Actions",
             "- Weekend recalibration and the backtest engine rerun continuously throughout the weekend research window.",
@@ -658,8 +745,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--burst-interval-seconds", type=int, default=45)
     parser.add_argument("--regime-watch-interval-seconds", type=int, default=120)
     parser.add_argument("--telemetry-interval-seconds", type=int, default=resource_profile.telemetry_interval_seconds)
+    parser.add_argument("--self-heal-interval-seconds", type=int, default=1800)
     parser.add_argument("--open-burst-minutes", type=int, default=12)
     parser.add_argument("--close-burst-minutes", type=int, default=12)
+    parser.add_argument("--backtest-max-age-hours", type=float, default=72.0)
+    parser.add_argument("--model-maintenance-max-age-hours", type=float, default=36.0)
+    parser.add_argument("--market-policy-max-age-hours", type=float, default=72.0)
+    parser.add_argument(
+        "--self-heal",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Repair stale research artifacts during off-hours before the live loops depend on them.",
+    )
 
     parser.add_argument(
         "--strategy-command",

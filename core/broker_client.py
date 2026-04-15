@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import datetime
 import logging
 
+from core.execution_ledger import reconcile_recent_order_fills
 from core.order_monitor import MonitoredOrderLeg, monitor_multileg_order
 from core.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioTradeLeg
 
@@ -67,6 +68,13 @@ class BrokerClient:
             self.portfolio_risk_engine.record_post_trade_snapshot(order_label=order_label)
         except Exception as exc:
             logger.debug("Could not refresh post-trade portfolio risk snapshot for %s: %s", order_label, exc)
+
+    def reconcile_recent_fills(self, *, lookback_hours: float = 36.0, max_orders: int = 128) -> dict:
+        return reconcile_recent_order_fills(
+            self,
+            lookback_hours=lookback_hours,
+            max_orders=max_orders,
+        )
 
     def market_sell(self, symbol, qty=1, order_label=None):
         order_label = order_label or f"Sell {symbol}"

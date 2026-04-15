@@ -32,6 +32,86 @@ class MassiveBacktestDelaySuiteTests(unittest.TestCase):
         self.assertIn("institutional_score", robustness)
         self.assertIn("deployment_tier", robustness)
         self.assertIn("movement", robustness["windows"])
+        self.assertIn("methodology_score", robustness)
+
+    def test_institutional_robustness_ignores_invalid_windows_and_tracks_evidence(self):
+        payload = {
+            "config": {"lookbacks": ["10y", "5y", "3y", "1y"]},
+            "massive_overview": {
+                "predictive_score": 0.55,
+                "avg_recent_quote_error_pct": 0.03,
+                "delay_filtered_put_win_rate": 0.56,
+                "delay_filtered_call_win_rate": 0.57,
+                "option_model_ensemble_win_rate": 0.49,
+                "option_model_ensemble_edge_pct": 0.09,
+                "ml_alpha_information_coefficient": 0.01,
+                "ml_alpha_long_only_sharpe": 0.9,
+            },
+            "movement_suite": {
+                "summary": {
+                    "by_lookback": {
+                        "10y": {"valid_runs": 5, "avg_accuracy": 0.51},
+                        "5y": {"valid_runs": 5, "avg_accuracy": 0.508},
+                        "3y": {"valid_runs": 5, "avg_accuracy": 0.507},
+                        "1y": {"valid_runs": 5, "avg_accuracy": 0.499},
+                        "6mo": {"valid_runs": 5, "avg_accuracy": 0.506},
+                    }
+                }
+            },
+            "pairs_suite": {
+                "results_by_lookback": {
+                    "10y": {"summary": {"pairs_evaluated": 12, "win_rate": 0.54}},
+                    "5y": {"summary": {"pairs_evaluated": 10, "win_rate": 0.53}},
+                    "3y": {"error": "insufficient_pairs", "summary": {"pairs_evaluated": 0}},
+                    "1y": {"summary": {"pairs_evaluated": 0, "win_rate": 0.0}},
+                }
+            },
+            "regime_suite": {
+                "results_by_lookback": {
+                    "10y": {"summary": {"n_samples": 400, "directional_accuracy_proxy": 0.51}},
+                    "5y": {"summary": {"n_samples": 260, "directional_accuracy_proxy": 0.509}},
+                    "3y": {"error": "insufficient_macro_features", "summary": {"n_samples": 80}},
+                }
+            },
+            "strategy_profile_suite": {
+                "results_by_lookback": {
+                    "10y": {"summary": {"samples": 500, "current_state_best_profile": {"score": 0.63}}},
+                    "5y": {"summary": {"samples": 450, "current_state_best_profile": {"score": 0.62}}},
+                    "3y": {"error": "insufficient_profile_samples", "summary": {"samples": 200}},
+                }
+            },
+            "delay_quote_suite": {
+                "summary": {
+                    "puts": {"delay_filtered_samples": 6000, "delay_filtered_win_rate": 0.56},
+                    "calls": {"delay_filtered_samples": 5800, "delay_filtered_win_rate": 0.57},
+                }
+            },
+            "option_model_suite": {
+                "summary": {
+                    "models": {
+                        "ensemble": {
+                            "avg_signals_per_symbol": 140.0,
+                            "long_win_rate": 0.49,
+                            "avg_edge_pct": 0.09,
+                        }
+                    }
+                }
+            },
+            "ml_alpha_suite": {
+                "summary": {
+                    "months_tested": 40,
+                    "avg_information_coefficient": 0.01,
+                    "long_only": {"sharpe_ratio": 0.9},
+                }
+            },
+        }
+
+        robustness = _build_institutional_robustness(payload)
+
+        self.assertEqual(robustness["windows"]["pairs"]["valid_windows"], 2)
+        self.assertIn("strategy_profile", robustness["windows"])
+        self.assertGreaterEqual(robustness["methodology_score"], 0.75)
+        self.assertEqual(robustness["deployment_tier"], "institutional_candidate")
 
     def test_intraday_download_resolves_yahoo_aliases(self):
         index = pd.date_range("2026-01-02 14:30:00+00:00", periods=4, freq="15min")

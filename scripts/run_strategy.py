@@ -54,6 +54,7 @@ from core.adaptive_recalibration import AdaptiveRecalibrationEngine
 from core.runtime_calibration import load_runtime_calibration
 from core.resource_profile import load_resource_profile
 from core.signal_fusion import empty_ai_targets, route_strategy_candidates
+from core.strategy_regime import synthesize_live_controls
 from core.system_preflight import DEFAULT_STATE_PATH, run_preflight
 from core.system_telemetry import DEFAULT_RISK_SNAPSHOT_PATH, write_risk_snapshot
 from core.terminal_ui import ProgressTracker
@@ -97,6 +98,50 @@ def _show_portfolio_history(client, logger, start_date, end_date, timeframe):
     logger.info("Recent equity points:")
     for ts, eq in rows[-10:]:
         logger.info("  %s -> $%.2f", ts, float(eq))
+
+
+def _runtime_policy_has_live_controls(runtime_calibration) -> bool:
+    return bool(
+        runtime_calibration.selected_profile
+        and runtime_calibration.current_market_state
+        and runtime_calibration.strategy_weights
+        and runtime_calibration.bucket_thresholds
+        and runtime_calibration.bucket_cap_multipliers
+    )
+
+
+def _apply_synthesized_runtime_controls(runtime_calibration, controls: dict[str, object], brain_strategy: str) -> None:
+    runtime_calibration.current_regime = str(brain_strategy)
+    runtime_calibration.current_market_state = str(controls.get("market_state") or "transition")
+    runtime_calibration.selected_profile = str(controls.get("selected_profile") or "all_weather")
+    runtime_calibration.strategy_weights = dict(controls.get("strategy_weights") or {})
+    runtime_calibration.bucket_thresholds = dict(controls.get("bucket_thresholds") or {})
+    runtime_calibration.bucket_cap_multipliers = dict(controls.get("bucket_cap_multipliers") or {})
+    runtime_calibration.dynamic_top_k = int(controls.get("dynamic_top_k") or 0) or runtime_calibration.dynamic_top_k
+    runtime_calibration.predictor_universe_cap = int(controls.get("predictor_universe_cap") or 0) or runtime_calibration.predictor_universe_cap
+    runtime_calibration.mega_confidence_threshold = float(controls.get("mega_confidence_threshold") or 0.0) or runtime_calibration.mega_confidence_threshold
+    runtime_calibration.min_signal_confidence = float(controls.get("min_signal_confidence") or 0.0) or runtime_calibration.min_signal_confidence
+    runtime_calibration.max_symbol_weight = float(controls.get("max_symbol_weight") or 0.0) or runtime_calibration.max_symbol_weight
+    runtime_calibration.theta_enabled = bool(controls.get("theta_enabled", True))
+    runtime_calibration.vega_enabled = bool(controls.get("vega_enabled", True))
+    runtime_calibration.directional_enabled = bool(controls.get("directional_enabled", True))
+    runtime_calibration.min_vix_for_directional_credit = float(
+        controls.get("min_vix_for_directional_credit", runtime_calibration.min_vix_for_directional_credit)
+    )
+    runtime_calibration.max_vix_for_short_premium = float(
+        controls.get("max_vix_for_short_premium", runtime_calibration.max_vix_for_short_premium)
+    )
+    runtime_calibration.risk_multiplier = float(controls.get("risk_bias", runtime_calibration.risk_multiplier))
+    runtime_calibration.deployment_multiplier = float(controls.get("deployment_bias", runtime_calibration.deployment_multiplier))
+    runtime_calibration.trade_intensity_multiplier = float(
+        controls.get("trade_intensity_bias", runtime_calibration.trade_intensity_multiplier)
+    )
+    note = str(controls.get("control_source") or "synthetic_live_policy")
+    if note not in runtime_calibration.notes:
+        runtime_calibration.notes.append(note)
+    profile_note = f"profile:{runtime_calibration.selected_profile}"
+    if profile_note not in runtime_calibration.notes:
+        runtime_calibration.notes.append(profile_note)
 
 def main():
     args = parse_args()
@@ -179,6 +224,19 @@ def main():
         SYMBOLS = [line.strip() for line in file.readlines() if line.strip()]
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
+    try:
+        execution_reconciliation = client.reconcile_recent_fills(lookback_hours=36.0, max_orders=128)
+        if execution_reconciliation.get("checked_orders"):
+            logger.info(
+                "📒 Execution reconciliation | checked=%d | updated=%d | broker_fill_updates=%d | fill_rate=%s | adaptive_reprice=%s",
+                int(execution_reconciliation.get("checked_orders") or 0),
+                int(execution_reconciliation.get("reconciled_records") or 0),
+                int(execution_reconciliation.get("broker_fill_updates") or 0),
+                execution_reconciliation.get("fill_rate"),
+                execution_reconciliation.get("adaptive_reprice_factor"),
+            )
+    except Exception as exc:
+        logger.debug("Execution reconciliation skipped: %s", exc)
 
     history_start = _validate_date(args.history_start)
     history_end = _validate_date(args.history_end)
@@ -259,6 +317,7 @@ def main():
     movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
     alpha_universe = allowed_symbols[: max(12, min(len(allowed_symbols), predictor_cap * 2))] if allowed_symbols else SYMBOLS[: max(12, predictor_cap)]
     alpha_signals = live_alpha_signal_map(alpha_universe)
+    runtime_policy_mode = "weekend_policy" if _runtime_policy_has_live_controls(runtime_calibration) else "synthetic_live_policy"
     progress.advance("Scoring live market signals")
 
     if portfolio_risk_guard.kill_switch_active:
@@ -387,19 +446,41 @@ def main():
                 adaptive_profile["trade_intensity_multiplier"],
             )
 
-        if runtime_calibration.current_regime:
-            dynamic_max_risk *= runtime_calibration.risk_multiplier
-            deployment_scale *= runtime_calibration.deployment_multiplier
+        if _runtime_policy_has_live_controls(runtime_calibration):
+            runtime_policy_mode = "weekend_policy"
+        else:
+            synthesized_controls = synthesize_live_controls(
+                macro_strategy=brain_strategy,
+                movement_bias=greek_targets.movement_bias,
+                signal_confidence=signal_confidence,
+                macro_confidence=macro_confidence,
+                vix_level=current_vix,
+                adaptive_profile=adaptive_profile or {},
+            )
+            _apply_synthesized_runtime_controls(runtime_calibration, synthesized_controls, brain_strategy)
+            runtime_policy_mode = "synthetic_live_policy"
             logger.info(
-                "🗺️ Weekend regime policy: %s / %s / %s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f | conf=%s",
-                runtime_calibration.current_regime,
+                "🛠️ Synthesized live policy: %s / %s / %s | predictive=%.2f vix=%.2f",
+                runtime_calibration.current_regime or "n/a",
                 runtime_calibration.current_market_state or "n/a",
                 runtime_calibration.selected_profile or "n/a",
-                runtime_calibration.risk_multiplier,
-                runtime_calibration.deployment_multiplier,
-                runtime_calibration.trade_intensity_multiplier,
-                f"{runtime_calibration.regime_confidence:.2f}" if runtime_calibration.regime_confidence is not None else "n/a",
+                float(synthesized_controls.get("predictive_score", 0.0)),
+                current_vix,
             )
+
+        dynamic_max_risk *= runtime_calibration.risk_multiplier
+        deployment_scale *= runtime_calibration.deployment_multiplier
+        logger.info(
+            "🗺️ Runtime policy (%s): %s / %s / %s | risk x%.2f | deploy x%.2f | trade-intensity x%.2f | conf=%s",
+            runtime_policy_mode,
+            runtime_calibration.current_regime or "n/a",
+            runtime_calibration.current_market_state or "n/a",
+            runtime_calibration.selected_profile or "n/a",
+            runtime_calibration.risk_multiplier,
+            runtime_calibration.deployment_multiplier,
+            runtime_calibration.trade_intensity_multiplier,
+            f"{runtime_calibration.regime_confidence:.2f}" if runtime_calibration.regime_confidence is not None else "synthetic",
+        )
         if runtime_calibration.max_symbol_weight:
             per_symbol_cap = total_equity * float(runtime_calibration.max_symbol_weight)
             dynamic_max_risk = min(dynamic_max_risk, per_symbol_cap)
@@ -449,6 +530,7 @@ def main():
         "runtime_regime_policy": runtime_calibration.current_regime,
         "runtime_market_state": runtime_calibration.current_market_state,
         "runtime_profile": runtime_calibration.selected_profile,
+        "runtime_policy_mode": runtime_policy_mode,
         "open_positions": len(positions),
         "allowed_symbols": len(allowed_symbols),
         "risk_allocation_in_use": round(float(current_risk), 2),
@@ -544,6 +626,7 @@ def main():
                     "runtime_regime_policy": runtime_calibration.current_regime,
                     "runtime_market_state": runtime_calibration.current_market_state,
                     "runtime_profile": runtime_calibration.selected_profile,
+                    "runtime_policy_mode": runtime_policy_mode,
                     "strategy_weights": runtime_calibration.strategy_weights,
                     "bucket_thresholds": runtime_calibration.bucket_thresholds,
                     "bucket_cap_multipliers": runtime_calibration.bucket_cap_multipliers,

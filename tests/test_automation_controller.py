@@ -64,6 +64,11 @@ def _args(tmp_path: Path) -> Namespace:
         deep_model_checks=True,
         progress_ui=True,
         telemetry_interval_seconds=300,
+        self_heal_interval_seconds=1800,
+        backtest_max_age_hours=72.0,
+        model_maintenance_max_age_hours=36.0,
+        market_policy_max_age_hours=72.0,
+        self_heal=False,
         restart_on_failure=True,
         restart_delay_seconds=15,
     )
@@ -122,6 +127,11 @@ class AutomationControllerTests(unittest.TestCase):
                     "consensus_state": "calm_bull",
                     "consensus_profile": "bull_trend",
                 },
+                "institutional_robustness": {
+                    "institutional_score": 0.69,
+                    "deployment_tier": "paper_candidate",
+                    "methodology_score": 0.78,
+                },
                 "movement_suite": {"summary": {"avg_accuracy": 0.58}},
                 "regime_suite": {"summary": {"directional_accuracy_proxy": 0.61}},
                 "pairs_suite": {"summary": {"win_rate": 0.54}},
@@ -134,6 +144,7 @@ class AutomationControllerTests(unittest.TestCase):
 
             self.assertIn("Weekend Professional Report", report_text)
             self.assertIn("Predictive score: 0.73", report_text)
+            self.assertIn("Institutional score: 0.69", report_text)
             self.assertIn("Consensus market state: calm_bull", report_text)
             self.assertIn("Consensus live strategy profile: bull_trend", report_text)
 
@@ -303,6 +314,51 @@ class AutomationControllerTests(unittest.TestCase):
             self.assertEqual(state["pre_open_self_check"], "2026-04-13")
             self.assertEqual([name for name, _ in executed], ["pre-open-self-check"])
 
+    def test_self_heal_plan_prefers_weekend_recalibration_when_policy_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            args.self_heal = True
+            controller = AutomationController(args)
+            controller.market_policy_path = Path(tmp) / "config" / "market_regime_policy.json"
+            controller.daily_maintenance_report_path = Path(tmp) / "reports" / "daily_model_maintenance_report.json"
+            controller.massive_backtest_report_path = Path(tmp) / "reports" / "massive_backtest_report.json"
+
+            plan = controller._self_heal_plan(datetime(2026, 4, 13, 20, 0, tzinfo=ZoneInfo("America/New_York")))
+
+            self.assertEqual(plan, [("self-heal-weekend-recalibration", args.weekend_recalibration_command)])
+
+    def test_offhours_training_cycle_runs_self_heal_before_standard_maintenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            args.self_heal = True
+            controller = AutomationController(args)
+            executed = []
+
+            controller.market_policy_path = Path(tmp) / "config" / "market_regime_policy.json"
+            controller.market_policy_path.parent.mkdir(parents=True, exist_ok=True)
+            controller.market_policy_path.write_text("{}", encoding="utf-8")
+            controller.daily_maintenance_report_path = Path(tmp) / "reports" / "daily_model_maintenance_report.json"
+            controller.daily_maintenance_report_path.parent.mkdir(parents=True, exist_ok=True)
+            controller.daily_maintenance_report_path.write_text("{}", encoding="utf-8")
+            controller.massive_backtest_report_path = Path(tmp) / "reports" / "massive_backtest_report.json"
+
+            async def _fake_run_command(label, command, lock):
+                executed.append((label, command))
+                return 0
+
+            controller._run_command = _fake_run_command
+            state = {
+                "pre_open_self_check": "2026-04-13",
+                "daily_maintenance": "2026-04-13",
+            }
+            now = datetime(2026, 4, 13, 20, 30, tzinfo=ZoneInfo("America/New_York"))
+
+            cycle_kind = asyncio.run(controller._run_offhours_training_cycle(state, now))
+
+            self.assertEqual(cycle_kind, "overnight")
+            self.assertEqual([name for name, _ in executed], ["self-heal-backtest"])
+            self.assertEqual(state["last_self_heal"]["actions"], ["self-heal-backtest"])
+
     def test_parse_args_restart_defaults(self):
         with patch.object(sys, "argv", ["automate-stack"]):
             args = parse_args()
@@ -311,6 +367,7 @@ class AutomationControllerTests(unittest.TestCase):
         self.assertEqual(args.preflight_max_age_seconds, 300)
         self.assertEqual(args.overnight_training_interval_seconds, 1800)
         self.assertEqual(args.weekend_training_interval_seconds, 1800)
+        self.assertTrue(args.self_heal)
 
     def test_parse_args_default_commands_use_python_modules(self):
         with patch.object(sys, "argv", ["automate-stack"]):

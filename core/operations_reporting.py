@@ -50,7 +50,7 @@ def _backtest_summary_lines(payload: dict, *, title: str, generated_at: str, sou
         f"- Pairs win-rate: {pairs.get('win_rate', 'n/a')}",
         f"- Regime directional score: {regime.get('directional_accuracy_proxy', 'n/a')}",
         f"- Strategy profile score: {profiles.get('avg_best_profile_score', 'n/a')}",
-        f"- Breadth / stability: {robustness.get('breadth_score', 'n/a')} / {robustness.get('stability_score', 'n/a')}",
+        f"- Breadth / stability / methodology: {robustness.get('breadth_score', 'n/a')} / {robustness.get('stability_score', 'n/a')} / {robustness.get('methodology_score', 'n/a')}",
         "",
         "## Note",
         "- This report summarizes predictive/backtest diagnostics. It is not a guarantee of future trading performance.",
@@ -107,6 +107,7 @@ def write_daily_ops_report(
 
     risk = _safe_read_json(runtime_root / "risk_snapshot.json")
     system = _safe_read_json(runtime_root / "system_resource_snapshot.json")
+    execution = _safe_read_json(runtime_root / "execution_quality_snapshot.json")
     foundry = _safe_read_json(reports_root / "quant_foundry_report.json")
     latest_backtest = _safe_read_json(reports_root / "latest_backtest_report.json")
     maintenance = _safe_read_json(reports_root / "daily_model_maintenance_report.json")
@@ -145,6 +146,15 @@ def write_daily_ops_report(
             "normalized_cpu_load_pct": host_metrics.get("normalized_cpu_load_pct"),
             "memory_usage_pct": memory.get("usage_pct"),
             "disk_usage_pct": disk.get("usage_pct"),
+        },
+        "execution": {
+            "records": execution.get("records"),
+            "fill_rate": execution.get("fill_rate"),
+            "full_fill_rate": execution.get("full_fill_rate"),
+            "broker_fill_price_coverage": execution.get("broker_fill_price_coverage"),
+            "avg_execution_quality_score": execution.get("avg_execution_quality_score"),
+            "adaptive_reprice_factor": execution.get("adaptive_reprice_factor"),
+            "degraded_execution_count": execution.get("degraded_execution_count"),
         },
         "foundry": {
             "mode": foundry.get("mode"),
@@ -188,6 +198,12 @@ def write_daily_ops_report(
         f"- CPU load: {host_metrics.get('normalized_cpu_load_pct', 'n/a')}%",
         f"- Memory usage: {memory.get('usage_pct', 'n/a')}%",
         f"- Disk usage: {disk.get('usage_pct', 'n/a')}%",
+        "",
+        "## Execution",
+        f"- Ledger records / fill rate: {execution.get('records', 'n/a')} / {execution.get('fill_rate', 'n/a')}",
+        f"- Full-fill rate / broker fill coverage: {execution.get('full_fill_rate', 'n/a')} / {execution.get('broker_fill_price_coverage', 'n/a')}",
+        f"- Avg execution quality / adaptive reprice factor: {execution.get('avg_execution_quality_score', 'n/a')} / {execution.get('adaptive_reprice_factor', 'n/a')}",
+        f"- Degraded execution count: {execution.get('degraded_execution_count', 'n/a')}",
         "",
         "## Model Maintenance",
         f"- Foundry mode: {foundry.get('mode', 'n/a')}",
