@@ -39,40 +39,51 @@ class SimulatedMarketDataStore(MarketDataStore):
     def __init__(self) -> None:
         super().__init__()
         self._raw: dict[tuple[str, str], pd.DataFrame] = {}
+        self._prebuilt: dict[tuple[str, str], list[Candle]] = {}
+        self._last_i: int = 0
 
     def load_symbol(self, symbol: str, interval: str, df: pd.DataFrame) -> None:
         self._raw[(symbol, interval)] = df.reset_index()
 
-    def set_time_index(self, i: int) -> None:
-        """Advance the store to bar i (strategies see only bars 0..i-1)."""
+    def _ts_to_ms(self, val) -> int:
+        if isinstance(val, (int, float)):
+            return int(val)
+        return int(pd.Timestamp(val).timestamp() * 1000)
+
+    def prebuild(self) -> None:
+        """Pre-convert all raw DataFrames to Candle lists once — O(n) total."""
         for (symbol, interval), df in self._raw.items():
-            window = df.iloc[:i]
-            key = (symbol, interval)
-            self.history[key] = deque(
-                (
-                    Candle(
-                        symbol=symbol, interval=interval,
-                        open_time=int(pd.Timestamp(row.get("open_time", 0)).timestamp() * 1000) if not isinstance(row.get("open_time", 0), (int, float)) else int(row.get("open_time", 0)),
-                        open=float(row["open"]), high=float(row["high"]),
-                        low=float(row["low"]), close=float(row["close"]),
-                        volume=float(row["volume"]), closed=True,
-                    )
-                    for _, row in window.iterrows()
-                ),
-                maxlen=500,
-            )
-            if len(window):
-                last = window.iloc[-1]
-                self.candles[key] = Candle(
+            candles = []
+            for _, row in df.iterrows():
+                candles.append(Candle(
                     symbol=symbol, interval=interval,
-                    open_time=int(pd.Timestamp(last.get("open_time", 0)).timestamp() * 1000) if not isinstance(last.get("open_time", 0), (int, float)) else int(last.get("open_time", 0)),
-                    open=float(last["open"]), high=float(last["high"]),
-                    low=float(last["low"]), close=float(last["close"]),
-                    volume=float(last["volume"]), closed=True,
+                    open_time=self._ts_to_ms(row.get("open_time", 0)),
+                    open=float(row["open"]), high=float(row["high"]),
+                    low=float(row["low"]), close=float(row["close"]),
+                    volume=float(row["volume"]), closed=True,
+                ))
+            self._prebuilt[(symbol, interval)] = candles
+            self.history[(symbol, interval)] = deque(maxlen=500)
+
+    def set_time_index(self, i: int) -> None:
+        """Incrementally advance store to bar i — O(1) per call after prebuild."""
+        if not self._prebuilt:
+            self.prebuild()
+
+        for (symbol, interval), candles in self._prebuilt.items():
+            key = (symbol, interval)
+            # Append only newly visible bars since last call
+            for j in range(self._last_i, min(i, len(candles))):
+                self.history[key].append(candles[j])
+            if i > 0 and i <= len(candles):
+                last = candles[i - 1]
+                self.candles[key] = last
+                self.book[symbol] = BookTicker(
+                    symbol=symbol,
+                    bid=last.close * 0.9999,
+                    ask=last.close * 1.0001,
                 )
-                # Synthetic book ticker
-                mid = float(last["close"])
-                self.book[symbol] = BookTicker(symbol=symbol, bid=mid * 0.9999, ask=mid * 1.0001)
+        self._last_i = i
 
 
 # --------------------------------------------------------------------------- #
@@ -196,7 +207,18 @@ class BacktestEngine:
         closed_trades: list[dict] = []
         total_signals = 0
 
-        for i in range(self.lookback, self._n_bars):
+        try:
+            from tqdm import tqdm
+            bar_iter = tqdm(
+                range(self.lookback, self._n_bars),
+                desc="Backtesting",
+                unit="bar",
+                dynamic_ncols=True,
+            )
+        except ImportError:
+            bar_iter = range(self.lookback, self._n_bars)
+
+        for i in bar_iter:
             bar_ts = self._anchor_df.get("open_time", pd.Series()).iloc[i] if i < self._n_bars else None
 
             # ---------------------------------------------------------
@@ -290,6 +312,8 @@ class BacktestEngine:
             if i % 500 == 0:
                 log.info("  bar %d/%d  equity=%.2f  positions=%d  pending=%d",
                          i, self._n_bars, total_equity, len(positions), len(pending_orders))
+                if hasattr(bar_iter, "set_postfix"):
+                    bar_iter.set_postfix(equity=f"${total_equity:,.0f}", pos=len(positions))
 
         # ---------------------------------------------------------
         # 6. Force-close any remaining positions at last bar
