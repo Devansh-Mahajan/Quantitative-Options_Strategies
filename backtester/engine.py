@@ -52,7 +52,7 @@ class SimulatedMarketDataStore(MarketDataStore):
                 (
                     Candle(
                         symbol=symbol, interval=interval,
-                        open_time=int(row.get("open_time", 0)),
+                        open_time=int(pd.Timestamp(row.get("open_time", 0)).timestamp() * 1000) if not isinstance(row.get("open_time", 0), (int, float)) else int(row.get("open_time", 0)),
                         open=float(row["open"]), high=float(row["high"]),
                         low=float(row["low"]), close=float(row["close"]),
                         volume=float(row["volume"]), closed=True,
@@ -65,7 +65,7 @@ class SimulatedMarketDataStore(MarketDataStore):
                 last = window.iloc[-1]
                 self.candles[key] = Candle(
                     symbol=symbol, interval=interval,
-                    open_time=int(last.get("open_time", 0)),
+                    open_time=int(pd.Timestamp(last.get("open_time", 0)).timestamp() * 1000) if not isinstance(last.get("open_time", 0), (int, float)) else int(last.get("open_time", 0)),
                     open=float(last["open"]), high=float(last["high"]),
                     low=float(last["low"]), close=float(last["close"]),
                     volume=float(last["volume"]), closed=True,
@@ -187,7 +187,7 @@ class BacktestEngine:
                 (df["high"] - df["close"].shift()).abs(),
                 (df["low"] - df["close"].shift()).abs(),
             ], axis=1).max(axis=1)
-            atr_series[sym] = tr.rolling(14).mean().fillna(method="bfill").values
+            atr_series[sym] = tr.rolling(14).mean().bfill().values
 
         equity = self.initial_equity
         equity_ts: list[tuple] = []
