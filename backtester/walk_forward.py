@@ -213,7 +213,7 @@ class WalkForwardValidator:
         return sliced
 
     def _run_engine(self, data: dict[str, pd.DataFrame], strategies) -> BacktestResult:
-        kwargs = {k: v for k, v in self.engine_kwargs.items() if k != "strategies"}
+        kwargs = {k: v for k, v in self.engine_kwargs.items() if k not in ("strategies", "interval")}
         engine = BacktestEngine(
             data=data,
             interval=self.interval,
