@@ -264,35 +264,143 @@ journalctl -u binance-risk-monitor -f
 
 ## Crontab Configuration
 
-Edit crontab with `crontab -e` as the bot user:
+> **TL;DR** — If you use systemd (recommended), the bot runs 24/7 automatically.
+> Crontab handles the *scheduled jobs*: daily auto-update from GitHub, weekend
+> retraining, health checks, and the bot reload that picks up new models.
 
-```cron
-# ============================================================
-# Binance Quant Bot — Crontab Configuration
-# All times are UTC. Adjust path to your virtualenv.
-# ============================================================
+---
 
-SHELL=/bin/bash
-VENV=/opt/binance-bot/.venv/bin
-BOT=/opt/binance-bot
+### Prerequisites on the Ubuntu server
 
-# --- Weekend self-retraining (Saturday 01:00 UTC) ---
-# Trains HMM, LSTM, GARCH, and RL allocator on fresh data.
-# Deploys new models to models/live/ when training completes.
-0 1 * * 6  cd $BOT && $VENV/weekend-train >> $BOT/logging/training.log 2>&1
+#### 1. Add a deploy SSH key so the server can pull from GitHub
 
-# --- Daily system health check (every day 00:05 UTC) ---
-5 0 * * *  cd $BOT && $VENV/system-check >> $BOT/logging/healthcheck.log 2>&1
+```bash
+# On the server, generate a key for the bot user
+ssh-keygen -t ed25519 -C "binance-bot-deploy" -f ~/.ssh/github_deploy -N ""
 
-# --- Log rotation (daily, keep 30 days) ---
-# Handled automatically by TimedRotatingFileHandler in bot/logger.py
-
-# --- Restart bot service if not running (watchdog every 5 min) ---
-# Uncomment if NOT using systemd (e.g. tmux / screen setup):
-# */5 * * * *  systemctl is-active --quiet binance-bot || systemctl restart binance-bot
+# Print the public key and add it to GitHub → Settings → Deploy keys (read-only)
+cat ~/.ssh/github_deploy.pub
 ```
 
+Add to `~/.ssh/config`:
+
+```text
+Host github.com
+    IdentityFile ~/.ssh/github_deploy
+    StrictHostKeyChecking accept-new
+```
+
+#### 2. Clone and set the remote (once)
+
+```bash
+cd /opt
+git clone git@github.com:YOUR_USERNAME/YOUR_REPO.git binance-bot
+cd binance-bot
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .           # installs all entry points including run-backtest
+cp .env.example .env
+# edit .env with credentials
+```
+
+#### 3. Install systemd services (one-time)
+
+```bash
+# Copy service files and enable
+sudo cp deploy/binance-bot.service        /etc/systemd/system/
+sudo cp deploy/binance-risk-monitor.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now binance-bot binance-risk-monitor
+sudo systemctl status binance-bot
+```
+
+---
+
+### Full crontab — `crontab -e` as the bot user
+
+```cron
+# ================================================================
+#  Binance Quant Bot — Production Crontab
+#  All times UTC.  BOT = repo root.  VENV = virtualenv bin dir.
+# ================================================================
+
+SHELL=/bin/bash
+BOT=/opt/binance-bot
+VENV=/opt/binance-bot/.venv/bin
+DEPLOY_LOG=$BOT/.runtime/deploy.log
+HEALTH_LOG=$BOT/logging/healthcheck.log
+TRAIN_LOG=$BOT/logging/training.log
+
+# ── Daily git pull + restart (00:00 UTC every day) ───────────────
+# Pulls the latest commit from GitHub (fast-forward only — safe).
+# pip install -e . picks up any new dependencies.
+# Gracefully restarts both systemd services.
+# Sends Discord/Telegram notification on completion.
+0 0 * * *  $BOT/scripts/deploy_update.sh >> $DEPLOY_LOG 2>&1
+
+# ── Daily health check (00:05 UTC, after deploy finishes) ────────
+# Verifies exchange connectivity, model files, DB integrity.
+# Writes a one-line PASS/FAIL to healthcheck.log.
+5 0 * * *  cd $BOT && $VENV/system-check >> $HEALTH_LOG 2>&1
+
+# ── Weekend self-retraining (Saturday 01:00 UTC) ─────────────────
+# Full pipeline: download 90d data → HMM → BiLSTM (GPU) →
+# GARCH → PPO RL allocator → deploy models/live/.
+# Bot reloads new models on Sunday 00:00 restart (via deploy job).
+0 1 * * 6  cd $BOT && $VENV/weekend-train >> $TRAIN_LOG 2>&1
+
+# ── Sunday training verification (Sunday 04:00 UTC) ──────────────
+# Runs a quick 30-day backtest on BTCUSDT to verify new models
+# haven't degraded significantly before Monday trading opens.
+0 4 * * 0  cd $BOT && $VENV/run-backtest \
+               --symbols BTCUSDT ETHUSDT \
+               --start $(date -d "30 days ago" +%Y-%m-%d) \
+               --interval 1h \
+               --strategies momentum breakout mean_reversion \
+               --save-report \
+               >> $BOT/logging/backtest_verify.log 2>&1
+
+# ── systemd watchdog (every 5 min) ───────────────────────────────
+# Belt-and-suspenders: if systemd somehow misses a crash, this
+# brings the bot back up within 5 minutes.
+*/5 * * * *  systemctl is-active --quiet binance-bot \
+             || (systemctl restart binance-bot \
+                 && echo "$(date -u) watchdog restarted binance-bot" \
+                 >> $BOT/.runtime/watchdog.log)
+
+*/5 * * * *  systemctl is-active --quiet binance-risk-monitor \
+             || systemctl restart binance-risk-monitor
+```
+
+---
+
+### How the daily auto-update works
+
+```text
+00:00 UTC  cron → deploy_update.sh
+  │
+  ├─ [1] git fetch origin main
+  ├─ [2] Check if LOCAL == REMOTE → skip if already up-to-date
+  ├─ [3] git merge --ff-only origin/main  (aborts if local changes exist)
+  ├─ [4] pip install -e .  (picks up new deps silently)
+  ├─ [5] systemctl restart binance-risk-monitor
+  ├─ [6] systemctl restart binance-bot  (SIGTERM → graceful close → start)
+  ├─ [7] sleep 15s → confirm both services are "active"
+  └─ [8] POST notification to Discord / Telegram
+
+00:05 UTC  cron → system-check  (verifies deploy was healthy)
+```
+
+> **Push to deploy:** After committing and pushing to `main` on GitHub,
+> the server pulls and restarts automatically within 24 hours. For an
+> immediate hot-deploy, SSH into the server and run:
+> `sudo -u botuser /opt/binance-bot/scripts/deploy_update.sh`
+
+---
+
 ### tmux-based deployment (alternative to systemd)
+
+For servers where you prefer tmux over systemd:
 
 ```bash
 # Create a persistent tmux session
@@ -301,13 +409,24 @@ tmux new-window -t bot:0 -n trading
 tmux new-window -t bot:1 -n risk
 tmux new-window -t bot:2 -n logs
 
-# Start in each window
+# Start processes in each window
 tmux send-keys -t bot:0 'cd /opt/binance-bot && source .venv/bin/activate && run-bot' Enter
 tmux send-keys -t bot:1 'cd /opt/binance-bot && source .venv/bin/activate && risk-monitor' Enter
 tmux send-keys -t bot:2 'tail -f /opt/binance-bot/logging/bot.log' Enter
 
 # Attach to view
 tmux attach -t bot
+```
+
+With tmux, the watchdog cron line handles restarts. Add this to the crontab
+instead of the systemd watchdog entries above:
+
+```cron
+*/5 * * * *  tmux has-session -t bot 2>/dev/null \
+             || (cd /opt/binance-bot && ./scripts/deploy_update.sh --no-restart \
+                 && source .venv/bin/activate \
+                 && tmux new-session -d -s bot \
+                 && tmux send-keys -t bot 'run-bot' Enter)
 ```
 
 ---

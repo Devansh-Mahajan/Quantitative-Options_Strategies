@@ -1,7 +1,7 @@
 """
 Portfolio risk metrics:
 - Historical VaR & CVaR (95% and 99%)
-- Monte Carlo VaR (GPU-accelerated)
+- Monte Carlo VaR — GPU-accelerated, fat-tail Student-t (via risk.monte_carlo)
 - Correlation matrix and concentration Herfindahl index
 - Drawdown tracking
 """
@@ -89,19 +89,64 @@ class PortfolioRiskEngine:
         weights: np.ndarray,
         cov_matrix: np.ndarray,
         equity: float,
-        n_paths: int = 10_000,
+        n_paths: int = 50_000,
         horizon: int = 1,
         confidence: float = 0.99,
+        distribution: str = "student-t",
     ) -> float:
-        """Parametric Monte Carlo VaR. Returns fraction of equity."""
+        """
+        Monte Carlo VaR via PortfolioMonteCarloEngine (Student-t fat tails, GPU when available).
+        Returns fraction of equity at risk.
+        """
         try:
-            L = np.linalg.cholesky(cov_matrix + np.eye(len(cov_matrix)) * 1e-8)
-            z = np.random.randn(n_paths, len(weights))
-            correlated = z @ L.T
-            port_rets = correlated @ weights * np.sqrt(horizon)
-            return float(-np.percentile(port_rets, (1 - confidence) * 100))
-        except np.linalg.LinAlgError:
+            from risk.monte_carlo import PortfolioMonteCarloEngine
+            engine = PortfolioMonteCarloEngine(
+                n_paths=n_paths,
+                distribution=distribution,
+            )
+            mean_rets = np.zeros(len(weights))   # risk-neutral
+            result = engine.simulate_portfolio(
+                weights=weights,
+                mean_returns=mean_rets,
+                cov_matrix=cov_matrix,
+                equity=equity,
+                horizon_days=[horizon],
+                confidence_levels=[confidence],
+                include_stress=False,
+            )
+            return result.var_surface.var[0][0]
+        except Exception as exc:
+            log.warning("MC VaR engine failed (%s), falling back to historical", exc)
             return self.historical_var(confidence)
+
+    def monte_carlo_trade(
+        self,
+        symbol: str,
+        side: str,
+        entry_price: float,
+        quantity: float,
+        stop_loss_price: float,
+        take_profit_price: float,
+        annualised_vol: float,
+        holding_bars: int = 24,
+        n_paths: int = 20_000,
+    ):
+        """
+        Per-trade Monte Carlo simulation.
+        Returns TradeMonteCarloResult with stop probability, TP probability, VaR, MAE.
+        """
+        from risk.monte_carlo import PortfolioMonteCarloEngine
+        engine = PortfolioMonteCarloEngine(n_paths=n_paths, distribution="student-t")
+        return engine.simulate_trade(
+            symbol=symbol,
+            side=side,
+            entry_price=entry_price,
+            quantity=quantity,
+            stop_loss_price=stop_loss_price,
+            take_profit_price=take_profit_price,
+            annualised_vol=annualised_vol,
+            holding_bars=holding_bars,
+        )
 
     # ------------------------------------------------------------------ #
     # Position-level metrics

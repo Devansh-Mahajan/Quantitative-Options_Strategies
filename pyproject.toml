@@ -67,8 +67,9 @@ run-bot        = "scripts.run_bot:main"
 risk-monitor   = "scripts.risk_monitor:main"
 weekend-train  = "scripts.weekend_training:main"
 system-check   = "scripts.system_check:main"
+run-backtest   = "scripts.run_backtest:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["bot*", "exchange*", "ml*", "risk*", "strategies*", "execution*", "scripts*"]
+include = ["bot*", "exchange*", "ml*", "risk*", "strategies*", "execution*", "scripts*", "backtester*"]
 exclude = ["archive*"]
