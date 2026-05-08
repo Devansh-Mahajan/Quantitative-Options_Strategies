@@ -121,6 +121,17 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--test-fraction", type=float, default=0.20,
                    help="Fraction of data used as each test window (default: 0.20)")
 
+    # Bayesian optimizer
+    p.add_argument("--optimize", action="store_true",
+                   help="Run Bayesian walk-forward optimizer BEFORE full backtest; "
+                        "uses best params for the final run")
+    p.add_argument("--opt-trials", type=int, default=60,
+                   help="Optimizer Bayesian trials (default: 60; use 200 for thorough search)")
+    p.add_argument("--opt-folds", type=int, default=3,
+                   help="Walk-forward folds inside each optimizer trial (default: 3)")
+    p.add_argument("--opt-only", action="store_true",
+                   help="Run optimizer only — skip the final full backtest")
+
     # Monte Carlo + Las Vegas
     p.add_argument("--monte-carlo", action="store_true",
                    help="Bootstrap CI + Las Vegas permutation test on backtest trades")
@@ -185,6 +196,36 @@ def main() -> None:
     data = align_and_ffill(data)
 
     # ------------------------------------------------------------------ #
+    # Bayesian parameter optimizer (optional — runs before full backtest)
+    # ------------------------------------------------------------------ #
+    opt_overrides: dict = {}
+    if args.optimize:
+        from backtester.optimizer import BacktestOptimizer
+
+        def _strategy_factory():
+            return _build_strategies(args.strategies)
+
+        optimizer = BacktestOptimizer(
+            data=data,
+            interval=args.interval,
+            strategy_factory=_strategy_factory,
+            n_trials=args.opt_trials,
+            n_wf_folds=args.opt_folds,
+            initial_equity=args.capital,
+            output_dir=args.output_dir or Path("backtest_reports"),
+        )
+        opt_result = optimizer.run(verbose=args.verbose)
+        opt_overrides = opt_result.best_params
+        log.info(
+            "Optimizer complete — best score=%.4f  applying params: %s",
+            opt_result.best_score, opt_overrides,
+        )
+
+        if args.opt_only:
+            log.info("--opt-only set — skipping full backtest")
+            return
+
+    # ------------------------------------------------------------------ #
     # Full backtest
     # ------------------------------------------------------------------ #
     strategies = _build_strategies(args.strategies)
@@ -195,12 +236,14 @@ def main() -> None:
     engine_kwargs = dict(
         interval=args.interval,
         initial_equity=args.capital,
-        lookback=args.lookback,
-        max_open_positions=args.max_positions,
-        stop_loss_pct=args.stop_loss,
-        take_profit_pct=args.take_profit,
+        lookback=opt_overrides.get("lookback", args.lookback),
+        max_open_positions=opt_overrides.get("max_open_positions", args.max_positions),
+        stop_loss_pct=opt_overrides.get("stop_loss_pct", args.stop_loss),
+        take_profit_pct=opt_overrides.get("take_profit_pct", args.take_profit),
     )
-    if args.max_risk is not None:
+    if "max_risk_per_trade" in opt_overrides:
+        engine_kwargs["max_risk_per_trade"] = opt_overrides["max_risk_per_trade"]
+    elif args.max_risk is not None:
         engine_kwargs["max_risk_per_trade"] = args.max_risk
 
     engine = BacktestEngine(data=data, strategies=strategies, **engine_kwargs)
