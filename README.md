@@ -1,704 +1,373 @@
-# Automated Options Strategy Stack
+# Binance Quant Bot v2.0
 
-This repository started as a Wheel automation project and now operates as a broader options strategy stack built on the [Alpaca Trading API](https://docs.alpaca.markets/). The live runner still supports the classic ["wheel" options strategy](https://alpaca.markets/learn/options-wheel-strategy), but it also layers in macro regime detection, deep-model routing, directional spreads, long-volatility trades, and adaptive risk controls.
-
----
-
-## Documentation Index
-
-Use this index when operating or maintaining the system:
-
-- **Quick Start**: setup + first run in ~10 minutes (below).
-- **Strategy Logic**: wheel lifecycle, spread engines, and model routing (below).
-- **Runbook / Operations Guide**: full deployment, monitoring, incident handling, and maintenance checklists in [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.md).
-- **Configuration Reference**: primary runtime controls in `config/params.py`.
-- **Execution Entrypoint**: orchestration in `scripts/run_strategy.py`.
+A self-learning, GPU-accelerated crypto trading system for Binance. Trades spot, USDM futures perpetuals, and European options (BTC/ETH). Combines 8 dynamic strategies with HMM regime detection, LSTM+Transformer price prediction, and a PPO reinforcement-learning strategy allocator. Retrains itself every weekend on fresh data.
 
 ---
 
-## Setup Requirements
+## Architecture
 
-### Broker & Account
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        Orchestrator (async)                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  │
+│  │  WebSocket   │  │  ML Models   │  │  Strategy Suite     │  │
+│  │  Streams     │  │  HMM + LSTM  │  │  8 active strategies│  │
+│  │  (klines/    │  │  + RL Alloc  │  │  momentum           │  │
+│  │   orderbook/ │  │  + GARCH     │  │  mean_reversion     │  │
+│  │   liquidations│ │  + IV Surface│  │  funding_arb        │  │
+│  └──────┬───────┘  └──────┬───────┘  │  basis_trade        │  │
+│         │                 │          │  pairs_arb           │  │
+│  ┌──────▼─────────────────▼───────┐  │  options_vol        │  │
+│  │        Risk Engine             │  │  order_flow         │  │
+│  │  VaR / CVaR / Drawdown Guard  │  │  breakout           │  │
+│  │  Position Sizer (Kelly/Vol)    │  └─────────────────────┘  │
+│  └──────────────┬────────────────┘                             │
+│                 │                                               │
+│  ┌──────────────▼────────────────┐                             │
+│  │       Execution Layer         │                             │
+│  │  Limit→Market fallback        │                             │
+│  │  Auto-reprice, TWAP           │                             │
+│  └───────────────────────────────┘                             │
+└─────────────────────────────────────────────────────────────────┘
 
-- Alpaca account with options permissions enabled.
-- API key/secret with trading permissions.
-- Paper trading strongly recommended for first deployment and all strategy changes.
+Parallel processes:
+  run_bot.py          — main trading loop (60s cycles)
+  risk_monitor.py     — independent risk alerts (60s poll)
+  weekend_training.py — weekly self-retraining (cron Saturday 01:00 UTC)
+```
 
-### System Requirements
+---
 
-- Python **3.11+**.
-- Linux/macOS shell environment (Windows works via WSL or PowerShell with minor command adjustments).
-- Recommended: 4+ CPU cores, 8GB+ RAM for model/scanner workloads.
+## ML Models
 
-### Python Dependencies
+| Model | Purpose | Algorithm |
+| ----- | ------- | --------- |
+| `RegimeHMM` | 4-state market regime detection | Gaussian HMM (hmmlearn) |
+| `CryptoPricePredictor` | 1h/4h/24h price direction + magnitude | BiLSTM + Multi-head Attention |
+| `RLAllocator` | Dynamic strategy weight allocation | PPO (stable-baselines3) |
+| `GARCHVolModel` | Conditional volatility (position sizing) | GARCH(1,1) (arch) |
+| `IVSurface` | Options implied vol surface | 2D Linear interpolation |
 
-Install dependencies from `pyproject.toml` using `uv`:
+**GPU**: All PyTorch models train and infer on CUDA (RTX 5090). Weekend training uses full GPU capacity for LSTM + RL.
+
+---
+
+## Strategies
+
+| Strategy | Market | Regime | Edge |
+| -------- | ------ | ------ | ---- |
+| `momentum` | Futures | Bull/Bear | EMA crossover + MACD + volume |
+| `mean_reversion` | Futures | Ranging | Bollinger Band + RSI extremes |
+| `funding_arb` | Futures + Spot | Any | Collect extreme funding rates |
+| `basis_trade` | Spot + Futures | Any | Spot-futures basis convergence |
+| `pairs_arb` | Futures | Any | BTC/ETH Z-score mean reversion |
+| `options_vol` | Options | Ranging/Volatile | Short/long straddles on IV/RV ratio |
+| `order_flow` | Futures | Any | Buy/sell imbalance + VWAP deviation |
+| `breakout` | Futures | Bull/Volatile | Donchian channel + volume surge |
+
+The **PPO RL Allocator** dynamically reweights these strategies each cycle based on current market state and portfolio performance.
+
+---
+
+## Broker Selection — Alpaca vs Binance
+
+The single flag that controls everything is **`BROKER`** in your `.env` file.
+The file that reads it is [bot/config.py](bot/config.py) (`cfg.broker`).
+The factory that acts on it is [exchange/\_\_init\_\_.py](exchange/__init__.py).
+
+| `BROKER=` | Client used | What works | What doesn't |
+| --------- | ----------- | ---------- | ------------ |
+| `alpaca` | [exchange/alpaca_client.py](exchange/alpaca_client.py) | Spot crypto (BTC/ETH/SOL…), momentum, mean-reversion, pairs-arb, order-flow, breakout, all ML models | Funding-arb, basis-trade, options-vol (return zero signals — safe), real futures leverage |
+| `binance` | [exchange/client.py](exchange/client.py) | Everything — futures, options, funding rates, OI, liquidations | Nothing (full feature set) |
+
+### Switching brokers
+
+Open [`.env`](.env) and change one line:
+
+```dotenv
+# Test on Alpaca paper trading (no real money, uses existing Alpaca account)
+BROKER=alpaca
+ALPACA_API_KEY=your_key
+ALPACA_API_SECRET=your_secret
+ALPACA_PAPER=true
+
+# Switch to Binance when ready
+# BROKER=binance
+# BINANCE_API_KEY=your_key
+# BINANCE_API_SECRET=your_secret
+# BINANCE_TESTNET=true   # start on testnet first
+```
+
+### Install Alpaca dependency
 
 ```bash
-uv venv
+pip install -e ".[alpaca]"
+# or just:
+pip install alpaca-py
+```
+
+### What to test on Alpaca
+
+Alpaca paper trading gives you $100,000 simulated USD and real market data,
+making it ideal for verifying:
+
+- Strategy signal generation (momentum, mean-reversion, breakout, pairs, order-flow)
+- Order placement, reprice logic, TWAP
+- Risk guard circuit breakers (drawdown halt, daily loss limit)
+- ML model inference (HMM regime, LSTM predictions, RL allocator weights)
+- Discord/Telegram notifications
+- Weekend training pipeline (same code, uses Alpaca REST for historical data)
+
+Strategies that silently produce **no signals** on Alpaca (futures-only logic):
+
+- `funding_arb` — requires perpetual funding rates (always 0.0 on Alpaca)
+- `basis_trade` — requires spot-futures basis
+- `options_vol` — requires Binance EAPI options
+
+---
+
+## Quick Start
+
+### 1. Clone and install
+
+```bash
+git clone <repo>
+cd <repo>
+python -m venv .venv
 source .venv/bin/activate
-uv pip install -e .
+pip install -e .
+pip install -e ".[alpaca]"         # for Alpaca paper trading (BROKER=alpaca)
+# For GPU (RTX 5090 / CUDA 12):
+pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
-### Required Secrets
-
-Create `.env` in repository root:
-
-```env
-ALPACA_API_KEY=your_public_key
-ALPACA_SECRET_KEY=your_private_key
-IS_PAPER=true
-```
-
-Optional but recommended:
-- Discord webhook URL for alerts (`DISCORD_WEBHOOK_URL` in `config/params.py`).
-
----
-
-## Strategy Logic
-
-Here's the basic idea:
-
-1. **Sell cash-secured puts** on stocks you wouldn't mind owning.
-2. If you **get assigned**, buy the stock.
-3. Then **sell covered calls** on the stock you own.
-4. Keep collecting premiums until the stock gets called away.
-5. Repeat the cycle!
-
-This code helps pick the right puts and calls to sell, tracks your positions, and automatically turns the wheel to the next step.
-
----
-
-## How to Run the Code
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/alpacahq/options-wheel.git
-   cd options-wheel
-   ```
-
-2. **Create a virtual environment using [`uv`](https://github.com/astral-sh/uv):**
-
-   ```bash
-   uv venv
-   source .venv/bin/activate  # Or `.venv\Scripts\activate` on Windows
-   ```
-
-3. **Install the required packages:**
-
-   ```bash
-   uv pip install -e .
-   ```
-
-4. **Set up your API credentials:**
-
-   Create a `.env` file in the project root with the following content:
-
-   ```env
-   ALPACA_API_KEY=your_public_key
-   ALPACA_SECRET_KEY=your_private_key
-   IS_PAPER=true  # Set to false if using a live account
-   ```
-
-   Your credentials will be loaded from `.env` automatically.
-
-5. **Choose your symbols:**
-
-   The strategy trades only the symbols listed in `config/symbol_list.txt`. Edit this file to include the tickers you want the automation stack to consider, one symbol per line. The weekend pipeline now automatically deduplicates this list, resolves Yahoo aliases like `BRK.B -> BRK-B` for research downloads, and removes symbols that repeatedly fail validation.
-
-6. **Configure trading parameters:**
-
-   Adjust values in `config/params.py` to customize things like buying power limits, options characteristics (e.g., greeks / expiry), and scoring thresholds. Each parameter is documented in the file.
-
-
-7. **Run the strategy**
-
-   Run the strategy (which assumes an empty or fully managed portfolio):
-   
-   ```bash
-   run-strategy
-   ```
-   
-   > **Tip:** On your first run, use `--fresh-start` to liquidate all existing positions and start clean.
-   
-   There are two types of logging:
-   
-   * **Strategy JSON logging** (`--strat-log`):
-     Always saves detailed JSON files to disk for analyzing strategy performance.
-   
-   * **Runtime logging** (`--log-level` and `--log-to-file`):
-     Controls console/file logs for monitoring the current run. Optional and configurable.
-   
-   **Flags:**
-   
-   * `--fresh-start` — Liquidate all positions before running (recommended first run).
-   * `--strat-log` — Enable strategy JSON logging (always saved to disk).
-   * `--log-level LEVEL` — Set runtime logging verbosity (default: INFO).
-   * `--log-to-file` — Save runtime logs to file instead of console.
-   * `--mega-confidence-threshold N` — Confidence floor for the deep-learning screener before a symbol is treated as a primary candidate.
-   * `--predictor-universe-cap N` — Maximum number of ranked symbols sent through the movement predictor per run.
-   * `--router-top-k N` — Number of fused symbols retained per strategy bucket before final throttling.
-   
-   Example:
-   
-   ```bash
-   run-strategy --fresh-start --strat-log --log-level DEBUG --log-to-file
-   ```
-   
-   For more info:
-   
-   ```bash
-   run-strategy --help
-   ```
-
-8. **Run always-on concurrent automation (optional but recommended for 24/7 ops)**
-
-   Simplest one-command launcher:
-
-   ```bash
-   python start.py
-   ```
-
-   Equivalent direct launcher:
-
-   ```bash
-   python -m scripts.automation_controller --restart-on-failure
-   ```
-
-   This launches concurrent loops for:
-   - market-hours portfolio deployment,
-   - always-on risk monitoring,
-   - market-regime rebalance checks,
-   - faster critical-window monitoring around the open and close,
-   - immediate regime-shift detection + rebalance triggers,
-   - open/close bell risk sweeps,
-   - a cached preflight gate that recompiles/import-checks the stack before live actions run,
-   - pre-open self checks + daily post-close evaluation/model-maintenance,
-   - a 24/7 system-resource telemetry loop that writes host snapshots to `.runtime/system_resource_snapshot.json`,
-   - Friday post-close fine-tuning/backtesting before the heavier weekend recalibration cycle,
-   - weekend recalibration + automatic backtesting + fixed report generation.
-
-   The controller now streams child command output with cleaner status lines, and `run-strategy` prints stage percentages so you can see exactly where the stack is in the cycle.
-
-   Manual preflight check:
-
-   ```bash
-   python -m scripts.automation_preflight --json-only --no-deep-model-checks
-   ```
-
-   Daily lightweight model maintenance can also be run manually:
-
-   ```bash
-   python -m scripts.model_maintenance --mode daily
-   ```
-
-   Daily automation reports are written to:
-   - `reports/daily/latest_daily_automation_report.md`
-   - `reports/daily/latest_daily_automation_report.json`
-
-   Every massive backtest now also writes:
-   - an archived JSON + Markdown report under `reports/backtests/`
-   - `reports/latest_backtest_report.json`
-   - `reports/latest_backtest_summary.md`
-
-   To add weekend calibration beside your run-bot timings:
-
-   ```bash
-   python -m scripts.automation_controller \
-     --weekend-hour 8 \
-     --weekend-minute 0 \
-     --weekend-recalibration-command "python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56" \
-     --weekend-backtest-command "python -m scripts.massive_backtest_engine"
-   ```
-
-   The weekend report is written to `reports/weekend_professional_report.md`.
-
-   Optional `crontab -e` bootstrap (launch once on reboot, controller handles timing internally):
-
-   ```cron
-   @reboot cd /path/to/options-spread && /path/to/options-spread/.venv/bin/python -m scripts.automation_controller --restart-on-failure >> /path/to/options-spread/logs/automate-stack.log 2>&1
-   ```
-
-   Optional fail-safe watchdog every 15 minutes (restart if down + optional ping):
-
-   ```cron
-   */15 * * * * cd /path/to/options-spread && /usr/bin/env bash -lc 'scripts/ensure_automate_stack.sh'
-   ```
-
-   If you still prefer separate cron jobs instead of the always-on controller, add the weekend calibration/backtest task next to the weekday run-bot timings:
-
-   ```cron
-   CRON_TZ=America/New_York
-   0 10,13 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
-   30 15 * * 1-5 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/run-strategy --manage-only --strat-log --log-to-file >> /home/dash/options-spread/logs/cron.log 2>&1
-   0 8 * * 6 cd /home/dash/options-spread && /home/dash/options-spread/.venv/bin/python -m scripts.weekend_recalibration --target-daily-return 0.002 --target-accuracy 0.56 && /home/dash/options-spread/.venv/bin/python -m scripts.massive_backtest_engine >> /home/dash/options-spread/logs/weekend-automation.log 2>&1
-   ```
-
----
-
-### What the Script Does
-
-* Checks your current positions to identify any assignments and sells covered calls on those.
-* Filters your chosen stocks based on buying power (you must be able to afford 100 shares per put).
-* Scores put options using `core.strategy.score_options()`, which ranks by annualized return discounted by the probability of assignment.
-* Applies tighter execution-quality filters and a lightweight transaction-cost model (spread/slippage/liquidity penalty) so poor-fill contracts are deprioritized.
-* Places trades for the top-ranked options.
-* Runs a stock movement predictor (`core/movement_predictor.py`) and derives target portfolio Greeks (`core/greeks_targeting.py`) so directional trades can adapt toward bullish/bearish/neutral delta bias.
-* Queries the macro HMM/deep regime brain (`core/regime_detection.py`) and the large cross-sectional screener (`scripts/mega_screener.py`) for higher-level trade priors.
-* Adds an HMM-driven **pairs mean-reversion overlay** (`core/pairs_trading.py`) that injects bullish/bearish directional context when historically correlated pairs diverge materially with confidence gating.
-* Fuses deep-model priors, movement signals, pair signals, flow ranking, and macro posture in `core/signal_fusion.py` before capital is routed to Theta, Vega, Bull, and Bear books.
-* Uses weekend-generated market-state policy controls to bias routing thresholds, bucket sizing, and deployment toward the profile that best matched recent backtest regimes.
-* Runs a cached compile/import/config preflight before live automation actions so broken edits are caught before the stack wastes a market window.
-* Can deploy a capped direct-equity overlay from the same predictive signal stack, apply event-aware IV/distribution filters to those stock entries, and unwind that overlay automatically when the market state turns defensive.
-* Can also use a stock-based delta hedge sleeve (`SPY` / `SH` by default) when the live portfolio delta drifts too far away from the model target and options alone are not enough to rebalance quickly.
-* Writes `.runtime/risk_snapshot.json` and `.runtime/system_resource_snapshot.json` so the 24/7 risk desk and host-health state are auditable outside the terminal.
-* Sizes research/backtest concurrency from the detected machine profile so a 28-core / 32 GB host can run faster without letting BLAS/RandomForest threads stampede each other.
-* Dynamically throttles new trade count and risk deployment when model confidence is weak, the stack disagrees, or macro-regime conviction falls.
-* Uses an optional **Platinum sizing layer** (`core/portfolio_optimizer.py`) that applies conservative Kelly-style deployment scaling from signal quality, macro confidence, pair confidence, and VIX.
-* Stores a routing snapshot in the strategy JSON log so you can audit why a bucket was favored on a given run.
-
-> **Important:** Aggressive goals like 5% daily return are stretch targets, not guarantees. Always validate via out-of-sample backtests and paper trading before risking capital.
-
----
-
-### Signal Fusion and Routing
-
-`run-strategy` now treats the model stack as one decision system instead of a set of loosely connected heuristics:
-
-1. The symbol universe is concentration-filtered and ranked by institutional-flow proxy.
-2. The movement predictor estimates per-symbol directional bias and feeds target portfolio Greeks.
-3. The macro brain decides whether the environment is closer to premium harvesting, long-volatility, or defense.
-4. The Mega Brain contributes cross-sectional priors for `THETA`, `VEGA`, `BULL`, and `BEAR`.
-5. The pairs overlay adds mean-reversion context when divergences are statistically meaningful.
-6. `core/signal_fusion.py` combines those inputs into ranked candidate buckets and a consensus-based deployment multiplier.
-
-This is much closer to an institutional routing pattern: the stack scales down when signals conflict and only sizes up when multiple layers agree. It is still not a profit guarantee, and no model can be expected to win in every market condition.
-
-Weekend recalibration now also builds a regime-policy artifact that:
-- infers the current market state,
-- scores multiple strategy profiles against recent backtest windows,
-- selects a live profile and emits bucket weights, routing thresholds, risk/deployment multipliers, and short-premium safety caps for the always-on runner.
-
-Useful live override knobs when you want to clamp or test behavior without editing files:
-- `--min-signal-confidence-override`
-- `--min-vix-for-directional-credit`
-- `--max-vix-for-short-premium`
-- `--disable-runtime-regime-policy`
-
----
-
-
-### Portfolio History UI (Date-Parameterized)
-
-`run-strategy` can print account equity history over a specific date window for operator review and audit trails:
+### 2. Configure credentials
 
 ```bash
-run-strategy --history-start 2025-01-01 --history-end 2025-12-31 --history-timeframe 1D --history-only
+cp .env.example .env
+nano .env    # set BROKER=alpaca, fill ALPACA_API_KEY / ALPACA_API_SECRET
 ```
 
-Useful variants:
+The default is **`BROKER=alpaca`** with **`ALPACA_PAPER=true`** — simulated money
+on real market data.  Switch to `BROKER=binance` once you are satisfied.
 
-- Pull history then continue normal strategy execution:
-
-  ```bash
-  run-strategy --history-start 2026-01-01 --history-end 2026-03-31 --strat-log
-  ```
-
-- Supported timeframes: `1Min`, `5Min`, `15Min`, `1H`, `1D`.
-
-This prints summary P/L and the latest equity datapoints in a terminal-friendly dashboard format.
-
-### Movement Predictor Backtesting
-
-You can now backtest the movement predictor for multiple windows including **10 years, 5 years, 1 year, 6 months, and 3 months**:
+### 3. Pre-flight check
 
 ```bash
-backtest-movement --symbols SPY QQQ NVDA --lookbacks 10y 5y 1y 6mo 3mo
+system-check
+# or:
+python -m scripts.system_check
 ```
 
-This writes a JSON report to `reports/movement_predictor_backtest.json` by default.
-
-For a larger **all-in-one predictive audit engine** (movement + regime + pairs + strategy-routing proxies):
+### 4. Run the bot
 
 ```bash
-massive-backtest --symbols SPY QQQ IWM NVDA TSLA --lookbacks 10y 5y 3y 1y 6mo 3mo ytd --target-daily-return 0.002 --target-accuracy 0.56 --horizon-days 5
+run-bot
+# or:
+python -m scripts.run_bot
 ```
 
-Or run with your configured universe in one command:
+### 5. Run the risk monitor (separate terminal / process)
 
 ```bash
-massive-backtest
+risk-monitor
+# or:
+python -m scripts.risk_monitor
 ```
 
-This produces `reports/massive_backtest_report.json` with:
+---
 
-- `movement_suite` (direction-prediction accuracy/alpha across windows),
-- `pairs_suite` (historical mean-reversion signal win-rate),
-- `regime_suite` (macro HMM directional risk proxy quality),
-- `strategy_proxy_suite` (BULL/BEAR/THETA/VEGA routing hit-rates),
-- and a unified `massive_overview.predictive_score`.
+## Ubuntu Server Deployment
 
-### Quant Research Foundry (Weekend + Zero-Calibration Modes)
+### Directory layout
 
-For deeper ensemble research packs that you can plug into your library:
+```text
+/opt/binance-bot/
+├── .env                    # credentials (chmod 600)
+├── .venv/                  # virtualenv
+├── models/
+│   ├── live/               # models used by run_bot.py
+│   └── training/           # output of weekend training
+├── logging/
+│   ├── bot.log
+│   └── errors.log
+└── .runtime/
+    └── bot_state.db        # SQLite state
+```
+
+### systemd services
+
+**`/etc/systemd/system/binance-bot.service`**
+
+```ini
+[Unit]
+Description=Binance Quant Trading Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/binance-bot
+EnvironmentFile=/opt/binance-bot/.env
+ExecStart=/opt/binance-bot/.venv/bin/run-bot
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+# Allow access to CUDA GPU
+Environment=CUDA_VISIBLE_DEVICES=0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**`/etc/systemd/system/binance-risk-monitor.service`**
+
+```ini
+[Unit]
+Description=Binance Bot Risk Monitor
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/binance-bot
+EnvironmentFile=/opt/binance-bot/.env
+ExecStart=/opt/binance-bot/.venv/bin/risk-monitor
+Restart=on-failure
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
 
 ```bash
-quant-foundry --mode weekend-calibrate --target-daily-return 0.002 --target-accuracy 0.56
+sudo systemctl daemon-reload
+sudo systemctl enable binance-bot binance-risk-monitor
+sudo systemctl start binance-bot binance-risk-monitor
+sudo systemctl status binance-bot
 ```
 
-If you want a **no-fit / no-calibration** prior pack (static robust priors):
+View logs:
 
 ```bash
-quant-foundry --mode zero-calibration
+journalctl -u binance-bot -f
+journalctl -u binance-risk-monitor -f
 ```
 
-Outputs:
+---
 
-- `config/quant_strategy_pack.json` (portable strategy pack),
-- `reports/quant_foundry_report.json` (validation summary),
-- and an audit snapshot in `config/model_state.json`.
+## Crontab Configuration
 
-You can also chain this into the weekend pipeline:
+Edit crontab with `crontab -e` as the bot user:
+
+```cron
+# ============================================================
+# Binance Quant Bot — Crontab Configuration
+# All times are UTC. Adjust path to your virtualenv.
+# ============================================================
+
+SHELL=/bin/bash
+VENV=/opt/binance-bot/.venv/bin
+BOT=/opt/binance-bot
+
+# --- Weekend self-retraining (Saturday 01:00 UTC) ---
+# Trains HMM, LSTM, GARCH, and RL allocator on fresh data.
+# Deploys new models to models/live/ when training completes.
+0 1 * * 6  cd $BOT && $VENV/weekend-train >> $BOT/logging/training.log 2>&1
+
+# --- Daily system health check (every day 00:05 UTC) ---
+5 0 * * *  cd $BOT && $VENV/system-check >> $BOT/logging/healthcheck.log 2>&1
+
+# --- Log rotation (daily, keep 30 days) ---
+# Handled automatically by TimedRotatingFileHandler in bot/logger.py
+
+# --- Restart bot service if not running (watchdog every 5 min) ---
+# Uncomment if NOT using systemd (e.g. tmux / screen setup):
+# */5 * * * *  systemctl is-active --quiet binance-bot || systemctl restart binance-bot
+```
+
+### tmux-based deployment (alternative to systemd)
 
 ```bash
-weekend-recalibrate --quant-mode weekend-calibrate
-```
+# Create a persistent tmux session
+tmux new-session -d -s bot
+tmux new-window -t bot:0 -n trading
+tmux new-window -t bot:1 -n risk
+tmux new-window -t bot:2 -n logs
 
-> **Important:** The generated pack is research infrastructure for fine-tuning and paper-trading; it is not a profit guarantee.
+# Start in each window
+tmux send-keys -t bot:0 'cd /opt/binance-bot && source .venv/bin/activate && run-bot' Enter
+tmux send-keys -t bot:1 'cd /opt/binance-bot && source .venv/bin/activate && risk-monitor' Enter
+tmux send-keys -t bot:2 'tail -f /opt/binance-bot/logging/bot.log' Enter
 
----
-
-### Full Model Recalibration (HMM + Deep Learning + Regime Models)
-
-To retrain all major models with configurable return/accuracy objectives:
-
-```bash
-weekend-recalibrate --target-daily-return 0.002 --target-accuracy 0.56
-```
-
-By default the weekend pipeline now:
-1. `scripts/train_hmm.py` (macro Hidden Markov model),
-2. `scripts/train_correlation_alpha.py` (pair-correlation alpha priors for mean-reversion confidence),
-3. `scripts/mega_matrix.py --target-annual-return <daily*252>` (dataset rebuild),
-4. `scripts/mega_gpu_training.py --target-annual-return <daily*252> --target-accuracy <target>`,
-5. `scripts/train_regime_movement_models.py --target-accuracy <target>`,
-6. `scripts/quant_research_foundry.py`,
-7. `scripts/massive_backtest_engine.py` across `10y`, `5y`, `3y`, `1y`, `6mo`, `3mo`, and `ytd`,
-8. writes `reports/universe_validation_report.json`, `reports/weekend_recalibration_report.json`, and `config/market_regime_policy.json`.
-
-If you only want to skip specific pieces, use `--no-train`, `--no-quant-foundry`, `--no-backtest`, or `--no-symbol-maintenance`.
-
-Use higher values only as optimization goals, **not guarantees**.
-
-### Online Adaptive Recalibration (Self-Tuning Runtime Controls)
-
-Each `run-strategy` cycle now writes and updates `config/adaptive_profile.json` to self-tune:
-
-- Per-trade risk cap scaling (`risk_multiplier`)
-- Capital deployment intensity (`deployment_multiplier`)
-- Number of fresh setups attempted (`trade_intensity_multiplier`)
-
-The adaptive profile uses a rolling window of recent daily returns and model confidence, then shifts between defensive/balanced/offensive regimes automatically.
-
-Use defaults:
-
-```bash
-run-strategy
-```
-
-Tune the rolling memory window:
-
-```bash
-run-strategy --adaptive-lookback 45
-```
-
-Disable adaptive scaling for a single run:
-
-```bash
-run-strategy --disable-adaptive-recalibration
+# Attach to view
+tmux attach -t bot
 ```
 
 ---
 
-### Notes
+## Risk Controls
 
-* **Account state matters**: This strategy assumes full control of the account — all positions are expected to be managed by this script. For best results, start with a clean account (e.g. by using the `--fresh-start` flag).
-* **One contract per symbol**: To simplify risk management, this implementation trades only one contract at a time per symbol. You can modify this logic in `core/strategy.py` to suit more advanced use cases.
-* The **user agent** for API calls defaults to `OPTIONS-WHEEL` to help Alpaca track usage of runnable algos and improve user experience.  You can opt out by adjusting the `USER_AGENT` variable in `core/user_agent_mixin.py` — though we kindly hope you’ll keep it enabled to support ongoing improvements.  
-* **Want to customize the strategy?** The `core/strategy.py` module is a great place to start exploring and modifying the logic.
-* **No universal edge exists**: the goal is better routing, better risk control, and better research hygiene, not guaranteed profits in all regimes.
+All limits are set in `.env` and enforced in real-time:
 
----
+| Control | Default | Description |
+| ------- | ------- | ----------- |
+| `MAX_RISK_PER_TRADE` | 2% | Max equity per single signal |
+| `MAX_PORTFOLIO_RISK` | 20% | Max total gross exposure |
+| `DAILY_LOSS_LIMIT` | 5% | Auto-halt trading for the day |
+| `MAX_DRAWDOWN` | 15% | Auto-halt until manual resume |
+| `MAX_LEVERAGE` | 10x | Hard leverage cap on futures |
+| `KELLY_FRACTION` | 0.25 | Quarter-Kelly position sizing |
 
-## Automating the Runtime
-
-Running the script once will only turn the wheel a single time. To keep it running as a long-term income strategy, you'll want to automate it to run several times per day. This can be done with a cron job on Mac or Linux.
-
-### Setting Up a Cron Job (Mac / Linux)
-
-1. **Find the full path to the `run-strategy` command** by running:
-
-   ```bash
-   which run-strategy
-   ```
-
-   This will output something like:
-
-   ```bash
-   /Users/yourname/.local/share/virtualenvs/options-wheel-abc123/bin/run-strategy
-   ```
-
-2. **Open your crontab** for editing:
-
-   ```bash
-   crontab -e
-   ```
-
-3. **Add the following lines to run the strategy at 10:00 AM, 1:00 PM, and 3:30 PM on weekdays:**
-
-   ```cron
-   0 10 * * 1-5 /full/path/to/run-strategy >> /path/to/logs/run_strategy_10am.log 2>&1
-   0 13 * * 1-5 /full/path/to/run-strategy >> /path/to/logs/run_strategy_1pm.log 2>&1
-   30 15 * * 1-5 /full/path/to/run-strategy >> /path/to/logs/run_strategy_330pm.log 2>&1
-   ```
-
-   Replace `/full/path/to/run-strategy` with the output from the `which run-strategy` command above. Also replace `/path/to/logs/` with the directory where you'd like to store log files (create it if needed).
+The `RiskGuard` will send Discord/Telegram alerts at 80% of each threshold, and halt trading at 100%.
 
 ---
 
-## Architecture Overview
+## Weekend Training Internals
 
-The runtime is organized into layers:
+```text
+Saturday 01:00 UTC — cron triggers weekend_training.py
+  │
+  ├─ [1] Download 90 days × 10 symbols × 1h candles (~90,000 bars)
+  ├─ [2] Retrain HMM (4-state regime detector) per symbol
+  ├─ [3] Retrain BiLSTM price predictor per symbol (GPU, ~80 epochs)
+  ├─ [4] Refit GARCH(1,1) volatility model per symbol
+  ├─ [5] Retrain PPO RL allocator (200k timesteps, GPU)
+  └─ [6] Deploy: copy models/training/ → models/live/
 
-- **Orchestration** (`scripts/run_strategy.py`): lifecycle control, risk budgeting, kill switches, and strategy deployment.
-- **Trade Selection & Execution** (`core/strategy.py`, `core/execution.py`): contract filtering/scoring + order placement.
-- **Portfolio Management** (`core/manager.py`): active position exits, TP/SL/time-stop handling, dashboarding.
-- **Prediction Layer** (`core/movement_predictor.py`, `core/regime_detection.py`, `scripts/mega_screener.py`, `core/greeks_targeting.py`): symbol-level direction, macro regime posture, and deep-model priors.
-- **Signal Fusion Layer** (`core/signal_fusion.py`, `core/pairs_trading.py`, `core/portfolio_optimizer.py`): combines model outputs into ranked strategy buckets and deployment scaling.
-- **State, Logging, Notifications** (`core/state_manager.py`, `logging/*`, `core/notifications.py`): persistence, observability, and operator alerting.
-
----
-
-## Operations & Maintenance (Summary)
-
-For the full runbook, see [`docs/OPERATIONS_GUIDE.md`](./docs/OPERATIONS_GUIDE.md). Core recurring tasks:
-
-1. **Daily**
-   - Verify alerts are flowing (Discord / logs).
-   - Check account status and active positions.
-   - Confirm no stale orders / repeated failures in runtime logs.
-2. **Weekly**
-   - Re-evaluate `config/symbol_list.txt`.
-   - Run model recalibration (`weekend-recalibrate ...`) when needed.
-   - Validate risk parameters (`MAX_RISK_PER_SPREAD`, `RISK_ALLOCATION`, confidence guardrails).
-3. **After Code Changes**
-   - Run in paper mode first.
-   - Validate logs and no exception loops.
-   - Promote gradually to live with conservative sizing.
-
----
-
-## Operator Checklist (First Production Run)
-
-1. Enable paper mode and set credentials.
-2. Populate a conservative symbol universe.
-3. Start with `run-strategy --fresh-start --strat-log --log-level DEBUG`.
-4. Validate:
-   - open/close lifecycle behaves as expected,
-   - dashboard metrics are sensible,
-   - no runaway order retries,
-   - alerts are readable/actionable.
-5. Schedule with cron only after a clean multi-day paper soak.
-
----
-
-## Test Results
-
-To validate the code mechanics, the strategy was tested in an Alpaca paper account over the course of two weeks (May 14 – May 28, 2025). A full report and explanation of each decision point can be found in [`reports/options-wheel-strategy-test.pdf`](./reports/options-wheel-strategy-test.pdf). A high-level summary of the trading results is given below.
-
-### Premiums Collected
-
-| Underlying | Expiry     | Strike | Type | Date Sold  | Premium Collected |
-| ---------- | ---------- | ------ | ---- | ---------- | ----------------- |
-| PLTR       | 2025-05-23 | 124    | P    | 2025-05-14 | \$261.00          |
-| NVDA       | 2025-05-30 | 127    | P    | 2025-05-14 | \$332.00          |
-| MP         | 2025-05-23 | 20     | P    | 2025-05-14 | \$28.00           |
-| AAL        | 2025-05-30 | 11     | P    | 2025-05-14 | \$20.00           |
-| INTC       | 2025-05-30 | 20.50  | P    | 2025-05-14 | \$33.00           |
-| CAT        | 2025-05-16 | 345    | P    | 2025-05-14 | \$140.00          |
-| AAPL       | 2025-05-23 | 200    | P    | 2025-05-19 | \$110.00          |
-| DLR        | 2025-05-30 | 165    | P    | 2025-05-20 | \$67.00           |
-| AAPL       | 2025-05-30 | 202.50 | C    | 2025-05-27 | \$110.00          |
-| MP         | 2025-05-30 | 20.50  | C    | 2025-05-27 | \$12.00           |
-| PLTR       | 2025-05-30 | 132    | C    | 2025-05-27 | \$127.00          |
-
-**Total Premiums Collected:** **\$1,240.00**
-
----
-
-### Total PnL (Change in Account Liquidating Value)
-
-| Metric                   | Value           |
-| ------------------------ | --------------- |
-| Starting Balance         | \$100,000.00    |
-| Ending Balance           | \$100,951.89    |
-| Net PnL                  | **+\$951.89** |
-
----
-
-### Disclaimer
-
-These results are based on historical, simulated trading in a paper account over a limited timeframe and **do not represent actual live trading performance**. They are provided solely to demonstrate the mechanics of the strategy and its ability to automate the Wheel process in a controlled environment. **Past performance is not indicative of future results.** Trading in live markets involves risk, and there is no guarantee that future performance will match these simulated results.
-
----
-
-## Core Strategy Logic
-
-The core logic is defined in `core/strategy.py`.
-
-* **Stock Filtering:**
-  The strategy filters underlying stocks based on available buying power. It fetches the latest trade prices for each candidate symbol and retains only those where the cost to buy 100 shares (`price × 100`) is within your buying power limit. This keeps trades within capital constraints and can be extended to include custom filters like volatility or technical indicators.
-
-* **Option Filtering:**
-  Put options are filtered by absolute delta, which must lie between `DELTA_MIN` and `DELTA_MAX`, by open interest (`OPEN_INTEREST_MIN`) to ensure liquidity, and by yield (between `YIELD_MIN` and `YIELD_MAX`). For short calls, the strategy applies a minimum strike price filter (`min_strike`) to ensure the strike is above the underlying purchase price. This helps avoid immediate assignment and locks in profit if the call is assigned.
-
-* **Option Scoring:**
-  Options are scored with a composite formula that rewards annualized yield, tighter spreads, better liquidity, safer delta, shorter efficient duration, and lower estimated execution cost. In simplified form:
-
-   `score ~= annualized_yield x spread_quality x liquidity_bonus x delta_safety x duration_efficiency x execution_quality`
-
-  This is materially different from the older wheel-only score. See `core/strategy.py` and `core/execution_quality.py` for the exact implementation.
-
-* **Option Selection:**
-  From all scored options, the strategy picks the highest-scoring contract per underlying symbol to promote diversification. It filters out options scoring below `SCORE_MIN` and returns either the top N options or all qualifying options.
-
----
-
-## Ideas for Customization
-
-### Stock Picking
-
-* Use technical indicators such as moving averages, RSI, or support/resistance levels to identify stocks likely to remain range-bound — ideal for selling options in the Wheel strategy.
-* Incorporate fundamental filters like earnings growth, dividend history, or volatility to select stocks you’re comfortable holding long term.
-
-### Scoring Function for Puts / Calls
-
-* Modify the scoring formula to weight factors differently or separately for puts vs calls. For example, emphasize calls with strikes just below resistance levels or puts on stocks with strong support.
-* Consider adding factors like implied volatility or premium decay to better capture option pricing nuances.
-
-### Managing a Larger Portfolio
-
-* Allocate larger trade sizes to higher-scoring options for more efficient capital use.
-* Allow multiple wheels per stock to increase position flexibility.
-* Set exposure limits per underlying or sector to manage risk.
-
-### Stop Loss When Puts Get Assigned
-
-* Implement logic to cut losses if a stock price falls sharply after assignment, protecting capital from downside.
-
-### Rolling Short Puts as Expiration Nears
-
-* Instead of letting puts expire or get assigned, roll them forward to the next expiration or down to lower strikes to capture additional premium and manage risk.
-* (For more, see [this Learn article](https://alpaca.markets/learn/options-wheel-strategy).)
-
----
-
-## Final Notes
-
-This is a strong foundation for research and automation, but always double-check your live trades. No system is completely hands-off, and no strategy stack should be assumed to be universally profitable.
-
----
-<div style="font-size: 0.8em;">
-Disclosures
-
-Options trading is not suitable for all investors due to its inherent high risk, which can potentially result in significant losses. Please read [Characteristics and Risks of Standardized Options](https://www.theocc.com/company-information/documents-and-archives/options-disclosure-document) before investing in options
-
-The Paper Trading API is offered by AlpacaDB, Inc. and does not require real money or permit a user to transact in real securities in the market. Providing use of the Paper Trading API is not an offer or solicitation to buy or sell securities, securities derivative or futures products of any kind, or any type of trading or investment advice, recommendation or strategy, given or in any manner endorsed by AlpacaDB, Inc. or any AlpacaDB, Inc. affiliate and the information made available through the Paper Trading API is not an offer or solicitation of any kind in any jurisdiction where AlpacaDB, Inc. or any AlpacaDB, Inc. affiliate (collectively, “Alpaca”) is not authorized to do business.
-
-All investments involve risk, and the past performance of a security, or financial product does not guarantee future results or returns. There is no guarantee that any investment strategy will achieve its objectives. Please note that diversification does not ensure a profit, or protect against loss. There is always the potential of losing money when you invest in securities, or other financial products. Investors should consider their investment objectives and risks carefully before investing.
-
-Please note that this article is for general informational purposes only and is believed to be accurate as of the posting date but may be subject to change. The examples above are for illustrative purposes only and should not be considered investment advice. 
-
-Securities brokerage services are provided by Alpaca Securities LLC ("Alpaca Securities"), member [FINRA](https://www.finra.org/)/[SIPC](https://www.sipc.org/), a wholly-owned subsidiary of AlpacaDB, Inc. Technology and services are offered by AlpacaDB, Inc.
-
-This is not an offer, solicitation of an offer, or advice to buy or sell securities or open a brokerage account in any jurisdiction where Alpaca Securities is not registered or licensed, as applicable.
-</div>
-
----
-
-## Advanced AI Stack (Deep Learning + HMM + Weekly Recalibration)
-
-This repository now includes a multi-layer research/training pipeline designed to:
-
-- detect latent market regimes with Hidden Markov Models,
-- train sequence models on macro + cross-asset + hidden-correlation features,
-- prioritize the full symbol universe using volatility + institutional-flow proxies,
-- recalibrate models weekly for current market structure.
-
-### Core Components
-
-- **`scripts/train_hmm.py`**: trains the macro HMM regime model with validation-based model selection across candidate state counts/seeds.
-- **`scripts/mega_matrix.py`**: builds the deep-learning tensor dataset (including HMM state probabilities and rolling hidden correlations).
-- **`scripts/mega_gpu_training.py`**: trains the main Mixture-of-Experts sequence model with robust GPU training controls.
-- **`scripts/weekend_recalibration.py`**: weekend job that reprioritizes the full symbol universe, updates `config/volatile_symbols.txt`, and can run full retraining.
-- **`core/market_intelligence.py`**: volatility ranking + institutional-flow proxy scoring.
-- **`core/state_manager.py`**: now stores model snapshots in `config/model_state.json` for auditability.
-
-### Weekend Recalibration Workflow
-
-Run every weekend (e.g. Saturday pre-open):
-
-```bash
-python scripts/weekend_recalibration.py --train
+Bot auto-reloads new models on next startup (Sunday 00:00 UTC restart via cron/watchdog).
 ```
 
-If you only want to refresh symbol prioritization without retraining:
+---
 
-```bash
-python scripts/weekend_recalibration.py
-```
+## Notifications
 
-> Note: `--top-n` is deprecated and ignored. Weekend recalibration now keeps all symbols.
+Set in `.env`:
 
-### Daily Trading Workflow
+- **Discord**: `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...`
+- **Telegram**: `TELEGRAM_BOT_TOKEN=...` + `TELEGRAM_CHAT_ID=...`
 
-1. Ensure models are trained and available in `config/`.
-2. Run strategy:
+Alerts are sent for: startup/shutdown, trades executed, risk threshold warnings, drawdown halts, training completion.
 
-```bash
-run-strategy
-```
+---
 
-`run-strategy` automatically:
-- loads `config/volatile_symbols.txt` if present,
-- applies institutional-flow prioritization,
-- queries macro regime inference,
-- routes trades to Theta / Vega / Bull / Bear strategy engines.
+## Environment Variables Reference
 
-### Operations & Maintenance Checklist
+See [.env.example](.env.example) for the full annotated list.
 
-- **Daily**
-  - verify broker/API connectivity,
-  - verify latest model files exist,
-  - check log output and open position risk.
-- **Weekly**
-  - run weekend recalibration,
-  - inspect `config/model_state.json` snapshots,
-  - validate regime confidence and transition stability metrics.
-- **Monthly**
-  - review symbol universe quality and remove structurally illiquid names,
-  - evaluate out-of-sample performance and drift.
+---
 
-### Important Risk Reality
+## Disclaimer
 
-Targets (including aggressive targets like 5% daily or fixed annual returns) are optimization objectives only.
-No live strategy can guarantee returns; all trading can lose capital.
-Use strict risk limits, paper trade first, and validate before any production deployment.
+This bot trades real money on live markets. Cryptocurrency trading carries substantial risk of loss. The authors provide no guarantee of profitability. Always:
 
-
-## Professional Expectations and Limits
-
-This project now includes stronger operational/reporting primitives, but **no trading system can be guaranteed to be “highly profitable.”** Real hedge funds continuously adapt models, execution, risk, and capital allocation based on live performance and market regime changes.
-
-Use this repo as a disciplined research and execution framework, validate every change in paper trading, and treat target returns as optimization goals rather than promises.
+- Start on **testnet** (`BINANCE_TESTNET=true`)
+- Run paper trading for at least 2–4 weeks before going live
+- Monitor risk metrics daily
+- Never risk capital you cannot afford to lose

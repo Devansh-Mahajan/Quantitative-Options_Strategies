@@ -3,40 +3,72 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "options-wheel"
-version = "0.1.0"
-description = "A model-driven automated options strategy stack."
+name = "binance-quant-bot"
+version = "2.0.0"
+description = "Self-learning Binance crypto trading bot with HMM + LSTM + RL strategy allocation."
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "Devansh Mahajan", email = "mahajandevansh@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
-    "python-dotenv",
-    "pandas>=1.5",
-    "numpy>=1.23",
-    "requests>=2.28",
-    "alpaca-py",
-    "yfinance",
-    "torch",
-    "scikit-learn",
-    "hmmlearn",
-    "joblib"
+    # Exchange connectivity
+    "python-binance>=1.0.19",
+    "aiohttp>=3.9",
+    "websockets>=12.0",
+
+    # Data wrangling
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "requests>=2.31",
+
+    # Technical indicators (pure Python, no TA-Lib compile)
+    "pandas-ta>=0.3.14b",
+
+    # ML — core
+    "torch>=2.2",
+    "scikit-learn>=1.4",
+    "hmmlearn>=0.3",
+    "joblib>=1.3",
+
+    # ML — reinforcement learning
+    "stable-baselines3>=2.2",
+    "gymnasium>=0.29",
+
+    # ML — volatility modelling (GARCH)
+    "arch>=6.3",
+
+    # Optimisation / stats
+    "scipy>=1.12",
+    "optuna>=3.5",
+
+    # Persistence & utilities
+    "python-dotenv>=1.0",
+    "sqlalchemy>=2.0",
+    "aiosqlite>=0.20",
+    "schedule>=1.2",
+    "psutil>=5.9",
+    "colorlog>=6.8",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+alpaca = [
+    "alpaca-py>=0.29",          # Alpaca broker adapter (BROKER=alpaca)
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
 ]
 
 [project.scripts]
-run-strategy = "scripts.run_strategy:main"
-weekend-recalibrate = "scripts.weekend_recalibration:main"
-backtest-movement = "scripts.backtest_movement_predictor:main"
-massive-backtest = "scripts.massive_backtest_engine:main"
-quant-foundry = "scripts.quant_research_foundry:main"
-automate-stack = "scripts.automation_controller:main"
-automation-preflight = "scripts.automation_preflight:main"
-model-maintenance = "scripts.model_maintenance:main"
-system-resource-probe = "scripts.system_resource_probe:main"
-# (optional) lets users run strategy/recalibration from CLI
+run-bot        = "scripts.run_bot:main"
+risk-monitor   = "scripts.risk_monitor:main"
+weekend-train  = "scripts.weekend_training:main"
+system-check   = "scripts.system_check:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["archive"]
+include = ["bot*", "exchange*", "ml*", "risk*", "strategies*", "execution*", "scripts*"]
+exclude = ["archive*"]
