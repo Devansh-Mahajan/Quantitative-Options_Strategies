@@ -1,0 +1,65 @@
+{
+  "generated_at_utc": "2026-04-20T20:21:51.429880+00:00",
+  "date": "2026-04-20",
+  "context": {
+    "date": "2026-04-20",
+    "post_close_eval_rc": 0,
+    "post_close_train_rc": 0,
+    "post_close_tune_rc": null,
+    "post_close_backtest_rc": null
+  },
+  "risk": {
+    "daily_pnl_pct": -0.2127,
+    "daily_pnl_dollars": -19.77,
+    "total_equity": 9275.09,
+    "buying_power_budget": 4631.55,
+    "portfolio_delta": -3.7668,
+    "portfolio_theta": -1.637,
+    "portfolio_vega": 0.0276,
+    "target_delta": -0.3779,
+    "target_theta": 39.1073,
+    "target_vega": 11.4644,
+    "movement_bias": "neutral",
+    "macro_regime": "THETA_ENGINE",
+    "runtime_market_state": "calm_bull",
+    "runtime_profile": "panic_hedge"
+  },
+  "system": {
+    "pressure": "normal",
+    "normalized_cpu_load_pct": 0.0,
+    "memory_usage_pct": 3.64,
+    "disk_usage_pct": 38.58
+  },
+  "execution": {
+    "records": 9,
+    "fill_rate": 1.0,
+    "full_fill_rate": 0.0,
+    "broker_fill_price_coverage": 1.0,
+    "avg_execution_quality_score": 0.709091,
+    "adaptive_reprice_factor": 1.0,
+    "degraded_execution_count": 0
+  },
+  "foundry": {
+    "mode": "weekend-calibrate",
+    "ensemble_accuracy": 0.5217203822499675,
+    "estimated_strategy_daily_return": 0.0005493700815407364
+  },
+  "latest_backtest": {
+    "predictive_score": 0.5426005177812003,
+    "consensus_market_state": "calm_bull",
+    "consensus_strategy_profile": "crash_reversal"
+  },
+  "market_policy": {
+    "current_regime_label": "RISK_OFF",
+    "current_market_state": "calm_bull",
+    "selected_profile": "panic_hedge",
+    "risk_multiplier": 0.4,
+    "deployment_multiplier": 0.35,
+    "trade_intensity_multiplier": 0.45
+  },
+  "model_maintenance": {
+    "mode": "daily",
+    "steps": 2
+  },
+  "note": "Daily operating report for the automated stack. It summarizes system state and the latest available research outputs."
+}

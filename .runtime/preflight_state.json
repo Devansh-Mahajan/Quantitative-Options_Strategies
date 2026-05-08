@@ -2,17 +2,11 @@
   "ok": true,
   "skipped": false,
   "summary": "Preflight passed.",
-  "completed_at_utc": "2026-04-15T21:57:41Z",
-  "signature": "9c316ead4eb2fa3779c88ecb6ee716a5274fe8dcf01042f23c6ec9b05780c89b",
-  "source_files": 87,
-  "json_files": 13,
+  "completed_at_utc": "2026-05-08T19:49:35Z",
+  "signature": "636cfbf1a563c70f206f0a272028198e4afcebcc04041b2dfe5348adeba8111a",
+  "source_files": 92,
+  "json_files": 14,
   "artifacts_checked": 7,
-  "issues": [
-    {
-      "severity": "warning",
-      "check": "artifact",
-      "detail": "Optional artifact not present yet: config/market_regime_policy.json"
-    }
-  ],
-  "completed_at_epoch": 1776290261.2296655
+  "issues": [],
+  "completed_at_epoch": 1778269774.84151
 }

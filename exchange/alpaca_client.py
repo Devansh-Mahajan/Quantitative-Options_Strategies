@@ -142,11 +142,20 @@ class AlpacaClient:
             if now - ts < self._cache_ttl:
                 return price
 
-        from alpaca.data.requests import LatestCryptoBarRequest
+        try:
+            from alpaca.data.requests import CryptoLatestBarRequest as _LatestBarReq
+        except ImportError:
+            from alpaca.data.requests import LatestCryptoBarRequest as _LatestBarReq
         alpaca_sym = _to_alpaca(symbol)
-        req = LatestCryptoBarRequest(symbol_or_symbols=alpaca_sym)
-        bars = await asyncio.to_thread(self._data.get_crypto_latest_bar, req)
-        bar = bars.get(alpaca_sym)
+        req = _LatestBarReq(symbol_or_symbols=alpaca_sym)
+        bars_resp = await asyncio.to_thread(self._data.get_crypto_latest_bar, req)
+        if hasattr(bars_resp, "get"):
+            bar = bars_resp.get(alpaca_sym)
+        else:
+            try:
+                bar = bars_resp[alpaca_sym]
+            except (KeyError, TypeError):
+                bar = None
         price = float(bar.close) if bar else 0.0
         self._price_cache[symbol] = (price, now)
         return price
@@ -176,8 +185,18 @@ class AlpacaClient:
             end=end,
             limit=limit,
         )
-        bars_dict = await asyncio.to_thread(self._data.get_crypto_bars, req)
-        bars = bars_dict.get(alpaca_sym, [])
+        bars_resp = await asyncio.to_thread(self._data.get_crypto_bars, req)
+        # alpaca-py returns either a dict-like BarSet or a plain dict depending on version
+        if hasattr(bars_resp, "data"):
+            bars = bars_resp.data.get(alpaca_sym, [])
+        elif hasattr(bars_resp, "get"):
+            bars = bars_resp.get(alpaca_sym, [])
+        else:
+            # BarSet iteration: yields (symbol, bar_list) or just bars
+            try:
+                bars = list(bars_resp[alpaca_sym])
+            except (KeyError, TypeError):
+                bars = []
 
         result = []
         for bar in bars[-limit:]:

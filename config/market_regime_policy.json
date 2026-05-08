@@ -1,0 +1,52 @@
+{
+  "generated_at_utc": "2026-05-07T08:09:10.156111+00:00",
+  "current_state_id": 1,
+  "current_regime_label": "TRANSITION",
+  "current_market_state": "transition",
+  "selected_profile": "all_weather",
+  "current_state_confidence": 1.0,
+  "predictive_score": 0.5472,
+  "ytd_regime_accuracy": 0.5472,
+  "profile_proxy_score": 0.2993,
+  "risk_multiplier": 0.8229,
+  "deployment_multiplier": 0.7758,
+  "trade_intensity_multiplier": 0.8172,
+  "live_controls": {
+    "selected_profile": "all_weather",
+    "profile_label": "All Weather",
+    "profile_thesis": "Balanced deployment across premium capture, long volatility, and directional books.",
+    "market_state": "transition",
+    "strategy_weights": {
+      "THETA": 0.22,
+      "VEGA": 0.26,
+      "BULL": 0.26,
+      "BEAR": 0.26
+    },
+    "bucket_thresholds": {
+      "THETA": 0.3254,
+      "VEGA": 0.3182,
+      "BULL": 0.2982,
+      "BEAR": 0.2982
+    },
+    "bucket_cap_multipliers": {
+      "THETA": 1.21,
+      "VEGA": 1.33,
+      "BULL": 1.33,
+      "BEAR": 1.33
+    },
+    "dynamic_top_k": 14,
+    "predictor_universe_cap": 21,
+    "mega_confidence_threshold": 75.98,
+    "min_signal_confidence": 0.2126,
+    "max_symbol_weight": 0.0829,
+    "theta_enabled": true,
+    "vega_enabled": true,
+    "directional_enabled": true,
+    "min_vix_for_directional_credit": 15.0,
+    "max_vix_for_short_premium": 30.0,
+    "risk_bias": 0.98,
+    "deployment_bias": 1.0,
+    "trade_intensity_bias": 1.0
+  },
+  "note": "Weekend HMM policy for current market conditions. Multipliers are adaptive controls, not guarantees."
+}

@@ -10,7 +10,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from exchange.client import BinanceClient
 from bot.config import cfg
 
 log = logging.getLogger("execution.position_manager")
@@ -43,7 +42,7 @@ class Position:
 
 
 class PositionManager:
-    def __init__(self, client: BinanceClient) -> None:
+    def __init__(self, client) -> None:
         self._client = client
         self.futures: dict[str, Position] = {}
         self.spot: dict[str, Position] = {}

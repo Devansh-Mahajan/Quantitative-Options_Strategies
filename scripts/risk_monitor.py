@@ -26,11 +26,11 @@ POLL_INTERVAL = 60   # seconds
 
 
 async def _monitor_loop() -> None:
-    from exchange.client import BinanceClient
+    from exchange import get_client
     from execution.position_manager import PositionManager
     from risk.portfolio_risk import PortfolioRiskEngine
 
-    client = BinanceClient()
+    client = get_client()
     await client.start()
 
     pos_manager = PositionManager(client)

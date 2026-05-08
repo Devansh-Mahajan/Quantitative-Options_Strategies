@@ -1,0 +1,65 @@
+{
+  "generated_at_utc": "2026-05-07T20:22:08.040933+00:00",
+  "date": "2026-05-07",
+  "context": {
+    "date": "2026-05-07",
+    "post_close_eval_rc": 0,
+    "post_close_train_rc": 0,
+    "post_close_tune_rc": null,
+    "post_close_backtest_rc": null
+  },
+  "risk": {
+    "daily_pnl_pct": 0.0089,
+    "daily_pnl_dollars": 0.82,
+    "total_equity": 9264.84,
+    "buying_power_budget": 4632.42,
+    "portfolio_delta": 0.0,
+    "portfolio_theta": 0.0,
+    "portfolio_vega": 0.0,
+    "target_delta": -1.3831,
+    "target_theta": 37.0869,
+    "target_vega": 10.2522,
+    "movement_bias": "neutral",
+    "macro_regime": "VEGA_SNIPER",
+    "runtime_market_state": "transition",
+    "runtime_profile": "all_weather"
+  },
+  "system": {
+    "pressure": "normal",
+    "normalized_cpu_load_pct": 3.77,
+    "memory_usage_pct": 5.88,
+    "disk_usage_pct": 38.76
+  },
+  "execution": {
+    "records": 9,
+    "fill_rate": 1.0,
+    "full_fill_rate": 0.0,
+    "broker_fill_price_coverage": 1.0,
+    "avg_execution_quality_score": 0.709091,
+    "adaptive_reprice_factor": 1.0,
+    "degraded_execution_count": 0
+  },
+  "foundry": {
+    "mode": "weekend-calibrate",
+    "ensemble_accuracy": 0.5210060571350675,
+    "estimated_strategy_daily_return": 0.0005454519041612135
+  },
+  "latest_backtest": {
+    "predictive_score": 0.5472271848296646,
+    "consensus_market_state": "transition",
+    "consensus_strategy_profile": "crash_reversal"
+  },
+  "market_policy": {
+    "current_regime_label": "TRANSITION",
+    "current_market_state": "transition",
+    "selected_profile": "all_weather",
+    "risk_multiplier": 0.8229,
+    "deployment_multiplier": 0.7758,
+    "trade_intensity_multiplier": 0.8172
+  },
+  "model_maintenance": {
+    "mode": "daily",
+    "steps": 2
+  },
+  "note": "Daily operating report for the automated stack. It summarizes system state and the latest available research outputs."
+}
