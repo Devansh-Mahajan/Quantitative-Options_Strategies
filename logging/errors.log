@@ -108,3 +108,4 @@ Traceback (most recent call last):
   File "/home/dash/options-spread/scripts/run_bot.py", line 42, in _shutdown
     sys.exit(0)
 SystemExit: 0
+2026-05-08 21:58:38 | CRITICAL | risk.risk_guard | TRADING HALTED: Max drawdown 88.9% >= limit 15.0%

@@ -51,7 +51,7 @@
     "note": "Weekend recalibration prepares the stack automatically, but targets remain optimization objectives, not guarantees."
   },
   "quant_research_foundry": {
-    "timestamp_utc": "2026-04-15T21:24:15.330114+00:00",
+    "timestamp_utc": "2026-05-08T21:27:40.344720+00:00",
     "mode": "weekend-calibrate",
     "pack_path": "config/quant_strategy_pack.json",
     "report_path": "reports/quant_foundry_report.json",

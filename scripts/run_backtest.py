@@ -45,7 +45,7 @@ def _build_strategies(names: list[str]):
     from strategies.funding_arb import FundingArbStrategy
     from strategies.basis_trade import BasisTradeStrategy
     from strategies.pairs_arb import PairsArbStrategy
-    from strategies.options_vol import OptionsVolStrategy
+    from strategies.options_vol import OptionsVolatilityStrategy as OptionsVolStrategy
     from strategies.order_flow import OrderFlowStrategy
     from strategies.breakout import BreakoutStrategy
 

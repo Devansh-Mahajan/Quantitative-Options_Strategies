@@ -931,3 +931,1353 @@ SystemExit: 0
 2026-05-08 21:49:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
 [32m2026-05-08 21:49:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0[0m
 2026-05-08 21:49:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0
+2026-05-08 21:50:33 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:50:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 4 ===[0m
+2026-05-08 21:50:38 | INFO     | bot.orchestrator | === Cycle 4 ===
+[32m2026-05-08 21:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:50:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:50:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:50:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0[0m
+2026-05-08 21:50:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0
+2026-05-08 21:51:34 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:51:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 5 ===[0m
+2026-05-08 21:51:38 | INFO     | bot.orchestrator | === Cycle 5 ===
+[32m2026-05-08 21:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:51:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:51:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:51:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0[0m
+2026-05-08 21:51:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0
+2026-05-08 21:52:34 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:52:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 6 ===[0m
+2026-05-08 21:52:38 | INFO     | bot.orchestrator | === Cycle 6 ===
+[32m2026-05-08 21:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:52:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:52:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:52:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.38 | signals_approved=0[0m
+2026-05-08 21:52:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.38 | signals_approved=0
+2026-05-08 21:53:34 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:53:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 7 ===[0m
+2026-05-08 21:53:38 | INFO     | bot.orchestrator | === Cycle 7 ===
+[32m2026-05-08 21:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:53:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:53:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:53:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.91 | signals_approved=0[0m
+2026-05-08 21:53:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.91 | signals_approved=0
+2026-05-08 21:54:34 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:54:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 8 ===[0m
+2026-05-08 21:54:38 | INFO     | bot.orchestrator | === Cycle 8 ===
+[32m2026-05-08 21:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:54:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:54:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:54:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0[0m
+2026-05-08 21:54:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0
+2026-05-08 21:55:35 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:55:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 9 ===[0m
+2026-05-08 21:55:38 | INFO     | bot.orchestrator | === Cycle 9 ===
+[32m2026-05-08 21:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:55:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:55:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:55:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.91 | signals_approved=0[0m
+2026-05-08 21:55:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.91 | signals_approved=0
+2026-05-08 21:56:35 | INFO     | scripts.risk_monitor | Risk | equity=1027.94 | dd=0.00% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:56:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 10 ===[0m
+2026-05-08 21:56:38 | INFO     | bot.orchestrator | === Cycle 10 ===
+[32m2026-05-08 21:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:56:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:56:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:56:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0[0m
+2026-05-08 21:56:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.94 | regime=unknown | positions=1 | upnl=-7.79 | signals_approved=0
+2026-05-08 21:57:35 | INFO     | scripts.risk_monitor | Risk | equity=9266.48 | dd=0.00% | var99=0.00% | gross_exp=0.0x | positions=0
+[32m2026-05-08 21:57:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 11 ===[0m
+2026-05-08 21:57:38 | INFO     | bot.orchestrator | === Cycle 11 ===
+[32m2026-05-08 21:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:57:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:57:38 | INFO     | bot.orchestrator | Raw signals: 3
+[32m2026-05-08 21:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:57:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=9266.48 | regime=unknown | positions=1 | upnl=-7.38 | signals_approved=0[0m
+2026-05-08 21:57:38 | INFO     | bot.orchestrator | Snapshot | equity=9266.48 | regime=unknown | positions=1 | upnl=-7.38 | signals_approved=0
+2026-05-08 21:58:35 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:58:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 12 ===[0m
+2026-05-08 21:58:38 | INFO     | bot.orchestrator | === Cycle 12 ===
+[32m2026-05-08 21:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:58:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:58:38 | INFO     | bot.orchestrator | Raw signals: 3
+[1;31m2026-05-08 21:58:38 | CRITICAL[0m | [36mrisk.risk_guard[0m | TRADING HALTED: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 21:58:38 | CRITICAL | risk.risk_guard | TRADING HALTED: Max drawdown 88.9% >= limit 15.0%
+[33m2026-05-08 21:58:38 | WARNING [0m | [36mbot.state[0m | RISK EVENT [HALT]: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 21:58:38 | WARNING  | bot.state | RISK EVENT [HALT]: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 21:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:58:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=0 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 21:58:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=0 | upnl=0.00 | signals_approved=0
+2026-05-08 21:59:36 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 21:59:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 13 ===[0m
+2026-05-08 21:59:38 | INFO     | bot.orchestrator | === Cycle 13 ===
+[32m2026-05-08 21:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 21:59:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 21:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 21:59:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 21:59:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 21:59:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 21:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 21:59:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 21:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0[0m
+2026-05-08 21:59:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0
+2026-05-08 22:00:36 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:00:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 14 ===[0m
+2026-05-08 22:00:38 | INFO     | bot.orchestrator | === Cycle 14 ===
+[32m2026-05-08 22:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:00:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:00:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:00:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:00:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:00:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0[0m
+2026-05-08 22:00:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0
+2026-05-08 22:01:36 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:01:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 15 ===[0m
+2026-05-08 22:01:38 | INFO     | bot.orchestrator | === Cycle 15 ===
+[32m2026-05-08 22:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:01:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:01:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:01:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:01:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:01:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0[0m
+2026-05-08 22:01:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0
+2026-05-08 22:02:37 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:02:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 16 ===[0m
+2026-05-08 22:02:38 | INFO     | bot.orchestrator | === Cycle 16 ===
+[32m2026-05-08 22:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:02:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:02:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:02:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:02:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:02:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:02:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:03:37 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:03:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 17 ===[0m
+2026-05-08 22:03:38 | INFO     | bot.orchestrator | === Cycle 17 ===
+[32m2026-05-08 22:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:03:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:03:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:03:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:03:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:03:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.63 | signals_approved=0[0m
+2026-05-08 22:03:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.63 | signals_approved=0
+2026-05-08 22:04:37 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:04:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 18 ===[0m
+2026-05-08 22:04:38 | INFO     | bot.orchestrator | === Cycle 18 ===
+[32m2026-05-08 22:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:04:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:04:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:04:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:04:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:04:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0[0m
+2026-05-08 22:04:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0
+2026-05-08 22:05:37 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:05:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 19 ===[0m
+2026-05-08 22:05:38 | INFO     | bot.orchestrator | === Cycle 19 ===
+[32m2026-05-08 22:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:05:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:05:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:05:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:05:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:05:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.80 | signals_approved=0[0m
+2026-05-08 22:05:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.80 | signals_approved=0
+[32m2026-05-08 22:06:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 20 ===[0m
+2026-05-08 22:06:38 | INFO     | bot.orchestrator | === Cycle 20 ===
+2026-05-08 22:06:38 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:06:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:06:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:06:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:06:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:06:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.63 | signals_approved=0[0m
+2026-05-08 22:06:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.63 | signals_approved=0
+[32m2026-05-08 22:07:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 21 ===[0m
+2026-05-08 22:07:38 | INFO     | bot.orchestrator | === Cycle 21 ===
+[32m2026-05-08 22:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:07:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:07:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:07:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:07:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:07:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0[0m
+2026-05-08 22:07:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0
+2026-05-08 22:07:38 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:08:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 22 ===[0m
+2026-05-08 22:08:38 | INFO     | bot.orchestrator | === Cycle 22 ===
+[32m2026-05-08 22:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:08:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:08:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:08:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:08:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:08:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0[0m
+2026-05-08 22:08:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0
+2026-05-08 22:08:38 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:09:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 23 ===[0m
+2026-05-08 22:09:38 | INFO     | bot.orchestrator | === Cycle 23 ===
+[32m2026-05-08 22:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:09:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:09:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:09:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:09:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:09:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.04 | signals_approved=0[0m
+2026-05-08 22:09:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.04 | signals_approved=0
+2026-05-08 22:09:39 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:10:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 24 ===[0m
+2026-05-08 22:10:38 | INFO     | bot.orchestrator | === Cycle 24 ===
+[32m2026-05-08 22:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:10:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:10:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:10:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:10:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:10:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0[0m
+2026-05-08 22:10:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0
+2026-05-08 22:10:39 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:11:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 25 ===[0m
+2026-05-08 22:11:38 | INFO     | bot.orchestrator | === Cycle 25 ===
+[32m2026-05-08 22:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:11:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:11:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:11:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:11:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:11:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.61 | signals_approved=0[0m
+2026-05-08 22:11:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.61 | signals_approved=0
+2026-05-08 22:11:39 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:12:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 26 ===[0m
+2026-05-08 22:12:38 | INFO     | bot.orchestrator | === Cycle 26 ===
+[32m2026-05-08 22:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:12:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:12:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:12:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:12:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:12:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0[0m
+2026-05-08 22:12:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0
+2026-05-08 22:12:39 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:13:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 27 ===[0m
+2026-05-08 22:13:38 | INFO     | bot.orchestrator | === Cycle 27 ===
+[32m2026-05-08 22:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:13:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:13:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:13:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:13:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:13:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.81 | signals_approved=0[0m
+2026-05-08 22:13:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.81 | signals_approved=0
+2026-05-08 22:13:40 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:14:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 28 ===[0m
+2026-05-08 22:14:38 | INFO     | bot.orchestrator | === Cycle 28 ===
+[32m2026-05-08 22:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:14:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:14:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:14:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:14:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:14:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:14:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:14:40 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:15:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 29 ===[0m
+2026-05-08 22:15:38 | INFO     | bot.orchestrator | === Cycle 29 ===
+[32m2026-05-08 22:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:15:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:15:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:15:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:15:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:15:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:15:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:15:40 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:16:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 30 ===[0m
+2026-05-08 22:16:38 | INFO     | bot.orchestrator | === Cycle 30 ===
+[32m2026-05-08 22:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:16:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:16:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:16:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:16:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:16:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:16:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:16:40 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:17:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 31 ===[0m
+2026-05-08 22:17:38 | INFO     | bot.orchestrator | === Cycle 31 ===
+[32m2026-05-08 22:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:17:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:17:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:17:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:17:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:17:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0[0m
+2026-05-08 22:17:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.41 | signals_approved=0
+2026-05-08 22:17:41 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:18:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 32 ===[0m
+2026-05-08 22:18:38 | INFO     | bot.orchestrator | === Cycle 32 ===
+[32m2026-05-08 22:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:18:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:18:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:18:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:18:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:18:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:18:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:18:41 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.06% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:19:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 33 ===[0m
+2026-05-08 22:19:38 | INFO     | bot.orchestrator | === Cycle 33 ===
+[32m2026-05-08 22:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:19:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:19:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:19:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:19:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:19:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.54 | signals_approved=0[0m
+2026-05-08 22:19:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.54 | signals_approved=0
+2026-05-08 22:19:41 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.06% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:20:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 34 ===[0m
+2026-05-08 22:20:38 | INFO     | bot.orchestrator | === Cycle 34 ===
+[32m2026-05-08 22:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:20:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:20:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:20:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:20:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:20:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0[0m
+2026-05-08 22:20:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0
+2026-05-08 22:20:42 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.06% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:21:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 35 ===[0m
+2026-05-08 22:21:38 | INFO     | bot.orchestrator | === Cycle 35 ===
+[32m2026-05-08 22:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:21:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:21:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:21:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:21:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:21:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0[0m
+2026-05-08 22:21:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0
+2026-05-08 22:21:42 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:22:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 36 ===[0m
+2026-05-08 22:22:38 | INFO     | bot.orchestrator | === Cycle 36 ===
+[32m2026-05-08 22:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:22:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:22:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:22:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:22:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:22:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:22:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:22:42 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:23:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 37 ===[0m
+2026-05-08 22:23:38 | INFO     | bot.orchestrator | === Cycle 37 ===
+[32m2026-05-08 22:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:23:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:23:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:23:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:23:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:23:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0[0m
+2026-05-08 22:23:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0
+2026-05-08 22:23:42 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:24:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 38 ===[0m
+2026-05-08 22:24:38 | INFO     | bot.orchestrator | === Cycle 38 ===
+[32m2026-05-08 22:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:24:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:24:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:24:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:24:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:24:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0[0m
+2026-05-08 22:24:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.82 | signals_approved=0
+2026-05-08 22:24:43 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:25:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 39 ===[0m
+2026-05-08 22:25:38 | INFO     | bot.orchestrator | === Cycle 39 ===
+[32m2026-05-08 22:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:25:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:25:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:25:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:25:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:25:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:25:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:25:43 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:26:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 40 ===[0m
+2026-05-08 22:26:38 | INFO     | bot.orchestrator | === Cycle 40 ===
+[32m2026-05-08 22:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:26:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:26:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:26:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:26:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:26:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.71 | signals_approved=0[0m
+2026-05-08 22:26:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.71 | signals_approved=0
+2026-05-08 22:26:43 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:27:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 41 ===[0m
+2026-05-08 22:27:38 | INFO     | bot.orchestrator | === Cycle 41 ===
+[32m2026-05-08 22:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:27:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:27:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:27:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:27:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:27:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0[0m
+2026-05-08 22:27:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.02 | signals_approved=0
+2026-05-08 22:27:44 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:28:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 42 ===[0m
+2026-05-08 22:28:38 | INFO     | bot.orchestrator | === Cycle 42 ===
+[32m2026-05-08 22:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:28:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:28:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:28:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:28:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:28:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0[0m
+2026-05-08 22:28:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=-0.01 | signals_approved=0
+2026-05-08 22:28:44 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:29:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 43 ===[0m
+2026-05-08 22:29:38 | INFO     | bot.orchestrator | === Cycle 43 ===
+[32m2026-05-08 22:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:29:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:29:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:29:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:29:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:29:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:29:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:29:44 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:30:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 44 ===[0m
+2026-05-08 22:30:38 | INFO     | bot.orchestrator | === Cycle 44 ===
+[32m2026-05-08 22:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:30:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:30:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:30:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:30:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:30:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:30:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:30:44 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:31:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 45 ===[0m
+2026-05-08 22:31:38 | INFO     | bot.orchestrator | === Cycle 45 ===
+[32m2026-05-08 22:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:31:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:31:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:31:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:31:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:31:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:31:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:31:45 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:32:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 46 ===[0m
+2026-05-08 22:32:38 | INFO     | bot.orchestrator | === Cycle 46 ===
+[32m2026-05-08 22:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:32:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:32:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:32:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:32:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:32:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:32:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:32:45 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.05% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:33:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 47 ===[0m
+2026-05-08 22:33:38 | INFO     | bot.orchestrator | === Cycle 47 ===
+[32m2026-05-08 22:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:33:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:33:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:33:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:33:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:33:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:33:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:33:45 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:34:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 48 ===[0m
+2026-05-08 22:34:38 | INFO     | bot.orchestrator | === Cycle 48 ===
+[32m2026-05-08 22:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:34:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:34:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:34:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:34:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:34:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:34:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:34:45 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:35:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 49 ===[0m
+2026-05-08 22:35:38 | INFO     | bot.orchestrator | === Cycle 49 ===
+[32m2026-05-08 22:35:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:35:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:35:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:35:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:35:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:35:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:35:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:35:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:35:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:35:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:35:46 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:36:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 50 ===[0m
+2026-05-08 22:36:38 | INFO     | bot.orchestrator | === Cycle 50 ===
+[32m2026-05-08 22:36:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:36:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:36:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:36:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:36:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:36:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:36:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:36:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:36:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:36:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:36:46 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:37:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 51 ===[0m
+2026-05-08 22:37:38 | INFO     | bot.orchestrator | === Cycle 51 ===
+[32m2026-05-08 22:37:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:37:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:37:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:37:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:37:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:37:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:37:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:37:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:37:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:37:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:37:46 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:38:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 52 ===[0m
+2026-05-08 22:38:38 | INFO     | bot.orchestrator | === Cycle 52 ===
+[32m2026-05-08 22:38:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:38:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:38:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:38:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:38:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:38:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:38:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:38:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:38:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:38:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:38:47 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:39:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 53 ===[0m
+2026-05-08 22:39:38 | INFO     | bot.orchestrator | === Cycle 53 ===
+[32m2026-05-08 22:39:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:39:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:39:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:39:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:39:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:39:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:39:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:39:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:39:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:39:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:39:47 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:40:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 54 ===[0m
+2026-05-08 22:40:38 | INFO     | bot.orchestrator | === Cycle 54 ===
+[32m2026-05-08 22:40:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:40:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:40:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:40:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:40:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:40:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:40:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:40:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:40:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:40:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:40:47 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:41:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 55 ===[0m
+2026-05-08 22:41:38 | INFO     | bot.orchestrator | === Cycle 55 ===
+[32m2026-05-08 22:41:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:41:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:41:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:41:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:41:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:41:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:41:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:41:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:41:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:41:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:41:47 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:42:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 56 ===[0m
+2026-05-08 22:42:38 | INFO     | bot.orchestrator | === Cycle 56 ===
+[32m2026-05-08 22:42:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:42:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:42:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:42:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:42:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:42:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:42:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:42:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:42:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:42:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:42:48 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:43:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 57 ===[0m
+2026-05-08 22:43:38 | INFO     | bot.orchestrator | === Cycle 57 ===
+[32m2026-05-08 22:43:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:43:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:43:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:43:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:43:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:43:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:43:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:43:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:43:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:43:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:43:48 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:44:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 58 ===[0m
+2026-05-08 22:44:38 | INFO     | bot.orchestrator | === Cycle 58 ===
+[32m2026-05-08 22:44:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:44:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:44:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:44:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:44:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:44:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:44:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:44:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:44:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:44:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:44:48 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:45:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 59 ===[0m
+2026-05-08 22:45:38 | INFO     | bot.orchestrator | === Cycle 59 ===
+[32m2026-05-08 22:45:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:45:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:45:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:45:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:45:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:45:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:45:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:45:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:45:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:45:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:45:49 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.04% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:46:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 60 ===[0m
+2026-05-08 22:46:38 | INFO     | bot.orchestrator | === Cycle 60 ===
+[32m2026-05-08 22:46:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:46:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:46:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:46:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:46:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:46:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:46:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:46:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:46:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:46:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:46:49 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:47:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 61 ===[0m
+2026-05-08 22:47:38 | INFO     | bot.orchestrator | === Cycle 61 ===
+[32m2026-05-08 22:47:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:47:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:47:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:47:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:47:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:47:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:47:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:47:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:47:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:47:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:47:49 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:48:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 62 ===[0m
+2026-05-08 22:48:38 | INFO     | bot.orchestrator | === Cycle 62 ===
+[32m2026-05-08 22:48:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:48:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:48:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:48:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:48:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:48:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:48:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:48:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:48:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:48:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:48:50 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:49:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 63 ===[0m
+2026-05-08 22:49:38 | INFO     | bot.orchestrator | === Cycle 63 ===
+[32m2026-05-08 22:49:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:49:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:49:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:49:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:49:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:49:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:49:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:49:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:49:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:49:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:49:50 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:50:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 64 ===[0m
+2026-05-08 22:50:38 | INFO     | bot.orchestrator | === Cycle 64 ===
+[32m2026-05-08 22:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:50:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:50:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:50:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:50:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:50:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:50:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:50:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:50:50 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:51:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 65 ===[0m
+2026-05-08 22:51:38 | INFO     | bot.orchestrator | === Cycle 65 ===
+[32m2026-05-08 22:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:51:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:51:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:51:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:51:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:51:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:51:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:51:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:51:50 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:52:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 66 ===[0m
+2026-05-08 22:52:38 | INFO     | bot.orchestrator | === Cycle 66 ===
+[32m2026-05-08 22:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:52:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:52:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:52:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:52:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:52:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:52:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:52:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:52:51 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:53:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 67 ===[0m
+2026-05-08 22:53:38 | INFO     | bot.orchestrator | === Cycle 67 ===
+[32m2026-05-08 22:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:53:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:53:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:53:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:53:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:53:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:53:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:53:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:53:51 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:54:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 68 ===[0m
+2026-05-08 22:54:38 | INFO     | bot.orchestrator | === Cycle 68 ===
+[32m2026-05-08 22:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:54:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:54:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:54:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:54:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:54:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:54:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:54:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:54:51 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:55:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 69 ===[0m
+2026-05-08 22:55:38 | INFO     | bot.orchestrator | === Cycle 69 ===
+[32m2026-05-08 22:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:55:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:55:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:55:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:55:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:55:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:55:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:55:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:55:52 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:56:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 70 ===[0m
+2026-05-08 22:56:38 | INFO     | bot.orchestrator | === Cycle 70 ===
+[32m2026-05-08 22:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:56:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:56:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:56:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:56:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:56:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:56:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:56:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:56:52 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:57:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 71 ===[0m
+2026-05-08 22:57:38 | INFO     | bot.orchestrator | === Cycle 71 ===
+[32m2026-05-08 22:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:57:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:57:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:57:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:57:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:57:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:57:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:57:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:57:52 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.03% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:58:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 72 ===[0m
+2026-05-08 22:58:38 | INFO     | bot.orchestrator | === Cycle 72 ===
+[32m2026-05-08 22:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:58:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:58:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:58:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:58:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:58:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:58:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:58:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:58:52 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 22:59:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 73 ===[0m
+2026-05-08 22:59:38 | INFO     | bot.orchestrator | === Cycle 73 ===
+[32m2026-05-08 22:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 22:59:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 22:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 22:59:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 22:59:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 22:59:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 22:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 22:59:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 22:59:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 22:59:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 22:59:53 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:00:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 74 ===[0m
+2026-05-08 23:00:38 | INFO     | bot.orchestrator | === Cycle 74 ===
+[32m2026-05-08 23:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:00:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:00:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:00:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:00:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:00:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:00:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:00:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:00:53 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:01:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 75 ===[0m
+2026-05-08 23:01:38 | INFO     | bot.orchestrator | === Cycle 75 ===
+[32m2026-05-08 23:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:01:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:01:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:01:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:01:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:01:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:01:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:01:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:01:53 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:02:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 76 ===[0m
+2026-05-08 23:02:38 | INFO     | bot.orchestrator | === Cycle 76 ===
+[32m2026-05-08 23:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:02:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:02:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:02:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:02:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:02:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:02:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:02:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:02:54 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:03:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 77 ===[0m
+2026-05-08 23:03:38 | INFO     | bot.orchestrator | === Cycle 77 ===
+[32m2026-05-08 23:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:03:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:03:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:03:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:03:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:03:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:03:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:03:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:03:54 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:04:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 78 ===[0m
+2026-05-08 23:04:38 | INFO     | bot.orchestrator | === Cycle 78 ===
+[32m2026-05-08 23:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:04:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:04:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:04:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:04:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:04:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:04:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:04:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:04:54 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:05:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 79 ===[0m
+2026-05-08 23:05:38 | INFO     | bot.orchestrator | === Cycle 79 ===
+[32m2026-05-08 23:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:05:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:05:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:05:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:05:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:05:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:05:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:05:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:05:54 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:06:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 80 ===[0m
+2026-05-08 23:06:38 | INFO     | bot.orchestrator | === Cycle 80 ===
+[32m2026-05-08 23:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:06:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:06:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:06:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:06:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:06:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:06:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:06:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:06:55 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:07:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 81 ===[0m
+2026-05-08 23:07:38 | INFO     | bot.orchestrator | === Cycle 81 ===
+[32m2026-05-08 23:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:07:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:07:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:07:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:07:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:07:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:07:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:07:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:07:55 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:08:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 82 ===[0m
+2026-05-08 23:08:38 | INFO     | bot.orchestrator | === Cycle 82 ===
+[32m2026-05-08 23:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:08:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:08:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:08:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:08:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:08:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:08:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:08:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:08:55 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:09:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 83 ===[0m
+2026-05-08 23:09:38 | INFO     | bot.orchestrator | === Cycle 83 ===
+[32m2026-05-08 23:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:09:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:09:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:09:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:09:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:09:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:09:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:09:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:09:55 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:10:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 84 ===[0m
+2026-05-08 23:10:38 | INFO     | bot.orchestrator | === Cycle 84 ===
+[32m2026-05-08 23:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:10:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:10:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:10:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:10:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:10:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:10:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:10:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:10:56 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.02% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:11:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 85 ===[0m
+2026-05-08 23:11:38 | INFO     | bot.orchestrator | === Cycle 85 ===
+[32m2026-05-08 23:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:11:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:11:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:11:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:11:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:11:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:11:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:11:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:11:56 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:12:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 86 ===[0m
+2026-05-08 23:12:38 | INFO     | bot.orchestrator | === Cycle 86 ===
+[32m2026-05-08 23:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:12:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:12:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:12:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:12:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:12:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:12:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:12:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:12:56 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:13:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 87 ===[0m
+2026-05-08 23:13:38 | INFO     | bot.orchestrator | === Cycle 87 ===
+[32m2026-05-08 23:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:13:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:13:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:13:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:13:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:13:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:13:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:13:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:13:57 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:14:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 88 ===[0m
+2026-05-08 23:14:38 | INFO     | bot.orchestrator | === Cycle 88 ===
+[32m2026-05-08 23:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:14:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:14:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:14:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:14:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:14:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:14:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:14:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:14:57 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:15:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 89 ===[0m
+2026-05-08 23:15:38 | INFO     | bot.orchestrator | === Cycle 89 ===
+[32m2026-05-08 23:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:15:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:15:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:15:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:15:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:15:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:15:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:15:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:15:57 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:16:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 90 ===[0m
+2026-05-08 23:16:38 | INFO     | bot.orchestrator | === Cycle 90 ===
+[32m2026-05-08 23:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:16:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:16:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:16:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:16:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:16:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:16:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:16:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:16:57 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:17:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 91 ===[0m
+2026-05-08 23:17:38 | INFO     | bot.orchestrator | === Cycle 91 ===
+[32m2026-05-08 23:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:17:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:17:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:17:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:17:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:17:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:17:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:17:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:17:58 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:18:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 92 ===[0m
+2026-05-08 23:18:38 | INFO     | bot.orchestrator | === Cycle 92 ===
+[32m2026-05-08 23:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:18:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:18:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:18:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:18:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:18:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:18:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:18:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:18:58 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:19:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 93 ===[0m
+2026-05-08 23:19:38 | INFO     | bot.orchestrator | === Cycle 93 ===
+[32m2026-05-08 23:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:19:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:19:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:19:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:19:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:19:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:19:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:19:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:19:58 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:20:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 94 ===[0m
+2026-05-08 23:20:38 | INFO     | bot.orchestrator | === Cycle 94 ===
+[32m2026-05-08 23:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:20:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:20:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:20:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:20:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:20:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:20:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:20:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:20:59 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:21:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 95 ===[0m
+2026-05-08 23:21:38 | INFO     | bot.orchestrator | === Cycle 95 ===
+[32m2026-05-08 23:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:21:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:21:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:21:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:21:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:21:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:21:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:21:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:21:59 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:22:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 96 ===[0m
+2026-05-08 23:22:38 | INFO     | bot.orchestrator | === Cycle 96 ===
+[32m2026-05-08 23:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:22:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:22:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:22:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:22:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:22:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:22:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:22:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:22:59 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.01% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:23:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 97 ===[0m
+2026-05-08 23:23:38 | INFO     | bot.orchestrator | === Cycle 97 ===
+[32m2026-05-08 23:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:23:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:23:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:23:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:23:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:23:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:23:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:23:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:23:59 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:24:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 98 ===[0m
+2026-05-08 23:24:38 | INFO     | bot.orchestrator | === Cycle 98 ===
+[32m2026-05-08 23:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:24:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:24:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:24:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:24:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:24:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:24:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:24:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:25:00 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:25:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 99 ===[0m
+2026-05-08 23:25:38 | INFO     | bot.orchestrator | === Cycle 99 ===
+[32m2026-05-08 23:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:25:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:25:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:25:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:25:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:25:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:25:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:25:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:26:00 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:26:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 100 ===[0m
+2026-05-08 23:26:38 | INFO     | bot.orchestrator | === Cycle 100 ===
+[32m2026-05-08 23:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:26:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:26:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:26:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:26:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:26:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:26:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:26:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:27:00 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:27:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 101 ===[0m
+2026-05-08 23:27:38 | INFO     | bot.orchestrator | === Cycle 101 ===
+[32m2026-05-08 23:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:27:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:27:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:27:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:27:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:27:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:27:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:27:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:28:01 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:28:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 102 ===[0m
+2026-05-08 23:28:38 | INFO     | bot.orchestrator | === Cycle 102 ===
+[32m2026-05-08 23:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:28:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:28:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:28:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:28:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:28:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:28:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:28:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:29:01 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:29:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 103 ===[0m
+2026-05-08 23:29:38 | INFO     | bot.orchestrator | === Cycle 103 ===
+[32m2026-05-08 23:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:29:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:29:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:29:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:29:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:29:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:29:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:29:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:30:01 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=-0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:30:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 104 ===[0m
+2026-05-08 23:30:38 | INFO     | bot.orchestrator | === Cycle 104 ===
+[32m2026-05-08 23:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:30:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:30:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:30:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:30:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:30:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:30:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:30:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:31:01 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=-0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:31:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 105 ===[0m
+2026-05-08 23:31:38 | INFO     | bot.orchestrator | === Cycle 105 ===
+[32m2026-05-08 23:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:31:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:31:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:31:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:31:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:31:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:31:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:31:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:32:02 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=-0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:32:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 106 ===[0m
+2026-05-08 23:32:38 | INFO     | bot.orchestrator | === Cycle 106 ===
+[32m2026-05-08 23:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:32:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:32:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:32:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:32:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:32:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:32:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:32:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:33:02 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=-0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:33:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 107 ===[0m
+2026-05-08 23:33:38 | INFO     | bot.orchestrator | === Cycle 107 ===
+[32m2026-05-08 23:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:33:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:33:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:33:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:33:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:33:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:33:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:33:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-08 23:34:02 | INFO     | scripts.risk_monitor | Risk | equity=1027.12 | dd=0.08% | var99=-0.00% | gross_exp=8.0x | positions=1
+[32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | === Cycle 108 ===[0m
+2026-05-08 23:34:38 | INFO     | bot.orchestrator | === Cycle 108 ===
+[32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Market regime: unknown[0m
+2026-05-08 23:34:38 | INFO     | bot.orchestrator | Market regime: unknown
+[32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Raw signals: 3[0m
+2026-05-08 23:34:38 | INFO     | bot.orchestrator | Raw signals: 3
+[33m2026-05-08 23:34:38 | WARNING [0m | [36mrisk.risk_guard[0m | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%[0m
+2026-05-08 23:34:38 | WARNING  | risk.risk_guard | All signals blocked — trading halted: Max drawdown 88.9% >= limit 15.0%
+[32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Approved signals after risk filter: 0[0m
+2026-05-08 23:34:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
+[32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
+2026-05-08 23:34:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0

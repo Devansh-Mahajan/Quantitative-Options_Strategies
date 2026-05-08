@@ -1,5 +1,5 @@
 {
-  "saved_at_utc": "2026-04-15T21:24:15.327917+00:00",
+  "saved_at_utc": "2026-05-08T21:27:40.341808+00:00",
   "mode": "weekend-calibrate",
   "horizon_days": 5,
   "symbols": [
@@ -53,31 +53,31 @@
     "rf": {
       "n_estimators": 120,
       "max_depth": 4,
-      "min_samples_leaf": 157,
+      "min_samples_leaf": 579,
       "random_state": 42,
       "n_jobs": 10
     },
     "mlp": {
       "hidden_layer_sizes": [
-        27,
+        19,
         16
       ],
-      "learning_rate_init": 0.00031680559312500004,
+      "learning_rate_init": 0.0002042861466217852,
       "max_iter": 260,
       "random_state": 42,
-      "alpha": 0.0048427561125000025
+      "alpha": 0.011914996070292195
     }
   },
   "training_summary": {
-    "ensemble_accuracy": 0.5219095497494651,
+    "ensemble_accuracy": 0.5208527407883944,
     "ensemble_weights": {
-      "logreg": 0.3331431373332485,
-      "rf": 0.3336480364401578,
-      "mlp": 0.3332088262265936
+      "logreg": 0.3331319564363432,
+      "rf": 0.33349497685596646,
+      "mlp": 0.33337306670769035
     },
-    "ensemble_daily_return_proxy": 0.0005049617225710861,
-    "robustness_score": 0.9639189415373876,
-    "champion_score": 0.63955,
+    "ensemble_daily_return_proxy": 0.0005399272790556198,
+    "robustness_score": 0.9660350304058886,
+    "champion_score": 0.635401,
     "selected_candidate_label": "stability_bias"
   },
   "selection_method": "walk_forward_champion_challenger",
@@ -85,15 +85,15 @@
   "candidate_leaderboard": [
     {
       "label": "stability_bias",
-      "score": 0.63955,
-      "ensemble_accuracy": 0.542130525061334,
-      "ensemble_log_loss": 0.689606925241226,
-      "ensemble_daily_return_proxy": 0.00041776336920424707,
-      "ensemble_annualized_return_proxy": 0.11910850240012683,
-      "ensemble_sharpe_proxy": 0.3532825449673286,
-      "ensemble_win_rate": 0.5352634754978995,
-      "robustness_score": 0.9180331942627868,
-      "generalization_gap": 0.01916226088633416,
+      "score": 0.635401,
+      "ensemble_accuracy": 0.5358083227272316,
+      "ensemble_log_loss": 0.6894363244143071,
+      "ensemble_daily_return_proxy": 0.00042060716466176906,
+      "ensemble_annualized_return_proxy": 0.11931269915938522,
+      "ensemble_sharpe_proxy": 0.3557186387269445,
+      "ensemble_win_rate": 0.5292497706270108,
+      "robustness_score": 0.9130334359750503,
+      "generalization_gap": 0.02254028901675554,
       "selection_rows": 12000,
       "walk_forward_folds": 3,
       "model_errors": {},
@@ -107,33 +107,33 @@
         "rf": {
           "n_estimators": 120,
           "max_depth": 4,
-          "min_samples_leaf": 157,
+          "min_samples_leaf": 579,
           "random_state": 42,
           "n_jobs": 10
         },
         "mlp": {
           "hidden_layer_sizes": [
-            27,
+            19,
             16
           ],
-          "learning_rate_init": 0.00031680559312500004,
+          "learning_rate_init": 0.0002042861466217852,
           "max_iter": 260,
           "random_state": 42,
-          "alpha": 0.0048427561125000025
+          "alpha": 0.011914996070292195
         }
       }
     },
     {
       "label": "warm_start",
-      "score": 0.632259,
-      "ensemble_accuracy": 0.5394282910522682,
-      "ensemble_log_loss": 0.6896244350283508,
-      "ensemble_daily_return_proxy": 0.0003597023152538024,
-      "ensemble_annualized_return_proxy": 0.10388063866587566,
-      "ensemble_sharpe_proxy": 0.31032196759655173,
-      "ensemble_win_rate": 0.532097868208117,
-      "robustness_score": 0.9047190220005229,
-      "generalization_gap": 0.02444952643475914,
+      "score": 0.628912,
+      "ensemble_accuracy": 0.5349547269558769,
+      "ensemble_log_loss": 0.6897806920907692,
+      "ensemble_daily_return_proxy": 0.00035936521066930627,
+      "ensemble_annualized_return_proxy": 0.10457871549815191,
+      "ensemble_sharpe_proxy": 0.31226640675709305,
+      "ensemble_win_rate": 0.5282414516781394,
+      "robustness_score": 0.8988996201902224,
+      "generalization_gap": 0.026419029075548595,
       "selection_rows": 12000,
       "walk_forward_folds": 3,
       "model_errors": {},
@@ -147,33 +147,33 @@
         "rf": {
           "n_estimators": 120,
           "max_depth": 4,
-          "min_samples_leaf": 98,
+          "min_samples_leaf": 362,
           "random_state": 42,
           "n_jobs": 10
         },
         "mlp": {
           "hidden_layer_sizes": [
-            32,
-            17
+            22,
+            16
           ],
-          "learning_rate_init": 0.0003727124625000001,
+          "learning_rate_init": 0.00024033664308445316,
           "max_iter": 260,
           "random_state": 42,
-          "alpha": 0.0035872267500000016
+          "alpha": 0.008825923015031255
         }
       }
     },
     {
       "label": "balanced_bias",
-      "score": 0.629917,
-      "ensemble_accuracy": 0.5397374467354691,
-      "ensemble_log_loss": 0.6898256280103781,
-      "ensemble_daily_return_proxy": 0.0003480155015769121,
-      "ensemble_annualized_return_proxy": 0.10203729922187815,
-      "ensemble_sharpe_proxy": 0.3038814167658894,
-      "ensemble_win_rate": 0.5324071735851005,
-      "robustness_score": 0.8978218952256902,
-      "generalization_gap": 0.02880924989533303,
+      "score": 0.625679,
+      "ensemble_accuracy": 0.5331004840423522,
+      "ensemble_log_loss": 0.6899648486034774,
+      "ensemble_daily_return_proxy": 0.0003122746537282846,
+      "ensemble_annualized_return_proxy": 0.09158356440821196,
+      "ensemble_sharpe_proxy": 0.2773137465019068,
+      "ensemble_win_rate": 0.5266187563321475,
+      "robustness_score": 0.8989329488618467,
+      "generalization_gap": 0.027343628738632397,
       "selection_rows": 12000,
       "walk_forward_folds": 3,
       "model_errors": {},
@@ -187,19 +187,19 @@
         "rf": {
           "n_estimators": 140,
           "max_depth": 5,
-          "min_samples_leaf": 88,
+          "min_samples_leaf": 326,
           "random_state": 42,
           "n_jobs": 10
         },
         "mlp": {
           "hidden_layer_sizes": [
-            37,
-            20
+            25,
+            18
           ],
-          "learning_rate_init": 0.0003913480856250001,
+          "learning_rate_init": 0.0002523534752386758,
           "max_iter": 260,
           "random_state": 42,
-          "alpha": 0.0035872267500000016
+          "alpha": 0.008825923015031255
         }
       }
     }
