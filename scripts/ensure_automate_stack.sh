@@ -10,6 +10,10 @@ PID_FILE="$RUNTIME_DIR/automate-stack.pid"
 LOCK_FILE="$RUNTIME_DIR/automate-stack-watchdog.lock"
 PYTHON_BIN="$REPO_DIR/.venv/bin/python"
 
+DASHBOARD_PID_FILE="$RUNTIME_DIR/dashboard.pid"
+DASHBOARD_LOG="$LOG_DIR/dashboard.log"
+DASHBOARD_PORT="${DASHBOARD_PORT:-8080}"
+
 timestamp() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
@@ -94,6 +98,40 @@ if [[ -f ".venv/bin/activate" ]]; then
   # shellcheck disable=SC1091
   source .venv/bin/activate
 fi
+
+# ── Dashboard watchdog ────────────────────────────────────────────────────────
+
+dashboard_running() {
+  local pid
+  if [[ -f "$DASHBOARD_PID_FILE" ]]; then
+    pid="$(<"$DASHBOARD_PID_FILE")"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+start_dashboard() {
+  export PYTHONUNBUFFERED=1
+  nohup "$PYTHON_BIN" -m scripts.run_dashboard --port "$DASHBOARD_PORT" >> "$DASHBOARD_LOG" 2>&1 &
+  local pid="$!"
+  printf "%s\n" "$pid" > "$DASHBOARD_PID_FILE"
+  sleep 1
+  if kill -0 "$pid" 2>/dev/null; then
+    log_watchdog "dashboard started on port $DASHBOARD_PORT with pid $pid"
+  else
+    log_watchdog "dashboard failed to start — check $DASHBOARD_LOG"
+  fi
+}
+
+if dashboard_running; then
+  log_watchdog "dashboard is already running"
+else
+  start_dashboard
+fi
+
+# ── Trading stack ──────────────────────────────────────────────────────────
 
 if running_pid="$(discover_running_pid)"; then
   log_watchdog "automate-stack is running with pid $running_pid"
