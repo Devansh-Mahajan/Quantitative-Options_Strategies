@@ -244,6 +244,40 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .ft-mc.sel{border-color:var(--accent);background:var(--accent-a)}
 .ft-mn{font-size:10px;font-weight:700;color:var(--t0);margin-bottom:2px}
 .ft-md{font-size:8px;color:var(--t2)}
+
+/* ── INTELLIGENCE TAB ───────────────────────────────────────────────── */
+.alpha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px}
+.alpha-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px;position:relative;overflow:hidden}
+.alpha-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent)}
+.alpha-card.bull::before{background:var(--green)}
+.alpha-card.bear::before{background:var(--red)}
+.alpha-sym{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t0);margin-bottom:4px}
+.alpha-dir{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.alpha-dir.bull{color:var(--green)}.alpha-dir.bear{color:var(--red)}.alpha-dir.neutral{color:var(--t2)}
+.alpha-score{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:2px}
+.alpha-ret{font-size:9px;color:var(--t2);font-family:var(--mono)}
+.alpha-src{position:absolute;top:8px;right:8px;font-size:7px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.exec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.exec-kv{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px}
+.exec-lbl{font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.exec-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--t0)}
+.sys-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sys-bar-lbl{font-size:9px;color:var(--t2);min-width:80px}
+.sys-bar-trk{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.sys-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.sys-bar-val{font-family:var(--mono);font-size:9px;color:var(--t1);min-width:40px;text-align:right}
+
+/* ── TRADE ANALYSIS TAB ─────────────────────────────────────────────── */
+.ta-streak{display:flex;gap:8px;margin-top:8px}
+.ta-streak-box{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px;text-align:center}
+.ta-streak-n{font-family:var(--mono);font-size:20px;font-weight:800;color:var(--t0)}
+.ta-streak-l{font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.sym-pnl-bar{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sym-pnl-nm{font-family:var(--mono);font-size:9px;color:var(--t1);min-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sym-pnl-trk{flex:1;height:8px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.sym-pnl-fill{height:100%;border-radius:2px}
+.sym-pnl-val{font-family:var(--mono);font-size:9px;min-width:55px;text-align:right}
 </style>
 </head>
 <body>
@@ -286,6 +320,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button class="ntab" data-tab="stratlab">Strategy Lab</button>
   <button class="ntab" data-tab="ftest">Forward Test</button>
   <button class="ntab" data-tab="training">ML Training</button>
+  <button class="ntab" data-tab="intelligence">Intelligence</button>
+  <button class="ntab" data-tab="tradeanalysis">Trade Analysis</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
 
@@ -965,6 +1001,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           <canvas id="ftShChart" height="155"></canvas></div>
         <div class="cw"><div class="chdr"><span class="cttl">Max Drawdown Distribution</span></div>
           <canvas id="ftDdChart" height="155"></canvas></div>
+        <div class="cw"><div class="chdr"><span class="cttl">Win Rate Distribution Across Paths</span></div>
+          <canvas id="ftWrChart" height="155"></canvas></div>
       </div>
     </div>
   </div>
@@ -1085,6 +1123,117 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
   </div>
 </div><!-- /logs -->
+
+<!-- ───────────────────── INTELLIGENCE ──────────────────────────────── -->
+<div id="tab-intelligence" class="tab">
+
+  <!-- ML Alpha signals -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">ML Alpha Signals</span>
+      <span id="alphaBadge" class="bdg bdg-info">—</span>
+      <button class="btn btn-g btn-sm" onclick="loadIntelligence()">↻ Refresh</button>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:10px">
+      Predicted returns and alpha scores from the HMM + ensemble stack. Sorted by absolute alpha score.
+    </div>
+    <div class="alpha-grid" id="alphaGrid"><div class="loading"><div class="spinner"></div>Loading signals…</div></div>
+  </div>
+
+  <div class="row">
+    <!-- Execution Quality -->
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Execution Quality</span><span id="execQualBadge" class="bdg bdg-info">—</span></div>
+      <div class="exec-grid" id="execQualGrid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      <div id="execTierBreakdown" style="margin-top:12px"></div>
+      <div style="font-size:8px;color:var(--t2);margin-top:8px;line-height:1.5" id="execNote"></div>
+    </div>
+
+    <!-- System Health -->
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Infra Health</span><span id="sysPressureBadge" class="bdg">—</span></div>
+      <div id="sysHealthBars" style="margin-top:8px"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px;font-size:9px">Resource Profile</div>
+      <div id="sysResProfile"></div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px;font-size:9px">Preflight</div>
+      <div id="sysPreflightSummary"></div>
+    </div>
+  </div>
+
+  <!-- Risk Events -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Risk Events</span>
+      <button class="btn btn-g btn-sm" onclick="loadRiskEvents()">↻ Refresh</button>
+    </div>
+    <div class="tw" style="max-height:300px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Timestamp</th><th>Event</th><th>Detail</th></tr></thead>
+        <tbody id="riskEventsBody"><tr><td colspan="3" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /intelligence -->
+
+<!-- ───────────────────── TRADE ANALYSIS ─────────────────────────────── -->
+<div id="tab-tradeanalysis" class="tab">
+
+  <!-- Summary cards row -->
+  <div class="mcs" id="taMcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Total Trades</div><div class="mc-val" id="ta-total">—</div><div class="mc-sub">In analysis window</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Win Rate</div><div class="mc-val" id="ta-wr">—</div><div class="mc-sub">% profitable</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Profit Factor</div><div class="mc-val" id="ta-pf">—</div><div class="mc-sub">Gross wins / losses</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Expectancy</div><div class="mc-val" id="ta-exp">—</div><div class="mc-sub">Avg $ per trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Avg Win</div><div class="mc-val" id="ta-aw">—</div><div class="mc-sub">Per winning trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Avg Loss</div><div class="mc-val" id="ta-al">—</div><div class="mc-sub">Per losing trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Largest Win</div><div class="mc-val" id="ta-lw">—</div><div class="mc-sub">Best single trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Largest Loss</div><div class="mc-val" id="ta-ll">—</div><div class="mc-sub">Worst single trade</div></div>
+  </div>
+
+  <!-- Streaks -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Win / Loss Streaks</span></div>
+      <div class="ta-streak">
+        <div class="ta-streak-box">
+          <div class="ta-streak-n" id="ta-ws" style="color:var(--green)">—</div>
+          <div class="ta-streak-l">Max Win Streak</div>
+        </div>
+        <div class="ta-streak-box">
+          <div class="ta-streak-n" id="ta-ls" style="color:var(--red)">—</div>
+          <div class="ta-streak-l">Max Loss Streak</div>
+        </div>
+      </div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px;font-size:9px">By Market</div>
+      <div id="taByMarket"></div>
+    </div>
+
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Top Symbols by P&L</span></div>
+      <div id="taTopSymbols" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- P&L Histogram -->
+  <div class="cw">
+    <div class="chdr">
+      <span class="cttl">P&L Distribution (All Closed Trades)</span>
+      <button class="btn btn-g btn-sm" onclick="loadTradeAnalysis()">↻ Refresh</button>
+    </div>
+    <canvas id="taPnlHist" height="200"></canvas>
+  </div>
+</div><!-- /tradeanalysis -->
 
 </main>
 
@@ -1233,10 +1382,13 @@ function barChart(id, labels, data, color='#4f8ef7') {
   destroyChart(id);
   const ctx = el(id)?.getContext('2d');
   if (!ctx) return;
+  const isArr = Array.isArray(color);
+  const bg  = isArr ? color : data.map(()=>color+'99');
+  const bdr = isArr ? color.map(c=>c.replace(/[\d.]+\)$/,'1)')) : color;
   CHARTS[id] = new Chart(ctx, {
     type: 'bar',
     data: { labels, datasets:[{
-      data, backgroundColor:color+'99', borderColor:color, borderWidth:1, borderRadius:2,
+      data, backgroundColor:bg, borderColor:bdr, borderWidth:1, borderRadius:2,
     }]},
     options: {
       responsive:true, maintainAspectRatio:true,
@@ -2495,25 +2647,35 @@ function renderFtResults(res) {
   if (!res) { el('ftRes').innerHTML='<div class="empty">No results</div>'; return; }
   el('ftChartsArea').style.display='block';
   const spec = [
-    ['Paths Tested', res.n_paths, 'var(--t0)'],
-    ['Median Return', fp(res.median_return_pct), csh(res.median_return_pct)],
-    ['P10 Return', fp(res.p10_return_pct), 'var(--red)'],
-    ['P90 Return', fp(res.p90_return_pct), 'var(--green)'],
-    ['Median Sharpe', f(res.median_sharpe,3), csh(res.median_sharpe)],
-    ['P10 Sharpe', f(res.p10_sharpe,3), 'var(--red)'],
-    ['P90 Sharpe', f(res.p90_sharpe,3), 'var(--green)'],
-    ['% Profitable', fp(res.profitable_pct), 'var(--cyan)'],
-    ['Median Max DD', fp(res.median_maxdd_pct), 'var(--orange)'],
+    ['Paths Tested',    res.n_paths,                          'var(--t0)'],
+    ['Failed Paths',    res.failed_paths ?? 0,                res.failed_paths > 0 ? 'var(--orange)' : 'var(--green)'],
+    ['Acceptance Rate', res.acceptance_rate != null ? fp(res.acceptance_rate) : '—', 'var(--cyan)'],
+    ['% Profitable',    fp(res.profitable_pct),               'var(--cyan)'],
+    ['Median Return',   fp(res.median_return_pct),            csh(res.median_return_pct)],
+    ['P5 Return',       fp(res.p5_return_pct),                'var(--red)'],
+    ['P25 Return',      fp(res.p25_return_pct),               'var(--orange)'],
+    ['P75 Return',      fp(res.p75_return_pct),               'var(--green)'],
+    ['P95 Return',      fp(res.p95_return_pct),               'var(--green)'],
+    ['Median Sharpe',   f(res.median_sharpe,3),               csh(res.median_sharpe)],
+    ['P10 Sharpe',      f(res.p10_sharpe,3),                  'var(--red)'],
+    ['P90 Sharpe',      f(res.p90_sharpe,3),                  'var(--green)'],
+    ['Median Max DD',   fp(res.median_maxdd_pct),             'var(--orange)'],
+    ['P95 Max DD',      fp(res.p95_maxdd_pct),                'var(--red)'],
+    ['Median Win Rate', fp(res.median_win_rate),              'var(--blue)'],
   ];
   el('ftMcs').innerHTML = spec.map(([l,v,c]) => `
     <div class="mc"><div class="mc-bar" style="background:${c}"></div>
       <div class="mc-lbl">${l}</div><div class="mc-val" style="color:${c}">${v}</div></div>`).join('');
+  const retColors = (res.return_hist?.bins||[]).map(b => b >= 0 ? 'rgba(0,214,143,.75)' : 'rgba(247,82,90,.75)');
   if (res.return_hist)
-    barChart('ftDistChart', res.return_hist.bins.map(b=>fp(b)), res.return_hist.counts, '#4f8ef7');
+    barChart('ftDistChart', res.return_hist.bins.map(b=>fp(b)), res.return_hist.counts, retColors);
   if (res.sharpe_hist)
-    barChart('ftShChart', res.sharpe_hist.bins.map(b=>f(b,2)), res.sharpe_hist.counts, '#00d68f');
+    barChart('ftShChart', res.sharpe_hist.bins.map(b=>f(b,2)), res.sharpe_hist.counts,
+      (res.sharpe_hist.bins||[]).map(b => b >= 0 ? 'rgba(0,214,143,.75)' : 'rgba(247,82,90,.75)'));
   if (res.maxdd_hist)
     barChart('ftDdChart', res.maxdd_hist.bins.map(b=>fp(b)), res.maxdd_hist.counts, '#f7525a');
+  if (res.winrate_hist)
+    barChart('ftWrChart', res.winrate_hist.bins.map(b=>fp(b)), res.winrate_hist.counts, '#a855f7');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2686,21 +2848,210 @@ el('clearTrainLog').addEventListener('click', () => el('trainLog').innerHTML = '
 el('refreshTrainJobs').addEventListener('click', loadTrainJobs);
 
 /* ═══════════════════════════════════════════════════════════════════
+   TAB: INTELLIGENCE (ML Alpha + Execution Quality + System Health)
+════════════════════════════════════════════════════════════════════ */
+async function loadIntelligence() {
+  const [alpha, eq, sys] = await Promise.all([
+    api('/api/ml/alpha'),
+    api('/api/execution/quality'),
+    api('/api/system/health'),
+  ]);
+  renderAlphaSignals(alpha);
+  renderExecQuality(eq);
+  renderSysHealth(sys);
+  loadRiskEvents();
+}
+
+function renderAlphaSignals(d) {
+  const grid = el('alphaGrid');
+  if (!d) { grid.innerHTML = '<div class="empty">No ML alpha data</div>'; return; }
+  const sigs = d.signals || [];
+  el('alphaBadge').textContent = `${sigs.length} signals`;
+  el('alphaBadge').className = 'bdg ' + (sigs.length > 0 ? 'bdg-ok' : 'bdg-info');
+  if (!sigs.length) { grid.innerHTML = '<div class="empty">No signals available — run ML training first</div>'; return; }
+  grid.innerHTML = sigs.slice(0, 48).map(s => {
+    const dir = (s.direction || '').toLowerCase();
+    const ret = s.predicted_return != null ? (s.predicted_return * 100).toFixed(2) : '—';
+    const score = s.alpha_score != null ? s.alpha_score.toFixed(4) : '—';
+    const pct = s.percentile != null ? s.percentile.toFixed(0) : '—';
+    const dispersion = s.model_dispersion != null ? (s.model_dispersion * 100).toFixed(1) : null;
+    return `<div class="alpha-card ${dir === 'long' ? 'bull' : dir === 'short' ? 'bear' : ''}">
+      <div class="alpha-src">${s.source || 'ml'}</div>
+      <div class="alpha-sym">${s.symbol || '—'}</div>
+      <div class="alpha-dir ${dir === 'long' ? 'bull' : dir === 'short' ? 'bear' : 'neutral'}">${dir || 'neutral'}</div>
+      <div class="alpha-score" style="color:${s.alpha_score > 0 ? 'var(--green)' : s.alpha_score < 0 ? 'var(--red)' : 'var(--t1)'}">${score}</div>
+      <div class="alpha-ret">pred: ${ret}% · p${pct}${dispersion ? ' · disp:' + dispersion + '%' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderExecQuality(q) {
+  const grid = el('execQualGrid');
+  if (!q) { grid.innerHTML = '<div class="empty">No execution data</div>'; return; }
+  const score = q.avg_execution_quality_score;
+  el('execQualBadge').textContent = score != null ? `Score: ${(score*100).toFixed(0)}%` : '—';
+  el('execQualBadge').className = 'bdg ' + (score >= 0.8 ? 'bdg-ok' : score >= 0.6 ? 'bdg-run' : 'bdg-err');
+  const items = [
+    ['Fill Rate',       q.fill_rate != null ? fp(q.fill_rate * 100) : '—'],
+    ['Full Fill Rate',  q.full_fill_rate != null ? fp(q.full_fill_rate * 100) : '—'],
+    ['Avg Quality',     q.avg_execution_quality_score != null ? fp(q.avg_execution_quality_score * 100) : '—'],
+    ['Fill Events',     q.fill_events ?? '—'],
+    ['Full Fills',      q.full_fills ?? '—'],
+    ['Partial Fills',   q.partial_fills ?? '—'],
+    ['Degraded',        q.degraded_execution_count ?? '—'],
+    ['Reprice Factor',  q.adaptive_reprice_factor != null ? f(q.adaptive_reprice_factor, 3) : '—'],
+  ];
+  grid.innerHTML = items.map(([l,v]) => `
+    <div class="exec-kv"><div class="exec-lbl">${l}</div><div class="exec-val">${v}</div></div>`).join('');
+  const tiers = q.tier_counts || {};
+  if (Object.keys(tiers).length) {
+    el('execTierBreakdown').innerHTML = `<div style="font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Tier Breakdown</div>` +
+      Object.entries(tiers).map(([k,v]) => `
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:9px;color:var(--t1)">${k}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--t0)">${v}</span>
+        </div>`).join('');
+  }
+  if (q.note) el('execNote').textContent = q.note;
+}
+
+function renderSysHealth(d) {
+  if (!d) { el('sysHealthBars').innerHTML = '<div class="empty">No system data</div>'; return; }
+  const p = d.pressure || 'unknown';
+  el('sysPressureBadge').textContent = p.toUpperCase();
+  el('sysPressureBadge').className = 'bdg ' + (p === 'normal' ? 'bdg-ok' : p === 'high' ? 'bdg-run' : 'bdg-err');
+
+  const mkBar = (lbl, pct, color) => `
+    <div class="sys-bar-row">
+      <span class="sys-bar-lbl">${lbl}</span>
+      <div class="sys-bar-trk"><div class="sys-bar-fill" style="width:${Math.min(pct||0,100)}%;background:${pct>85?'var(--red)':pct>65?'var(--orange)':color}"></div></div>
+      <span class="sys-bar-val">${(pct||0).toFixed(1)}%</span>
+    </div>`;
+
+  el('sysHealthBars').innerHTML =
+    mkBar('CPU Load', d.normalized_cpu_pct, 'var(--blue)') +
+    mkBar('Memory', d.memory_usage_pct, 'var(--cyan)') +
+    mkBar('Disk', d.disk_usage_pct, 'var(--purple)') +
+    `<div style="font-size:8px;color:var(--t2);margin-top:5px">Load avg: ${f(d.loadavg_1m,2)} / ${f(d.loadavg_5m,2)} (1m / 5m)</div>`;
+
+  el('sysResProfile').innerHTML = infoRows([
+    ['CPUs',            d.cpu_count ?? '—'],
+    ['Memory Used',     d.memory_used_gb != null ? f(d.memory_used_gb,1)+'GB / '+f(d.memory_total_gb,1)+'GB' : '—'],
+    ['Disk Free',       d.disk_usage_pct != null ? f(100-d.disk_usage_pct,1)+'% free' : '—'],
+    ['BT Workers',      d.backtest_workers ?? '—'],
+    ['Model Parallelism', d.model_parallelism ?? '—'],
+    ['Risk Interval',   d.risk_interval_s != null ? d.risk_interval_s+'s' : '—'],
+    ['Regime Interval', d.regime_interval_s != null ? d.regime_interval_s+'s' : '—'],
+  ]);
+
+  const pf = d.preflight_summary || {};
+  el('sysPreflightSummary').innerHTML = d.preflight_passed != null
+    ? `<div style="font-size:10px;font-weight:700;color:${d.preflight_passed?'var(--green)':'var(--red)'};margin-bottom:6px">
+        ${d.preflight_passed ? '✓ ALL CHECKS PASSED' : '✗ PREFLIGHT FAILED'}</div>` +
+       Object.entries(pf).slice(0,8).map(([k,v]) => `
+        <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:9px">
+          <span style="color:var(--t2)">${k}</span>
+          <span style="color:${v===true||v==='ok'?'var(--green)':v===false?'var(--red)':'var(--t1)'};font-family:var(--mono)">${v===true?'✓':v===false?'✗':v}</span>
+        </div>`).join('')
+    : '<div class="empty">No preflight data</div>';
+}
+
+async function loadRiskEvents() {
+  const d = await api('/api/risk/events?limit=100');
+  const tb = el('riskEventsBody');
+  if (!d || !tb) return;
+  const evts = d.events || [];
+  tb.innerHTML = evts.length ? evts.map(e => {
+    const lvl = (e.event||'').includes('KILL') || (e.event||'').includes('BREACH') ? 'var(--red)'
+              : (e.event||'').includes('WARN') ? 'var(--orange)' : 'var(--t1)';
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:9px;color:var(--t2);white-space:nowrap">${e.ts||'—'}</td>
+      <td style="font-weight:700;color:${lvl};font-size:9px">${e.event||'—'}</td>
+      <td style="font-size:9px;color:var(--t1);max-width:400px">${e.detail||''}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="3" class="empty">No risk events recorded</td></tr>';
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: TRADE ANALYSIS
+════════════════════════════════════════════════════════════════════ */
+async function loadTradeAnalysis() {
+  const d = await api('/api/trades/analysis');
+  if (!d || !d.total_trades) {
+    ['ta-total','ta-wr','ta-pf','ta-exp','ta-aw','ta-al','ta-lw','ta-ll','ta-ws','ta-ls']
+      .forEach(id => { const e=el(id); if(e) e.textContent='—'; });
+    el('taByMarket').innerHTML = '<div class="empty">No trade data</div>';
+    el('taTopSymbols').innerHTML = '<div class="empty">No trade data</div>';
+    return;
+  }
+
+  el('ta-total').textContent = d.total_trades;
+  el('ta-wr').textContent    = fp(d.win_rate_pct);
+  el('ta-wr').className      = 'mc-val ' + (d.win_rate_pct >= 50 ? 'pos' : 'neg');
+  el('ta-pf').textContent    = d.profit_factor != null ? f(d.profit_factor, 3) : '—';
+  el('ta-pf').className      = 'mc-val ' + (d.profit_factor >= 1 ? 'pos' : 'neg');
+  el('ta-exp').textContent   = fm(d.expectancy);
+  el('ta-exp').className     = 'mc-val ' + cx(d.expectancy);
+  el('ta-aw').textContent    = fm(d.avg_win);
+  el('ta-aw').className      = 'mc-val pos';
+  el('ta-al').textContent    = fm(d.avg_loss);
+  el('ta-al').className      = 'mc-val neg';
+  el('ta-lw').textContent    = fm(d.largest_win);
+  el('ta-lw').className      = 'mc-val pos';
+  el('ta-ll').textContent    = fm(d.largest_loss);
+  el('ta-ll').className      = 'mc-val neg';
+  el('ta-ws').textContent    = d.max_win_streak;
+  el('ta-ls').textContent    = d.max_loss_streak;
+
+  // By market
+  const markets = Object.entries(d.by_market || {});
+  el('taByMarket').innerHTML = markets.length ? markets.map(([mkt, md]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;font-weight:700;color:var(--t0);text-transform:uppercase">${mkt}</span>
+      <span style="font-size:9px;color:var(--t2)">${md.trades} trades</span>
+      <span style="font-size:9px;color:var(--t2)">${fp(md.win_rate_pct)} WR</span>
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${md.total_pnl>=0?'var(--green)':'var(--red)'}">${fm(md.total_pnl)}</span>
+    </div>`).join('')
+    : '<div class="empty">No market data</div>';
+
+  // Top symbols
+  const syms = d.top_symbols || [];
+  const maxAbsPnl = Math.max(...syms.map(s => Math.abs(s.total_pnl)), 1);
+  el('taTopSymbols').innerHTML = syms.slice(0, 15).map(s => {
+    const pct = Math.abs(s.total_pnl) / maxAbsPnl * 100;
+    const color = s.total_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<div class="sym-pnl-bar">
+      <span class="sym-pnl-nm">${s.symbol}</span>
+      <div class="sym-pnl-trk"><div class="sym-pnl-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="sym-pnl-val" style="color:${color}">${fm(s.total_pnl)}</span>
+    </div>`;
+  }).join('') || '<div class="empty">No data</div>';
+
+  // P&L histogram
+  if (d.pnl_hist?.bins?.length) {
+    const colors = d.pnl_hist.bins.map(b => b >= 0 ? 'rgba(0,214,143,.75)' : 'rgba(247,82,90,.75)');
+    barChart('taPnlHist', d.pnl_hist.bins.map(b => fm(b)), d.pnl_hist.counts, colors);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════════ */
 const TAB_INIT = {
-  live:      () => { loadLive(); connectLiveWs(); },
-  options:   () => { loadOptions(); },
-  stocks:    () => { loadStocks(); },
-  odds:      () => { loadOdds(); },
-  backtests: () => { loadBacktests(); },
-  params:    () => { loadParams(); },
-  risk:      () => { loadRisk(); },
-  simlab:    () => { loadSimLab(); },
-  stratlab:  () => { loadStratLab(); },
-  ftest:     () => { /* no auto-load */ },
-  training:  () => { loadTraining(); },
-  logs:      () => { initLogs(); },
+  live:          () => { loadLive(); connectLiveWs(); },
+  options:       () => { loadOptions(); },
+  stocks:        () => { loadStocks(); },
+  odds:          () => { loadOdds(); },
+  backtests:     () => { loadBacktests(); },
+  params:        () => { loadParams(); },
+  risk:          () => { loadRisk(); },
+  simlab:        () => { loadSimLab(); },
+  stratlab:      () => { loadStratLab(); },
+  ftest:         () => { /* no auto-load */ },
+  training:      () => { loadTraining(); },
+  intelligence:  () => { loadIntelligence(); },
+  tradeanalysis: () => { loadTradeAnalysis(); },
+  logs:          () => { initLogs(); },
 };
 
 document.querySelectorAll('.ntab').forEach(tab => {
@@ -2746,6 +3097,12 @@ document.querySelectorAll('.ntab').forEach(tab => {
     if (el('tab-odds').classList.contains('active')) loadOdds();
   }, 300000);
   setInterval(checkHealth, 30000);
+  setInterval(() => {
+    if (el('tab-intelligence').classList.contains('active')) loadIntelligence();
+  }, 120000);
+  setInterval(() => {
+    if (el('tab-tradeanalysis').classList.contains('active')) loadTradeAnalysis();
+  }, 120000);
 })();
 </script>
 </body>

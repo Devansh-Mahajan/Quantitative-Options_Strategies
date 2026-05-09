@@ -34,12 +34,15 @@ async def _main() -> None:
 
 async def _shutdown(orch) -> None:
     log.info("Shutdown signal received — closing positions and stopping...")
+    loop = asyncio.get_event_loop()
     try:
         if orch.stream_manager:
             await orch.stream_manager.stop()
         await orch.client.close()
+    except Exception as exc:
+        log.warning("Cleanup error during shutdown: %s", exc)
     finally:
-        sys.exit(0)
+        loop.stop()
 
 
 def main() -> None:
@@ -48,8 +51,6 @@ def main() -> None:
         asyncio.run(_main())
     except KeyboardInterrupt:
         log.info("Bot stopped by keyboard interrupt")
-    except SystemExit:
-        pass
     except Exception as exc:
         log.critical("Fatal error: %s", exc, exc_info=True)
         sys.exit(1)

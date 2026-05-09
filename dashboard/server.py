@@ -45,6 +45,7 @@ from dashboard.analytics import (
     instantiate_strategy,
     permutation_grid,
     supported_strategy_params,
+    RUNTIME_DIR,
     RISK_SNAPSHOT_PATH,
     PORTFOLIO_GUARD_PATH,
     read_json,
@@ -559,7 +560,7 @@ async def strategies_pnl():
     with _db_conn() as c:
         try:
             rows = c.execute(
-                "SELECT strategy, pnl, realized_pnl, ts FROM trades ORDER BY ts DESC LIMIT 3000"
+                "SELECT strategy, pnl, ts FROM trades ORDER BY ts DESC LIMIT 3000"
             ).fetchall()
         except Exception:
             return {"strategies": [], "total_pnl": 0}
@@ -567,7 +568,7 @@ async def strategies_pnl():
     agg: dict[str, dict] = {}
     for row in rows:
         name = row["strategy"] or "unknown"
-        pnl  = float(row["pnl"] or row["realized_pnl"] or 0)
+        pnl  = float(row["pnl"] or 0)
         if name not in agg:
             agg[name] = {"total_pnl": 0.0, "trades": 0, "wins": 0, "losses": 0}
         agg[name]["total_pnl"] += pnl
@@ -875,27 +876,38 @@ async def run_forwardtest(body: dict):
                 bin_centers = ((edges[:-1] + edges[1:]) / 2).tolist()
                 return {"bins": bin_centers, "counts": counts.tolist()}
 
-            returns = [r.total_return_pct for r in ft_result.results]
-            sharpes = [r.sharpe for r in ft_result.results]
-            maxdds  = [r.max_drawdown_pct for r in ft_result.results]
+            # FuturetestResult stores distributions as numpy arrays (fractions, not pct)
+            returns = (ft_result.return_dist * 100).tolist()
+            sharpes = ft_result.sharpe_dist.tolist()
+            maxdds  = (ft_result.max_dd_dist * 100).tolist()
+            win_rates = (ft_result.win_rate_dist * 100).tolist()
 
-            profitable_pct = (sum(1 for r in returns if r > 0) / len(returns) * 100) if returns else 0
+            profitable_pct = float(np.mean(ft_result.return_dist > 0)) * 100
 
             _ft_jobs[job_id]["status"] = "DONE"
             _ft_jobs[job_id]["result"] = {
-                "n_paths":          n_paths,
-                "median_return_pct":round(float(np.median(returns)), 3) if returns else None,
-                "mean_return_pct":  round(float(np.mean(returns)), 3)   if returns else None,
-                "p10_return_pct":   round(float(np.percentile(returns, 10)), 3) if returns else None,
-                "p90_return_pct":   round(float(np.percentile(returns, 90)), 3) if returns else None,
-                "median_sharpe":    round(float(np.median(sharpes)), 4) if sharpes else None,
-                "p10_sharpe":       round(float(np.percentile(sharpes, 10)), 4) if sharpes else None,
-                "p90_sharpe":       round(float(np.percentile(sharpes, 90)), 4) if sharpes else None,
-                "median_maxdd_pct": round(float(np.median(maxdds)), 3) if maxdds else None,
-                "profitable_pct":   round(profitable_pct, 1),
-                "return_hist":      histogram(returns),
-                "sharpe_hist":      histogram(sharpes),
-                "maxdd_hist":       histogram(maxdds),
+                "n_paths":           ft_result.n_paths,
+                "failed_paths":      ft_result.failed_paths,
+                "acceptance_rate":   round(ft_result.acceptance_rate * 100, 1),
+                "median_return_pct": round(float(np.median(returns)), 3) if returns else None,
+                "mean_return_pct":   round(float(np.mean(returns)), 3)   if returns else None,
+                "p5_return_pct":     round(float(np.percentile(returns, 5)), 3)  if returns else None,
+                "p10_return_pct":    round(float(np.percentile(returns, 10)), 3) if returns else None,
+                "p25_return_pct":    round(float(np.percentile(returns, 25)), 3) if returns else None,
+                "p75_return_pct":    round(float(np.percentile(returns, 75)), 3) if returns else None,
+                "p90_return_pct":    round(float(np.percentile(returns, 90)), 3) if returns else None,
+                "p95_return_pct":    round(float(np.percentile(returns, 95)), 3) if returns else None,
+                "median_sharpe":     round(float(np.median(sharpes)), 4) if sharpes else None,
+                "p10_sharpe":        round(float(np.percentile(sharpes, 10)), 4) if sharpes else None,
+                "p90_sharpe":        round(float(np.percentile(sharpes, 90)), 4) if sharpes else None,
+                "median_maxdd_pct":  round(float(np.median(maxdds)), 3)  if maxdds else None,
+                "p95_maxdd_pct":     round(float(np.percentile(maxdds, 95)), 3) if maxdds else None,
+                "median_win_rate":   round(float(np.median(win_rates)), 1) if win_rates else None,
+                "profitable_pct":    round(profitable_pct, 1),
+                "return_hist":       histogram(returns),
+                "sharpe_hist":       histogram(sharpes),
+                "maxdd_hist":        histogram(maxdds),
+                "winrate_hist":      histogram(win_rates),
             }
 
         except Exception as exc:
@@ -1208,6 +1220,200 @@ async def ws_logs_risk(ws: WebSocket):
         pass
     except Exception as exc:
         log.debug("Risk log WS error: %s", exc)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Elite intelligence endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+ML_ALPHA_PATH         = RUNTIME_DIR / "ml_alpha_snapshot.json"
+EXEC_QUALITY_PATH     = RUNTIME_DIR / "execution_quality_snapshot.json"
+SYSTEM_RESOURCE_PATH  = RUNTIME_DIR / "system_resource_snapshot.json"
+PREFLIGHT_PATH        = RUNTIME_DIR / "preflight_state.json"
+AUTOMATION_STATE_PATH = RUNTIME_DIR / "automation_state.json"
+
+
+@app.get("/api/ml/alpha")
+async def ml_alpha_snapshot():
+    """ML model alpha signals — predicted returns, direction, confidence per symbol."""
+    snap = read_json(ML_ALPHA_PATH, {})
+    signals = snap.get("signals", [])
+    if isinstance(signals, dict):
+        signals = list(signals.values())
+    return {
+        "generated_at_utc": snap.get("generated_at_utc"),
+        "requested_symbols": snap.get("requested_symbols", 0),
+        "signals": sorted(signals, key=lambda s: abs(s.get("alpha_score", 0)), reverse=True),
+    }
+
+
+@app.get("/api/execution/quality")
+async def execution_quality():
+    """Live execution quality metrics — fill rates, slippage, tier breakdown."""
+    q = read_json(EXEC_QUALITY_PATH, {})
+    return {
+        "generated_at_utc":          q.get("generated_at_utc"),
+        "records":                   safe_int(q.get("records")),
+        "fill_events":               safe_int(q.get("fill_events")),
+        "full_fills":                safe_int(q.get("full_fills")),
+        "partial_fills":             safe_int(q.get("partial_fills")),
+        "fill_rate":                 safe_float(q.get("fill_rate")),
+        "full_fill_rate":            safe_float(q.get("full_fill_rate")),
+        "avg_execution_quality_score": safe_float(q.get("avg_execution_quality_score")),
+        "avg_limit_edge_bps":        safe_float(q.get("avg_limit_edge_bps")),
+        "avg_reference_edge_bps":    safe_float(q.get("avg_reference_edge_bps")),
+        "avg_pricing_confidence":    safe_float(q.get("avg_pricing_confidence")),
+        "avg_staleness_pct":         safe_float(q.get("avg_staleness_pct")),
+        "degraded_execution_count":  safe_int(q.get("degraded_execution_count")),
+        "adaptive_reprice_factor":   safe_float(q.get("adaptive_reprice_factor")),
+        "tier_counts":               q.get("tier_counts", {}),
+        "latest_fill_at_utc":        q.get("latest_fill_at_utc"),
+        "note":                      q.get("note", ""),
+    }
+
+
+@app.get("/api/system/health")
+async def system_health():
+    """Host resource utilization + automation scheduling state."""
+    res  = read_json(SYSTEM_RESOURCE_PATH, {})
+    auto = read_json(AUTOMATION_STATE_PATH, {})
+    pre  = read_json(PREFLIGHT_PATH, {})
+
+    host = res.get("host_metrics", {})
+    mem  = host.get("memory", {})
+    disk = host.get("disk", {})
+    rp   = res.get("resource_profile", {})
+
+    return {
+        "generated_at_utc":    res.get("generated_at_utc"),
+        "pressure":            res.get("status", {}).get("pressure", "unknown"),
+        "loadavg_1m":          safe_float(host.get("loadavg_1m")),
+        "loadavg_5m":          safe_float(host.get("loadavg_5m")),
+        "normalized_cpu_pct":  safe_float(host.get("normalized_cpu_load_pct")),
+        "memory_total_gb":     safe_float(mem.get("total_gb")),
+        "memory_used_gb":      safe_float(mem.get("used_gb")),
+        "memory_usage_pct":    safe_float(mem.get("usage_pct")),
+        "disk_total_gb":       safe_float(disk.get("total_gb")),
+        "disk_used_gb":        safe_float(disk.get("used_gb")),
+        "disk_usage_pct":      safe_float(disk.get("usage_pct")),
+        "cpu_count":           safe_int(rp.get("cpu_count")),
+        "backtest_workers":    safe_int(rp.get("backtest_workers")),
+        "model_parallelism":   safe_int(rp.get("model_parallelism")),
+        "risk_interval_s":     safe_int(rp.get("risk_interval_seconds")),
+        "regime_interval_s":   safe_int(rp.get("regime_interval_seconds")),
+        "automation_state":    auto,
+        "preflight_passed":    pre.get("passed"),
+        "preflight_summary":   pre.get("summary", {}),
+    }
+
+
+@app.get("/api/risk/events")
+async def risk_events(limit: int = Query(100, ge=1, le=500)):
+    """Recent risk events from the trades database."""
+    with _db_conn() as c:
+        try:
+            rows = c.execute(
+                "SELECT ts, event, detail FROM risk_events ORDER BY ts DESC LIMIT ?",
+                (limit,)
+            ).fetchall()
+        except Exception:
+            return {"events": []}
+    return {
+        "events": [{"ts": r["ts"], "event": r["event"], "detail": r["detail"]} for r in rows]
+    }
+
+
+@app.get("/api/trades/analysis")
+async def trades_analysis():
+    """Deep trade-level analytics — P&L distribution, streaks, expectancy, by market/symbol."""
+    with _db_conn() as c:
+        try:
+            rows = c.execute(
+                "SELECT ts, symbol, market, side, quantity, price, strategy, pnl, status "
+                "FROM trades ORDER BY ts DESC LIMIT 5000"
+            ).fetchall()
+        except Exception:
+            return {}
+
+    if not rows:
+        return {"total": 0}
+
+    pnls      = [float(r["pnl"] or 0) for r in rows]
+    wins      = [p for p in pnls if p > 0]
+    losses    = [p for p in pnls if p < 0]
+    flat      = [p for p in pnls if p == 0]
+
+    # Streak calculation
+    max_win_streak = max_loss_streak = cur = 0
+    cur_win = cur_loss = 0
+    for p in reversed(pnls):
+        if p > 0:
+            cur_win += 1; cur_loss = 0
+        elif p < 0:
+            cur_loss += 1; cur_win = 0
+        else:
+            cur_win = cur_loss = 0
+        max_win_streak  = max(max_win_streak, cur_win)
+        max_loss_streak = max(max_loss_streak, cur_loss)
+
+    # By market
+    by_market: dict[str, dict] = {}
+    for r in rows:
+        m = r["market"] or "spot"
+        p = float(r["pnl"] or 0)
+        if m not in by_market:
+            by_market[m] = {"trades": 0, "total_pnl": 0.0, "wins": 0}
+        by_market[m]["trades"]    += 1
+        by_market[m]["total_pnl"] += p
+        if p > 0:
+            by_market[m]["wins"] += 1
+
+    # By symbol (top 20)
+    by_symbol: dict[str, dict] = {}
+    for r in rows:
+        sym = r["symbol"]
+        p   = float(r["pnl"] or 0)
+        if sym not in by_symbol:
+            by_symbol[sym] = {"trades": 0, "total_pnl": 0.0, "wins": 0}
+        by_symbol[sym]["trades"]    += 1
+        by_symbol[sym]["total_pnl"] += p
+        if p > 0:
+            by_symbol[sym]["wins"] += 1
+
+    top_symbols = sorted(by_symbol.items(), key=lambda x: abs(x[1]["total_pnl"]), reverse=True)[:20]
+
+    # P&L histogram
+    if pnls:
+        counts, edges = np.histogram(pnls, bins=30)
+        pnl_hist = {"bins": ((np.array(edges[:-1]) + np.array(edges[1:])) / 2).tolist(), "counts": counts.tolist()}
+    else:
+        pnl_hist = {"bins": [], "counts": []}
+
+    total = len(pnls)
+    win_rate = len(wins) / total * 100 if total else 0
+    avg_win  = float(np.mean(wins))  if wins   else 0
+    avg_loss = float(np.mean(losses)) if losses else 0
+    expectancy = (win_rate / 100 * avg_win) + ((1 - win_rate / 100) * avg_loss) if total else 0
+
+    return {
+        "total_trades":    total,
+        "win_count":       len(wins),
+        "loss_count":      len(losses),
+        "flat_count":      len(flat),
+        "win_rate_pct":    round(win_rate, 2),
+        "total_pnl":       round(sum(pnls), 2),
+        "avg_win":         round(avg_win, 4),
+        "avg_loss":        round(avg_loss, 4),
+        "profit_factor":   round(sum(wins) / abs(sum(losses)), 3) if losses else None,
+        "expectancy":      round(expectancy, 4),
+        "max_win_streak":  max_win_streak,
+        "max_loss_streak": max_loss_streak,
+        "largest_win":     round(max(wins), 4)  if wins   else 0,
+        "largest_loss":    round(min(losses), 4) if losses else 0,
+        "by_market":       {k: {**v, "win_rate_pct": round(v["wins"]/max(v["trades"],1)*100, 1)} for k, v in by_market.items()},
+        "top_symbols":     [{"symbol": s, **d, "win_rate_pct": round(d["wins"]/max(d["trades"],1)*100,1)} for s,d in top_symbols],
+        "pnl_hist":        pnl_hist,
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
