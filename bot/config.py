@@ -65,11 +65,21 @@ class Config:
     enable_options_vol: bool = field(default_factory=lambda: _bool("ENABLE_OPTIONS_VOL", False))
     enable_order_flow: bool = field(default_factory=lambda: _bool("ENABLE_ORDER_FLOW", True))
     enable_breakout: bool = field(default_factory=lambda: _bool("ENABLE_BREAKOUT", True))
-    # Elite strategies
+    # Elite strategies (batch 1)
     enable_statistical_arb: bool = field(default_factory=lambda: _bool("ENABLE_STATISTICAL_ARB", True))
     enable_cross_sectional_momentum: bool = field(default_factory=lambda: _bool("ENABLE_CROSS_SECTIONAL_MOMENTUM", True))
     enable_liquidation_cascade: bool = field(default_factory=lambda: _bool("ENABLE_LIQUIDATION_CASCADE", True))
     enable_carry_portfolio: bool = field(default_factory=lambda: _bool("ENABLE_CARRY_PORTFOLIO", True))
+    # Research-paper strategies (batch 2 — Kakushadze, Bloch, Cartea et al.)
+    enable_tsmom: bool = field(default_factory=lambda: _bool("ENABLE_TSMOM", True))
+    enable_quant_factors: bool = field(default_factory=lambda: _bool("ENABLE_QUANT_FACTORS", True))
+    enable_contrarian_oi: bool = field(default_factory=lambda: _bool("ENABLE_CONTRARIAN_OI", True))
+    enable_rma_strategy: bool = field(default_factory=lambda: _bool("ENABLE_RMA_STRATEGY", True))
+    enable_vpin_flow: bool = field(default_factory=lambda: _bool("ENABLE_VPIN_FLOW", True))
+    enable_knn_predictor: bool = field(default_factory=lambda: _bool("ENABLE_KNN_PREDICTOR", True))
+    enable_pivot_sr: bool = field(default_factory=lambda: _bool("ENABLE_PIVOT_SR", True))
+    enable_hp_trend: bool = field(default_factory=lambda: _bool("ENABLE_HP_TREND", True))
+    enable_momentum_carry_combo: bool = field(default_factory=lambda: _bool("ENABLE_MOMENTUM_CARRY_COMBO", True))
 
     # --- Symbol universe ---
     futures_symbols: list[str] = field(

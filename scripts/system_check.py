@@ -64,11 +64,21 @@ STRATEGIES: list[tuple[str, str]] = [
     ("strategies.options_vol",               "OptionsVolatilityStrategy"),
     ("strategies.order_flow",                "OrderFlowStrategy"),
     ("strategies.breakout",                  "BreakoutStrategy"),
-    # Elite strategies
+    # Elite strategies (batch 1)
     ("strategies.statistical_arb",           "StatisticalArbStrategy"),
     ("strategies.cross_sectional_momentum",  "CrossSectionalMomentumStrategy"),
     ("strategies.liquidation_cascade",       "LiquidationCascadeStrategy"),
     ("strategies.carry_portfolio",           "CarryPortfolioStrategy"),
+    # Research-paper strategies (batch 2)
+    ("strategies.tsmom",                     "TSMomentumStrategy"),
+    ("strategies.quant_factors",             "QuantFactorsStrategy"),
+    ("strategies.contrarian_oi",             "ContrarianOIStrategy"),
+    ("strategies.rma_strategy",              "RMAStrategy"),
+    ("strategies.vpin_flow",                 "VPINFlowStrategy"),
+    ("strategies.knn_predictor",             "KNNPredictorStrategy"),
+    ("strategies.pivot_sr",                  "PivotSRStrategy"),
+    ("strategies.hp_trend",                  "HPTrendStrategy"),
+    ("strategies.momentum_carry_combo",      "MomentumCarryComboStrategy"),
 ]
 
 # Core backtester/risk modules to import-check
