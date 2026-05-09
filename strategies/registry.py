@@ -45,6 +45,22 @@ def build_registry() -> list[BaseStrategy]:
         from strategies.breakout import BreakoutStrategy
         strategies.append(BreakoutStrategy())
 
+    if cfg.enable_statistical_arb:
+        from strategies.statistical_arb import StatisticalArbStrategy
+        strategies.append(StatisticalArbStrategy())
+
+    if cfg.enable_cross_sectional_momentum:
+        from strategies.cross_sectional_momentum import CrossSectionalMomentumStrategy
+        strategies.append(CrossSectionalMomentumStrategy())
+
+    if cfg.enable_liquidation_cascade:
+        from strategies.liquidation_cascade import LiquidationCascadeStrategy
+        strategies.append(LiquidationCascadeStrategy())
+
+    if cfg.enable_carry_portfolio:
+        from strategies.carry_portfolio import CarryPortfolioStrategy
+        strategies.append(CarryPortfolioStrategy())
+
     log.info("Strategy registry: %d strategies active — %s",
              len(strategies), [s.name for s in strategies])
     return strategies

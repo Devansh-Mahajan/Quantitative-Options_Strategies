@@ -33,6 +33,9 @@ log = logging.getLogger("run_backtest")
 AVAILABLE_STRATEGIES = [
     "momentum", "mean_reversion", "funding_arb", "basis_trade",
     "pairs_arb", "options_vol", "order_flow", "breakout",
+    # Elite strategies
+    "statistical_arb", "cross_sectional_momentum",
+    "liquidation_cascade", "carry_portfolio",
 ]
 
 DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
@@ -49,6 +52,11 @@ def _build_strategies(names: list[str]):
     from strategies.order_flow import OrderFlowStrategy
     from strategies.breakout import BreakoutStrategy
 
+    from strategies.statistical_arb import StatisticalArbStrategy
+    from strategies.cross_sectional_momentum import CrossSectionalMomentumStrategy
+    from strategies.liquidation_cascade import LiquidationCascadeStrategy
+    from strategies.carry_portfolio import CarryPortfolioStrategy
+
     factory_map = {
         "momentum": MomentumStrategy,
         "mean_reversion": MeanReversionStrategy,
@@ -58,6 +66,10 @@ def _build_strategies(names: list[str]):
         "options_vol": OptionsVolStrategy,
         "order_flow": OrderFlowStrategy,
         "breakout": BreakoutStrategy,
+        "statistical_arb": StatisticalArbStrategy,
+        "cross_sectional_momentum": CrossSectionalMomentumStrategy,
+        "liquidation_cascade": LiquidationCascadeStrategy,
+        "carry_portfolio": CarryPortfolioStrategy,
     }
     result = []
     for name in names:

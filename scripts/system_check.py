@@ -56,14 +56,19 @@ BROKER_PACKAGES: dict[str, list[tuple[str, str, bool]]] = {
 
 # Strategy registry: (module_path, class_name)
 STRATEGIES: list[tuple[str, str]] = [
-    ("strategies.momentum",      "MomentumStrategy"),
-    ("strategies.mean_reversion","MeanReversionStrategy"),
-    ("strategies.funding_arb",   "FundingArbStrategy"),
-    ("strategies.basis_trade",   "BasisTradeStrategy"),
-    ("strategies.pairs_arb",     "PairsArbStrategy"),
-    ("strategies.options_vol",   "OptionsVolatilityStrategy"),
-    ("strategies.order_flow",    "OrderFlowStrategy"),
-    ("strategies.breakout",      "BreakoutStrategy"),
+    ("strategies.momentum",                  "MomentumStrategy"),
+    ("strategies.mean_reversion",            "MeanReversionStrategy"),
+    ("strategies.funding_arb",               "FundingArbStrategy"),
+    ("strategies.basis_trade",               "BasisTradeStrategy"),
+    ("strategies.pairs_arb",                 "PairsArbStrategy"),
+    ("strategies.options_vol",               "OptionsVolatilityStrategy"),
+    ("strategies.order_flow",                "OrderFlowStrategy"),
+    ("strategies.breakout",                  "BreakoutStrategy"),
+    # Elite strategies
+    ("strategies.statistical_arb",           "StatisticalArbStrategy"),
+    ("strategies.cross_sectional_momentum",  "CrossSectionalMomentumStrategy"),
+    ("strategies.liquidation_cascade",       "LiquidationCascadeStrategy"),
+    ("strategies.carry_portfolio",           "CarryPortfolioStrategy"),
 ]
 
 # Core backtester/risk modules to import-check

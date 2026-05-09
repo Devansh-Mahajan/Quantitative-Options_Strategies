@@ -65,6 +65,11 @@ class Config:
     enable_options_vol: bool = field(default_factory=lambda: _bool("ENABLE_OPTIONS_VOL", False))
     enable_order_flow: bool = field(default_factory=lambda: _bool("ENABLE_ORDER_FLOW", True))
     enable_breakout: bool = field(default_factory=lambda: _bool("ENABLE_BREAKOUT", True))
+    # Elite strategies
+    enable_statistical_arb: bool = field(default_factory=lambda: _bool("ENABLE_STATISTICAL_ARB", True))
+    enable_cross_sectional_momentum: bool = field(default_factory=lambda: _bool("ENABLE_CROSS_SECTIONAL_MOMENTUM", True))
+    enable_liquidation_cascade: bool = field(default_factory=lambda: _bool("ENABLE_LIQUIDATION_CASCADE", True))
+    enable_carry_portfolio: bool = field(default_factory=lambda: _bool("ENABLE_CARRY_PORTFOLIO", True))
 
     # --- Symbol universe ---
     futures_symbols: list[str] = field(
