@@ -35,6 +35,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bot.config import cfg
 from bot import state
+from dashboard.analytics import (
+    build_elite_overview,
+    build_options_chain,
+    build_options_overview,
+    build_simulation_payload,
+    build_stocks_overview,
+    build_trade_odds,
+    instantiate_strategy,
+    permutation_grid,
+    supported_strategy_params,
+)
 
 log = logging.getLogger("dashboard.server")
 
@@ -80,6 +91,7 @@ ENGINE_DEFAULTS = {
 # In-memory job stores
 _backtest_jobs: dict[str, dict] = {}
 _ft_jobs:       dict[str, dict] = {}
+_perm_jobs:     dict[str, dict] = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -90,6 +102,22 @@ def _db_conn() -> sqlite3.Connection:
     c = sqlite3.connect(state._DB_PATH, check_same_thread=False)
     c.row_factory = sqlite3.Row
     return c
+
+
+def _equity_series(limit: int = 2000) -> tuple[list[str], list[float], list[float]]:
+    with _db_conn() as c:
+        rows = c.execute(
+            "SELECT ts, equity, drawdown FROM equity_curve ORDER BY ts DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    if not rows:
+        return [], [], []
+    rows = list(reversed(rows))
+    return (
+        [str(r["ts"]) for r in rows],
+        [float(r["equity"]) for r in rows],
+        [float(r["drawdown"]) for r in rows],
+    )
 
 
 def _equity_window(window: str) -> str:
@@ -461,6 +489,68 @@ async def var_surface():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# REST — Elite dashboard analytics
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/elite/overview")
+async def elite_overview():
+    return build_elite_overview()
+
+
+@app.get("/api/options/overview")
+async def options_overview():
+    return build_options_overview()
+
+
+@app.get("/api/options/chain")
+async def options_chain(
+    underlying: str | None = Query(None),
+    contract_type: str = Query("all"),
+    min_dte: int = Query(7, ge=1, le=365),
+    max_dte: int = Query(45, ge=1, le=365),
+    limit: int = Query(72, ge=12, le=200),
+):
+    return build_options_chain(
+        underlying=underlying,
+        contract_type=contract_type,
+        min_dte=min_dte,
+        max_dte=max_dte,
+        limit=limit,
+    )
+
+
+@app.get("/api/options/simulations")
+async def options_simulations():
+    ts, equity, _ = _equity_series(limit=1200)
+    return build_simulation_payload(equity, ts)
+
+
+@app.get("/api/stocks/overview")
+async def stocks_overview():
+    return build_stocks_overview()
+
+
+@app.get("/api/trades/odds")
+async def trade_odds():
+    return build_trade_odds()
+
+
+@app.get("/api/permutations/strategies")
+async def permutation_strategies():
+    payload = []
+    for name, params in STRATEGY_DEFAULTS.items():
+        try:
+            supported = supported_strategy_params(name, params)
+        except Exception:
+            supported = []
+        payload.append({
+            "strategy": name,
+            "supported_params": supported,
+        })
+    return {"strategies": payload}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # REST — Backtest
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -714,6 +804,136 @@ async def run_forwardtest(body: dict):
 @app.get("/api/forwardtest/jobs/{job_id}")
 async def forwardtest_job_status(job_id: str):
     job = _ft_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST — Strategy permutations lab
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/permutations/run")
+async def run_permutations(body: dict):
+    """
+    Run a compact parameter sweep for one selected strategy.
+    Body:
+      {
+        strategy, params, symbols, interval, start, end,
+        capital, stop_loss_pct, take_profit_pct, max_open_positions, lookback
+      }
+    """
+    job_id = str(uuid.uuid4())[:8]
+    _perm_jobs[job_id] = {
+        "status": "PENDING",
+        "progress": 0,
+        "current_variant": 0,
+        "total_variants": 0,
+        "results": [],
+        "best": None,
+        "error": None,
+    }
+
+    def _run():
+        try:
+            _perm_jobs[job_id]["status"] = "RUNNING"
+            from backtester.data_loader import load_multi, align_and_ffill
+            from backtester.engine import BacktestEngine
+
+            strategy_name = str(body.get("strategy") or "statistical_arb")
+            current_params = {
+                **STRATEGY_DEFAULTS.get(strategy_name, {}),
+                **state.kv_get(f"strategy_params_{strategy_name}", {}),
+            }
+            sweepable_params = supported_strategy_params(strategy_name, current_params)
+            selected_params = [
+                str(item) for item in (body.get("params") or [])
+                if str(item) in sweepable_params
+            ]
+            if not selected_params:
+                selected_params = sweepable_params[:3]
+            variants = permutation_grid(current_params, selected_params, max_variants=81)
+
+            symbols = body.get("symbols", cfg.futures_symbols[:4])
+            interval = str(body.get("interval") or "1h")
+            start = str(body.get("start") or "2024-01-01")
+            end = body.get("end")
+            capital = float(body.get("capital", cfg.initial_capital))
+            stop_loss_pct = float(body.get("stop_loss_pct", ENGINE_DEFAULTS["stop_loss_pct"]))
+            take_profit_pct = float(body.get("take_profit_pct", ENGINE_DEFAULTS["take_profit_pct"]))
+            max_open_positions = int(body.get("max_open_positions", ENGINE_DEFAULTS["max_open_positions"]))
+            lookback = int(body.get("lookback", ENGINE_DEFAULTS["lookback"]))
+
+            data = load_multi(symbols, interval, start, end)
+            data = {sym: df for sym, df in data.items() if not df.empty}
+            if not data:
+                raise ValueError("No backtest data available for the selected symbols/date range.")
+            data = align_and_ffill(data)
+
+            _perm_jobs[job_id]["total_variants"] = len(variants)
+            result_rows: list[dict] = []
+            best_payload: dict[str, Any] | None = None
+
+            for idx, variant in enumerate(variants, start=1):
+                strategy = instantiate_strategy(strategy_name, variant)
+                engine = BacktestEngine(
+                    data=data,
+                    strategies=[strategy],
+                    interval=interval,
+                    initial_equity=capital,
+                    lookback=lookback,
+                    stop_loss_pct=stop_loss_pct,
+                    take_profit_pct=take_profit_pct,
+                    max_open_positions=max_open_positions,
+                )
+                result = engine.run()
+                metrics = result.metrics
+                row = {
+                    "variant_id": idx,
+                    "params": {key: variant.get(key) for key in variant if key in current_params},
+                    "total_return_pct": round(float(metrics.total_return_pct), 3),
+                    "annualised_return_pct": round(float(metrics.annualised_return_pct), 3),
+                    "annualised_vol_pct": round(float(metrics.annualised_vol_pct), 3),
+                    "sharpe": round(float(metrics.sharpe), 4),
+                    "sortino": round(float(metrics.sortino), 4),
+                    "calmar": round(float(metrics.calmar), 4),
+                    "max_drawdown_pct": round(float(metrics.max_drawdown_pct), 3),
+                    "win_rate_pct": round(float(metrics.win_rate_pct), 3),
+                    "profit_factor": round(float(metrics.profit_factor), 4),
+                    "trades": int(metrics.num_trades),
+                    "score": round(float((metrics.sharpe * 0.55) + (metrics.calmar * 0.20) + (metrics.total_return_pct / 100.0 * 0.25)), 5),
+                }
+                result_rows.append(row)
+
+                if best_payload is None or row["score"] > best_payload["score"]:
+                    best_payload = {
+                        **row,
+                        "equity": [round(float(x), 4) for x in result.equity_curve.values.tolist()],
+                        "timestamps": [str(ts) for ts in result.equity_curve.index],
+                    }
+
+                _perm_jobs[job_id]["current_variant"] = idx
+                _perm_jobs[job_id]["progress"] = round((idx / max(len(variants), 1)) * 100, 1)
+
+            result_rows.sort(key=lambda item: item["score"], reverse=True)
+            _perm_jobs[job_id]["status"] = "DONE"
+            _perm_jobs[job_id]["results"] = result_rows
+            _perm_jobs[job_id]["best"] = best_payload
+            _perm_jobs[job_id]["selected_params"] = selected_params
+            _perm_jobs[job_id]["supported_params"] = sweepable_params
+        except Exception as exc:
+            import traceback
+            _perm_jobs[job_id]["status"] = "ERROR"
+            _perm_jobs[job_id]["error"] = str(exc)
+            log.error("Permutation job %s failed: %s\n%s", job_id, exc, traceback.format_exc())
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": job_id, "status": "PENDING"}
+
+
+@app.get("/api/permutations/jobs/{job_id}")
+async def permutation_job_status(job_id: str):
+    job = _perm_jobs.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")
     return job

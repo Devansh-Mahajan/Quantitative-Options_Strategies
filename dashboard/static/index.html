@@ -254,9 +254,14 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 <!-- ═══════════════════════ NAV ═══════════════════════════════════════ -->
 <nav class="nav">
   <button class="ntab active" data-tab="live">Live Performance</button>
+  <button class="ntab" data-tab="options">Options Intel</button>
+  <button class="ntab" data-tab="stocks">Stocks + Pairs</button>
+  <button class="ntab" data-tab="odds">Trade Odds</button>
   <button class="ntab" data-tab="backtests">Backtests</button>
   <button class="ntab" data-tab="params">Strategy Params</button>
   <button class="ntab" data-tab="risk">Risk Analysis</button>
+  <button class="ntab" data-tab="simlab">Sim Lab</button>
+  <button class="ntab" data-tab="stratlab">Strategy Lab</button>
   <button class="ntab" data-tab="ftest">Forward Test</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
@@ -315,6 +320,55 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <canvas id="ddChart" height="110"></canvas>
   </div>
 
+  <div class="mcs" id="eliteDeskMcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Desk Regime</div><div class="mc-val" id="eo-regime">—</div><div class="mc-sub">Macro operating mode</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Risk Score</div><div class="mc-val" id="eo-risk">—</div><div class="mc-sub">Portfolio engine</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Execution Quality</div><div class="mc-val" id="eo-exec">—</div><div class="mc-sub">Recent fill stack</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">Institutional Score</div><div class="mc-val" id="eo-inst">—</div><div class="mc-sub">Deployment readiness</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Predictive Score</div><div class="mc-val" id="eo-predict">—</div><div class="mc-sub">Research stack blend</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Daily P&L</div><div class="mc-val" id="eo-daily">—</div><div class="mc-sub">Runtime snapshot</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Universe Access</div><div class="mc-val" id="eo-universe">—</div><div class="mc-sub">Allowed symbols</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">VIX Proxy</div><div class="mc-val" id="eo-vix">—</div><div class="mc-sub">Risk temperature</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Desk Radar</span>
+        <span id="eliteTier" class="bdg bdg-info">—</span>
+      </div>
+      <div id="eliteDeskMeta" class="loading"><div class="spinner"></div>Loading desk overview…</div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px">Top Underlyings</div>
+      <div id="eliteUnderlyings" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Research Alpha Stack</span></div>
+      <div id="eliteResearchMeta" class="loading"><div class="spinner"></div>Loading research stack…</div>
+      <hr class="dv">
+      <div class="tw" style="max-height:220px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Pair</th><th>Corr</th><th>Win Rate</th><th>Avg Return</th></tr></thead>
+          <tbody id="elitePairBody"><tr><td colspan="4" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Execution + Infra</span></div>
+      <div id="eliteExecMeta" class="loading"><div class="spinner"></div>Loading execution stack…</div>
+      <hr class="dv">
+      <div id="eliteInfraMeta" class="loading"><div class="spinner"></div>Loading host telemetry…</div>
+    </div>
+  </div>
+
   <div class="row">
     <div class="col2 card">
       <div class="card-hdr">
@@ -347,6 +401,190 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
   </div>
 </div><!-- /live -->
+
+<!-- ───────────────────── OPTIONS INTEL ────────────────────────────── -->
+<div id="tab-options" class="tab">
+  <div class="mcs" id="optMcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Portfolio Theta</div><div class="mc-val" id="opt-theta">—</div><div class="mc-sub">Current decay</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Target Theta</div><div class="mc-val" id="opt-target-theta">—</div><div class="mc-sub">Book objective</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">Portfolio Delta</div><div class="mc-val" id="opt-delta">—</div><div class="mc-sub">Directional exposure</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">Portfolio Vega</div><div class="mc-val" id="opt-vega">—</div><div class="mc-sub">Volatility sensitivity</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Avg IV</div><div class="mc-val" id="opt-iv">—</div><div class="mc-sub">Live options surface</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Market Value</div><div class="mc-val" id="opt-mv">—</div><div class="mc-sub">Options book</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Unrealized P&L</div><div class="mc-val" id="opt-upnl">—</div><div class="mc-sub">Live marked</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Execution Quality</div><div class="mc-val" id="opt-exec">—</div><div class="mc-sub">Recent option fills</div></div>
+  </div>
+
+  <div class="alert alert-info" id="optAlert">
+    This panel blends live broker option data when available with runtime snapshots and execution-ledger fallbacks, so the dashboard stays populated even during research-only runs.
+  </div>
+
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">Current Options Book</span>
+        <span id="optSource" class="bdg bdg-info">SNAPSHOT</span>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Underlying</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Mark</th><th>IV</th><th>Delta</th><th>Theta</th><th>Vega</th><th>P&L</th><th>DTE</th></tr></thead>
+          <tbody id="optPosBody"><tr><td colspan="12" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Pricing Model Stack</span></div>
+      <div class="tw" style="margin-bottom:12px">
+        <table>
+          <thead><tr><th>Model</th><th>Avg Signals</th><th>Avg Edge</th><th>Avg Long P&L</th><th>Long Win Rate</th></tr></thead>
+          <tbody id="optModelBody"><tr><td colspan="5" class="empty">No model summary yet</td></tr></tbody>
+        </table>
+      </div>
+      <div class="stitle">Recent Option Activity</div>
+      <div class="tw" style="max-height:300px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Fair</th><th>Confidence</th><th>Tier</th></tr></thead>
+          <tbody id="optActBody"><tr><td colspan="7" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Options Chain Analysis</span>
+      <button class="btn btn-g btn-sm" id="opt-chain-refresh">↻ Refresh Chain</button>
+    </div>
+    <div class="fg3">
+      <div class="fg">
+        <label class="fl">Underlying</label>
+        <select class="fs" id="opt-chain-underlying"></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Side Filter</label>
+        <select class="fs" id="opt-chain-type">
+          <option value="all" selected>Calls + Puts</option>
+          <option value="call">Calls Only</option>
+          <option value="put">Puts Only</option>
+        </select>
+      </div>
+      <div class="fg2">
+        <div class="fg">
+          <label class="fl">Min DTE</label>
+          <input type="number" class="fi" id="opt-chain-mindte" value="7" min="1" max="365">
+        </div>
+        <div class="fg">
+          <label class="fl">Max DTE</label>
+          <input type="number" class="fi" id="opt-chain-maxdte" value="45" min="1" max="365">
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-info" id="optChainAlert">
+      Loading chain analytics for the selected underlying.
+    </div>
+    <div class="mcs">
+      <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+        <div class="mc-lbl">Contracts</div><div class="mc-val" id="opt-chain-contracts">—</div><div class="mc-sub">Filtered chain size</div></div>
+      <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+        <div class="mc-lbl">Expiries</div><div class="mc-val" id="opt-chain-expiries">—</div><div class="mc-sub">Tenor ladder</div></div>
+      <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+        <div class="mc-lbl">ATM IV</div><div class="mc-val" id="opt-chain-atmiv">—</div><div class="mc-sub">Near-the-money surface</div></div>
+      <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+        <div class="mc-lbl">Avg Confidence</div><div class="mc-val" id="opt-chain-conf">—</div><div class="mc-sub">Pricing integrity</div></div>
+      <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+        <div class="mc-lbl">Open Interest</div><div class="mc-val" id="opt-chain-oi">—</div><div class="mc-sub">Contract depth</div></div>
+      <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+        <div class="mc-lbl">Put-Call IV Gap</div><div class="mc-val" id="opt-chain-skew">—</div><div class="mc-sub">Skew balance</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">IV Smile / Skew</span></div>
+      <canvas id="optSmileChart" height="220"></canvas>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Expiry Ladder</span></div>
+      <div class="tw" style="max-height:240px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Expiry</th><th>Count</th><th>Avg DTE</th><th>Avg IV</th><th>Avg Theta</th><th>OI</th></tr></thead>
+          <tbody id="optExpiryBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr"><span class="ctitle">Chain Ladder</span></div>
+      <div class="tw" style="max-height:360px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Expiry</th><th>Type</th><th>Symbol</th><th>Strike</th><th>Spot</th><th>IV</th><th>Delta</th><th>Theta</th><th>Vega</th><th>Mark</th><th>Spread</th><th>OI</th><th>Conf</th></tr></thead>
+          <tbody id="optChainBody"><tr><td colspan="13" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Underlying Research Models</span></div>
+      <div class="tw" style="max-height:360px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Side</th><th>Model</th><th>Signals</th><th>Avg Edge</th><th>Avg Long P&L</th><th>Win Rate</th></tr></thead>
+          <tbody id="optResearchBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /options -->
+
+<!-- ───────────────────── STOCKS + PAIRS ──────────────────────────── -->
+<div id="tab-stocks" class="tab">
+  <div class="mcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Universe Size</div><div class="mc-val" id="stk-universe">—</div><div class="mc-sub">Validated equities</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Pairs Win Rate</div><div class="mc-val" id="stk-pairs-win">—</div><div class="mc-sub">Research suite</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Avg Pair Return</div><div class="mc-val" id="stk-pairs-ret">—</div><div class="mc-sub">Per trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Alpha Long-Only</div><div class="mc-val" id="stk-alpha-ret">—</div><div class="mc-sub">Annualised</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">Alpha Sharpe</div><div class="mc-val" id="stk-alpha-sh">—</div><div class="mc-sub">Long-only sleeve</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Pairs Lookback</div><div class="mc-val" id="stk-lookback">—</div><div class="mc-sub">Active research window</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr"><span class="ctitle">S&P 500 Research Leaders</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Symbol</th><th>Lookback</th><th>Accuracy</th><th>Hit Ratio</th><th>Alpha / Day</th><th>Strategy Return</th><th>Buy/Hold</th><th>Targets</th></tr></thead>
+          <tbody id="stockBody"><tr><td colspan="8" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Pairs Trade Correlations</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Pair</th><th>Corr</th><th>Signals</th><th>Win Rate</th><th>Avg Trade Return</th></tr></thead>
+          <tbody id="pairBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px">Universe Sample</div>
+      <div id="stockSample" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+  </div>
+</div><!-- /stocks -->
 
 <!-- ───────────────────── BACKTESTS ─────────────────────────────────── -->
 <div id="tab-backtests" class="tab">
@@ -482,6 +720,101 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 </div><!-- /risk -->
 
+<!-- ───────────────────── SIM LAB ──────────────────────────────────── -->
+<div id="tab-simlab" class="tab">
+  <div class="mcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">MC Profit Odds</div><div class="mc-val" id="sim-mc-profit">—</div><div class="mc-sub">30-day forecast</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">MC Median Terminal</div><div class="mc-val" id="sim-mc-p50">—</div><div class="mc-sub">P50 equity</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">MC P95 Terminal</div><div class="mc-val" id="sim-mc-p95">—</div><div class="mc-sub">Upside envelope</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Vegas Profit Odds</div><div class="mc-val" id="sim-lv-profit">—</div><div class="mc-sub">Permutation paths</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Vegas Median</div><div class="mc-val" id="sim-lv-p50">—</div><div class="mc-sub">Terminal equity</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">VIX Context</div><div class="mc-val" id="sim-vix">—</div><div class="mc-sub">Proxy risk regime</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Portfolio Monte Carlo Forecast</span></div>
+      <canvas id="simMcChart" height="210"></canvas>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Las Vegas Permutation Paths</span></div>
+      <canvas id="simLvChart" height="210"></canvas>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr"><span class="ctitle">Terminal Bands</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Model</th><th>P5</th><th>P50</th><th>P95</th><th>Profit Odds</th><th>Source</th></tr></thead>
+          <tbody id="simBandsBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Risk Context</span></div>
+      <div id="simCtx" class="empty">No simulation context loaded.</div>
+    </div>
+  </div>
+</div><!-- /simlab -->
+
+<!-- ───────────────────── STRATEGY LAB ─────────────────────────────── -->
+<div id="tab-stratlab" class="tab">
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Run Parameter Permutations</span>
+        <span id="permBadge" class="bdg bdg-run" style="display:none">RUNNING</span>
+      </div>
+      <div class="alert alert-info">
+        Sweep a selected strategy across a compact low/base/high grid and rank the variants by a blended score of Sharpe, Calmar, and total return.
+      </div>
+      <div class="fg"><label class="fl">Strategy</label><select class="fs" id="perm-strategy"></select></div>
+      <div class="fg"><label class="fl">Parameters to Sweep</label>
+        <select class="fs" id="perm-params" multiple size="6" style="font-size:10px"></select></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="perm-start" value="2024-01-01"></div>
+        <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="perm-end"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Interval</label>
+          <select class="fs" id="perm-int">
+            <option value="1h" selected>1h</option><option value="4h">4h</option><option value="1d">1d</option><option value="15m">15m</option>
+          </select></div>
+        <div class="fg"><label class="fl">Initial Capital ($)</label><input type="number" class="fi" id="perm-cap" value="10000"></div>
+      </div>
+      <div class="fg"><label class="fl">Symbols (blank = config)</label><input type="text" class="fi" id="perm-sym" placeholder="BTCUSDT,ETHUSDT,SOLUSDT"></div>
+      <div id="permProg" style="display:none;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
+          <div class="spinner"></div><span id="permProgLbl">Submitting sweep…</span>
+        </div>
+      </div>
+      <button class="btn btn-p" id="runPerm" style="width:100%">▶ Run Permutations</button>
+    </div>
+
+    <div class="col2">
+      <div class="stitle">Permutation Results</div>
+      <div class="cw"><div class="chdr"><span class="cttl">Best Variant Equity Curve</span></div>
+        <canvas id="permBestChart" height="190"></canvas></div>
+      <div class="card">
+        <div class="tw">
+          <table>
+            <thead><tr><th>#</th><th>Params</th><th>Score</th><th>Sharpe</th><th>Return</th><th>Max DD</th><th>Win Rate</th><th>Trades</th></tr></thead>
+            <tbody id="permBody"><tr><td colspan="8" class="empty">Run a sweep to rank the variants.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /stratlab -->
+
 <!-- ───────────────────── FORWARD TEST ──────────────────────────────── -->
 <div id="tab-ftest" class="tab">
   <div class="row">
@@ -548,6 +881,35 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 </div><!-- /ftest -->
 
+<!-- ───────────────────── TRADE ODDS ───────────────────────────────── -->
+<div id="tab-odds" class="tab">
+  <div class="mcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Trades Mapped</div><div class="mc-val" id="odds-count">—</div><div class="mc-sub">All mapped trades</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Best Profit Odds</div><div class="mc-val" id="odds-best">—</div><div class="mc-sub">Top simulated trade</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Avg Profit Odds</div><div class="mc-val" id="odds-avg">—</div><div class="mc-sub">Portfolio opportunity set</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Distribution Mean</div><div class="mc-val" id="odds-live">—</div><div class="mc-sub">Expected P&L center</div></div>
+  </div>
+
+  <div class="cw">
+    <div class="chdr"><span class="cttl">Trade Placement on Natural Distribution</span></div>
+    <canvas id="oddsChart" height="250"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><span class="ctitle">Simulated Trade Odds</span></div>
+    <div class="tw" style="max-height:460px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Trade</th><th>Market</th><th>Side</th><th>Prob. Profit</th><th>Expected P&L</th><th>VaR 95</th><th>CVaR 95</th><th>Ann. Vol</th><th>Stop</th><th>Take</th></tr></thead>
+        <tbody id="oddsBody"><tr><td colspan="10" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /odds -->
+
 <!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
 <div id="tab-logs" class="tab">
   <div class="row">
@@ -600,7 +962,9 @@ let CHARTS = {};
 let liveWs, traderWs, riskWs;
 let trSc = true, rkSc = true, trF = '', rkF = '';
 let stratP = {}, engP = {};
+let permStratParams = {};
 let activeFtModel = 'gbm';
+let optionChainBootstrapped = false;
 let tabDone = {};
 
 Chart.defaults.color = '#4d6080';
@@ -615,6 +979,9 @@ const el = id => document.getElementById(id);
 
 function f(v, d=2, s='') { return (v==null||isNaN(v)) ? '—' : Number(v).toFixed(d)+s; }
 function fp(v, d=2) { return f(v, d, '%'); }
+function fsp(v, d=2) {
+  return (v==null||isNaN(v)) ? '—' : `${Number(v)>=0?'+':''}${Number(v).toFixed(d)}%`;
+}
 function fm(v) {
   if (v==null||isNaN(v)) return '—';
   return '$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -642,10 +1009,19 @@ function toast(msg, type='info') {
   setTimeout(() => t.remove(), 2800);
 }
 
+function infoRows(rows) {
+  return rows.map(([label, value, color='var(--t0)']) => `
+    <div class="irow">
+      <span class="fl" style="margin-bottom:0">${label}</span>
+      <span style="font-family:var(--mono);color:${color}">${value ?? '—'}</span>
+    </div>`).join('');
+}
+
 function initDates() {
   const now = new Date(), w7 = new Date(now-7*864e5);
   el('tradeE').valueAsDate = now; el('tradeS').valueAsDate = w7;
   el('bt-e').valueAsDate = now; el('ft-ce').valueAsDate = now;
+  if (el('perm-end')) el('perm-end').valueAsDate = now;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -736,6 +1112,154 @@ function barChart(id, labels, data, color='#4f8ef7') {
   });
 }
 
+function bellChart(id, curve, trades) {
+  destroyChart(id);
+  const ctx = el(id)?.getContext('2d');
+  if (!ctx) return;
+  CHARTS[id] = new Chart(ctx, {
+    data: {
+      datasets: [
+        {
+          type:'line',
+          label:'Natural Distribution',
+          data: curve,
+          borderColor:'#4f8ef7',
+          backgroundColor:'rgba(79,142,247,.08)',
+          borderWidth:2,
+          pointRadius:0,
+          fill:true,
+          tension:.25,
+        },
+        {
+          type:'bubble',
+          label:'Trades',
+          data: trades.map(t => ({
+            x:t.expected_pnl_pct, y:t.curve_y, r:t.bubble_size, trade:t,
+          })),
+          backgroundColor:'rgba(0,214,143,.35)',
+          borderColor:'#00d68f',
+          borderWidth:1.2,
+          hoverBackgroundColor:'rgba(245,197,24,.45)',
+          hoverBorderColor:'#f5c518',
+        },
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      interaction:{ mode:'nearest', intersect:false },
+      plugins:{
+        legend:{ labels:{ color:'#8fa3bf', font:{size:9}, boxWidth:10 } },
+        tooltip:{
+          backgroundColor:'#1a2234', borderColor:'#1e2b42', borderWidth:1,
+          titleColor:'#dde6f5', bodyColor:'#8fa3bf',
+          callbacks:{
+            title: items => items[0]?.raw?.trade?.symbol || 'Trade',
+            label: ctx => {
+              const t = ctx.raw.trade || {};
+              return [
+                `${t.market||'market'} · ${t.side||'side'}`,
+                `Profit odds: ${fp(t.prob_profit_pct)}`,
+                `Expected P&L: ${fsp(t.expected_pnl_pct)}`,
+                `VaR95: ${fp(t.var_95_pct)}`,
+              ];
+            },
+          },
+        },
+      },
+      scales:{
+        x:{
+          type:'linear',
+          grid:{color:'#1a2234'},
+          ticks:{color:'#4d6080', callback:v=>`${v>=0?'+':''}${Number(v).toFixed(0)}%`},
+          title:{display:true, text:'Expected P&L %', color:'#4d6080'},
+        },
+        y:{
+          type:'linear',
+          grid:{color:'#1a2234'},
+          ticks:{color:'#4d6080'},
+          title:{display:true, text:'Density', color:'#4d6080'},
+        },
+      },
+    },
+  });
+}
+
+function smileChart(id, points) {
+  destroyChart(id);
+  const ctx = el(id)?.getContext('2d');
+  if (!ctx) return;
+  const calls = (points || []).filter(p => String(p.option_type).toUpperCase() === 'CALL');
+  const puts = (points || []).filter(p => String(p.option_type).toUpperCase() === 'PUT');
+  CHARTS[id] = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          type: 'line',
+          label: 'Calls',
+          data: calls.map(p => ({x:p.strike, y:(p.iv||0)*100, raw:p})),
+          borderColor: '#00d68f',
+          backgroundColor: 'rgba(0,214,143,.18)',
+          borderWidth: 1.8,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          tension: .25,
+        },
+        {
+          type: 'line',
+          label: 'Puts',
+          data: puts.map(p => ({x:p.strike, y:(p.iv||0)*100, raw:p})),
+          borderColor: '#f7525a',
+          backgroundColor: 'rgba(247,82,90,.18)',
+          borderWidth: 1.8,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          tension: .25,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { labels: { color:'#8fa3bf', font:{size:9}, boxWidth:10 } },
+        tooltip: {
+          backgroundColor:'#1a2234', borderColor:'#1e2b42', borderWidth:1,
+          titleColor:'#dde6f5', bodyColor:'#8fa3bf',
+          callbacks: {
+            title: items => {
+              const strike = items[0]?.raw?.raw?.strike;
+              return strike!=null ? `Strike ${fm(strike)}` : 'Strike';
+            },
+            label: ctx => {
+              const raw = ctx.raw.raw || {};
+              return [
+                `${raw.option_type||'—'} · IV ${fp((raw.iv||0)*100)}`,
+                `Delta: ${f(raw.delta,3)}`,
+                `Open interest: ${raw.open_interest!=null ? Number(raw.open_interest).toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type:'linear',
+          grid:{color:'#1a2234'},
+          ticks:{color:'#4d6080', callback:v=>fm(v)},
+          title:{display:true, text:'Strike', color:'#4d6080'},
+        },
+        y: {
+          grid:{color:'#1a2234'},
+          ticks:{color:'#4d6080', callback:v=>`${Number(v).toFixed(0)}%`},
+          title:{display:true, text:'Implied Volatility', color:'#4d6080'},
+        },
+      },
+    },
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    HEALTH
 ════════════════════════════════════════════════════════════════════ */
@@ -752,13 +1276,99 @@ async function checkHealth() {
 /* ═══════════════════════════════════════════════════════════════════
    TAB: LIVE
 ════════════════════════════════════════════════════════════════════ */
+function renderEliteOverview(d) {
+  const h = d.headline || {};
+  const risk = d.risk || {};
+  const execution = d.execution || {};
+  const research = d.research || {};
+  const infra = d.infrastructure || {};
+  const activity = d.activity || {};
+  const bestModel = research.best_option_model || {};
+
+  el('eo-regime').textContent = h.macro_regime || '—';
+  el('eo-risk').textContent = f(risk.risk_score, 3);
+  el('eo-exec').textContent = f(execution.avg_execution_quality_score, 2);
+  el('eo-inst').textContent = research.institutional_score!=null ? fp(research.institutional_score * 100) : '—';
+  el('eo-predict').textContent = research.predictive_score!=null ? fp(research.predictive_score * 100) : '—';
+  const daily = el('eo-daily');
+  daily.textContent = h.daily_pnl_pct!=null ? fsp(h.daily_pnl_pct * 100, 2) : '—';
+  daily.className = 'mc-val ' + cx((h.daily_pnl_pct||0) * 100);
+  el('eo-universe').textContent = h.allowed_symbols ?? '—';
+  el('eo-vix').textContent = f(h.vix, 2);
+
+  const tier = el('eliteTier');
+  tier.textContent = research.deployment_tier || '—';
+  tier.className = `bdg ${String(research.deployment_tier||'').includes('research') ? 'bdg-warn' : 'bdg-info'}`;
+
+  el('eliteDeskMeta').innerHTML = infoRows([
+    ['Runtime Profile', h.runtime_profile || '—'],
+    ['Policy Mode', h.runtime_policy_mode || '—'],
+    ['Movement Bias', h.movement_bias || '—'],
+    ['Macro Confidence', h.macro_confidence!=null ? fp(h.macro_confidence) : '—'],
+    ['Open Positions', h.open_positions ?? '—'],
+    ['Buying Power', fm(h.buying_power_budget)],
+    ['Theta vs Target', `${f(h.portfolio_theta,2)} / ${f(h.target_theta,2)}`],
+    ['Delta vs Target', `${f(h.portfolio_delta,2)} / ${f(h.target_delta,2)}`],
+  ]);
+
+  const underlyings = risk.top_underlyings || [];
+  const fallbackSymbols = (research.research_leaders || []).slice(0,6).map(row => ({symbol: row.symbol}));
+  const chipRows = underlyings.length ? underlyings : fallbackSymbols;
+  el('eliteUnderlyings').innerHTML = chipRows.length
+    ? chipRows.map(row => `<span class="bdg bdg-info">${row.symbol}${row.weight!=null ? ` · ${fp(row.weight * 100)}` : ''}</span>`).join('')
+    : '<span class="empty" style="padding:0">No concentrated underlyings flagged.</span>';
+
+  el('eliteResearchMeta').innerHTML = infoRows([
+    ['Consensus Profile', research.consensus_profile || '—'],
+    ['Consensus State', research.consensus_state || '—'],
+    ['Movement Accuracy', research.movement_avg_accuracy!=null ? fp(research.movement_avg_accuracy * 100) : '—'],
+    ['Pairs Win Rate', research.pairs_win_rate!=null ? fp(research.pairs_win_rate * 100) : '—'],
+    ['ML Long-Only', research.ml_long_only_return!=null ? fp(research.ml_long_only_return * 100) : '—'],
+    ['ML Sharpe', f(research.ml_long_only_sharpe,3)],
+    ['Regime Accuracy', research.regime_accuracy!=null ? fp(research.regime_accuracy * 100) : '—'],
+    ['Best Options Model', bestModel.model ? `${bestModel.model} · ${fp((bestModel.avg_edge_pct||0) * 100)}` : '—'],
+  ]);
+
+  const pairs = research.top_pairs || [];
+  el('elitePairBody').innerHTML = pairs.length ? pairs.map(p => `
+    <tr>
+      <td style="color:var(--t0)">${p.pair||'—'}</td>
+      <td>${f(p.correlation,3)}</td>
+      <td>${fp((p.win_rate||0)*100)}</td>
+      <td class="${cx((p.avg_trade_return||0)*100)}">${fsp((p.avg_trade_return||0)*100,2)}</td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty">No pair research summary available.</td></tr>';
+
+  el('eliteExecMeta').innerHTML = infoRows([
+    ['Fill Rate', execution.fill_rate!=null ? fp(execution.fill_rate * 100) : '—'],
+    ['Full Fill Rate', execution.full_fill_rate!=null ? fp(execution.full_fill_rate * 100) : '—'],
+    ['Broker Coverage', execution.broker_fill_price_coverage!=null ? fp(execution.broker_fill_price_coverage * 100) : '—'],
+    ['Degraded Fills', execution.degraded_execution_count ?? '—'],
+    ['Latest Fill', execution.latest_fill_at_utc ? new Date(execution.latest_fill_at_utc).toLocaleString() : '—'],
+    ['Runtime Trades', activity.db_trades ?? '—'],
+    ['Closed Trades', activity.closed_trades ?? '—'],
+    ['Breaches', (risk.breaches || []).length],
+  ]);
+
+  el('eliteInfraMeta').innerHTML = infoRows([
+    ['Pressure', infra.pressure || '—', infra.pressure === 'normal' ? 'var(--green)' : 'var(--yellow)'],
+    ['CPU Load', infra.cpu_load_pct!=null ? fp(infra.cpu_load_pct) : '—'],
+    ['Memory Usage', infra.memory_usage_pct!=null ? fp(infra.memory_usage_pct) : '—'],
+    ['Disk Usage', infra.disk_usage_pct!=null ? fp(infra.disk_usage_pct) : '—'],
+    ['Free Memory', infra.memory_available_gb!=null ? `${f(infra.memory_available_gb,2)} GB` : '—'],
+    ['Free Disk', infra.disk_free_gb!=null ? `${f(infra.disk_free_gb,2)} GB` : '—'],
+    ['Backtest Workers', infra.backtest_workers ?? '—'],
+    ['Strategy Interval', infra.strategy_interval_seconds!=null ? `${infra.strategy_interval_seconds}s` : '—'],
+  ]);
+}
+
 async function loadLive() {
-  const [eq, bm, pnl, pos, trades] = await Promise.all([
+  const [eq, bm, pnl, pos, trades, elite] = await Promise.all([
     api(`/api/equity?window=${W}`),
     api(`/api/benchmark?symbol=${BENCH}&window=${W}`),
     api('/api/daily_pnl'),
     api('/api/positions'),
     api('/api/trades?limit=25'),
+    api('/api/elite/overview'),
   ]);
 
   if (eq?.metrics) {
@@ -852,6 +1462,8 @@ async function loadLive() {
       </tr>`;
     }).join('') : '<tr><td colspan="6" class="empty">No recent trades</td></tr>';
   }
+
+  if (elite) renderEliteOverview(elite);
 }
 
 document.querySelectorAll('.wbtn').forEach(btn => {
@@ -882,6 +1494,237 @@ function connectLiveWs() {
   };
   liveWs.onclose = () => setTimeout(connectLiveWs, 4000);
   liveWs.onerror = () => liveWs.close();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: OPTIONS INTEL
+════════════════════════════════════════════════════════════════════ */
+function initOptionChainControls() {
+  if (optionChainBootstrapped) return;
+  ['opt-chain-underlying','opt-chain-type','opt-chain-mindte','opt-chain-maxdte'].forEach(id => {
+    el(id)?.addEventListener('change', () => { loadOptionChain(); });
+  });
+  el('opt-chain-refresh')?.addEventListener('click', () => { loadOptionChain(); });
+  optionChainBootstrapped = true;
+}
+
+async function loadOptionChain() {
+  const params = new URLSearchParams();
+  const underlying = el('opt-chain-underlying')?.value;
+  if (underlying) params.set('underlying', underlying);
+  params.set('contract_type', el('opt-chain-type')?.value || 'all');
+  params.set('min_dte', el('opt-chain-mindte')?.value || '7');
+  params.set('max_dte', el('opt-chain-maxdte')?.value || '45');
+  params.set('limit', '84');
+
+  const d = await api(`/api/options/chain?${params.toString()}`);
+  if (!d) return;
+
+  const underlyingSel = el('opt-chain-underlying');
+  if (Array.isArray(d.underlyings) && d.underlyings.length) {
+    const current = underlyingSel.value;
+    const options = d.underlyings.map(sym => `<option value="${sym}">${sym}</option>`).join('');
+    if (underlyingSel.innerHTML !== options) underlyingSel.innerHTML = options;
+    if (current && d.underlyings.includes(current)) underlyingSel.value = current;
+    else underlyingSel.value = d.selected_underlying || d.underlyings[0];
+  }
+
+  const alert = el('optChainAlert');
+  alert.className = `alert ${d.available ? 'alert-ok' : 'alert-info'}`;
+  alert.innerHTML = d.available
+    ? `Live chain analytics active for <strong>${d.selected_underlying}</strong> via <strong>${d.source||'broker'}</strong>. Smile, skew, tenor ladder, and repriced Greeks are loaded from the current filter set.`
+    : `Live chain analytics are unavailable for <strong>${d.selected_underlying||'the selected underlying'}</strong>${d.reason ? ` (${String(d.reason).replace(/_/g,' ')})` : ''}. The underlying research model stack is still shown below so the tab stays useful.`;
+
+  const s = d.summary || {};
+  el('opt-chain-contracts').textContent = s.contract_count ?? '0';
+  el('opt-chain-expiries').textContent = s.expiry_count ?? '0';
+  el('opt-chain-atmiv').textContent = s.atm_iv!=null ? fp(s.atm_iv * 100) : '—';
+  el('opt-chain-conf').textContent = s.avg_pricing_confidence!=null ? f(s.avg_pricing_confidence,2) : '—';
+  el('opt-chain-oi').textContent = s.total_open_interest!=null
+    ? Number(s.total_open_interest).toLocaleString('en-US',{maximumFractionDigits:0})
+    : '—';
+  const skew = el('opt-chain-skew');
+  skew.textContent = s.put_call_iv_gap!=null ? fsp(s.put_call_iv_gap * 100, 2) : '—';
+  skew.className = 'mc-val ' + cx((s.put_call_iv_gap||0) * 100);
+
+  const points = d.smile?.points || [];
+  if (points.length) smileChart('optSmileChart', points);
+  else destroyChart('optSmileChart');
+
+  const expiries = d.expiries || [];
+  el('optExpiryBody').innerHTML = expiries.length ? expiries.map(r => `
+    <tr>
+      <td style="color:var(--t0)">${r.expiry||'—'}</td>
+      <td>${r.count ?? '—'}</td>
+      <td>${f(r.avg_dte,1)}</td>
+      <td>${r.avg_iv!=null ? fp(r.avg_iv * 100) : '—'}</td>
+      <td>${f(r.avg_theta,3)}</td>
+      <td>${r.total_open_interest!=null ? Number(r.total_open_interest).toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">No expiry ladder available for the current filter.</td></tr>';
+
+  const chain = d.chain || [];
+  el('optChainBody').innerHTML = chain.length ? chain.map(r => `
+    <tr>
+      <td>${r.expiry||'—'}</td>
+      <td class="${String(r.option_type).toUpperCase()==='CALL'?'tlong':'tshort'}">${r.option_type||'—'}</td>
+      <td style="color:var(--t0)">${r.symbol||'—'}</td>
+      <td>${fm(r.strike)}</td>
+      <td>${fm(r.underlying_price)}</td>
+      <td>${r.iv!=null ? fp(r.iv * 100) : '—'}</td>
+      <td>${f(r.delta,3)}</td>
+      <td>${f(r.theta,3)}</td>
+      <td>${f(r.vega,3)}</td>
+      <td>${fm(r.mark_price||r.fair_value||r.last_price)}</td>
+      <td>${r.spread_pct!=null ? fp(r.spread_pct * 100) : '—'}</td>
+      <td>${r.open_interest!=null ? Number(r.open_interest).toLocaleString('en-US',{maximumFractionDigits:0}) : '—'}</td>
+      <td>${r.pricing_confidence!=null ? f(r.pricing_confidence,2) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="13" class="empty">No live chain rows available for the current filters.</td></tr>';
+
+  const researchRows = d.research_models || [];
+  el('optResearchBody').innerHTML = researchRows.length ? researchRows.map(r => `
+    <tr>
+      <td class="${String(r.option_side).toUpperCase()==='CALL'?'tlong':'tshort'}">${r.option_side||'—'}</td>
+      <td style="color:var(--t0)">${String(r.model||'—').replace(/_/g,' ')}</td>
+      <td>${f(r.signals,1)}</td>
+      <td class="${cx((r.avg_edge_pct||0)*100)}">${r.avg_edge_pct!=null ? fp(r.avg_edge_pct * 100) : '—'}</td>
+      <td class="${cx(r.avg_long_pnl)}">${f(r.avg_long_pnl,3)}</td>
+      <td>${r.long_win_rate!=null ? fp(r.long_win_rate * 100) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">No option-model research snapshot found for this underlying.</td></tr>';
+}
+
+async function loadOptions() {
+  initOptionChainControls();
+  const d = await api('/api/options/overview');
+  if (!d) return;
+  const p = d.portfolio || {};
+  el('opt-theta').textContent = f(p.portfolio_theta, 2);
+  el('opt-target-theta').textContent = f(p.target_theta, 2);
+  el('opt-delta').textContent = f(p.portfolio_delta, 2);
+  el('opt-vega').textContent = f(p.portfolio_vega, 2);
+  el('opt-iv').textContent = p.avg_iv!=null ? fp(p.avg_iv * 100) : '—';
+  el('opt-mv').textContent = fm(p.market_value);
+  const up = el('opt-upnl');
+  up.textContent = fm(p.unrealized_pnl);
+  up.className = 'mc-val ' + cx(p.unrealized_pnl);
+  el('opt-exec').textContent = p.avg_execution_quality!=null ? f(p.avg_execution_quality, 2) : '—';
+  el('optSource').textContent = String(d.source||'snapshot').replace(/_/g,' ').toUpperCase();
+
+  const liveMeta = d.live_meta || {};
+  const alert = el('optAlert');
+  alert.className = `alert ${liveMeta.available ? 'alert-ok' : 'alert-info'}`;
+  alert.innerHTML = liveMeta.available
+    ? `Live options data active via <strong>${liveMeta.source||'broker'}</strong>. Greeks, IV, and current marks are being pulled from the broker when available.`
+    : `Live broker option enrichment is unavailable right now, so this panel is using <strong>${d.source||'snapshot'}</strong> fallbacks from runtime snapshots, reports, and the execution ledger.`;
+
+  const posRows = d.positions || [];
+  el('optPosBody').innerHTML = posRows.length ? posRows.map(r => `
+    <tr>
+      <td style="color:var(--t0)">${r.underlying||'—'}</td>
+      <td>${r.symbol||'—'}</td>
+      <td class="${String(r.side).toUpperCase()==='LONG'?'tlong':'tshort'}">${r.side||'—'}</td>
+      <td>${f(r.quantity,2)}</td>
+      <td>${fm(r.entry_price)}</td>
+      <td>${fm(r.current_price||r.last_price)}</td>
+      <td>${r.iv!=null?fp(r.iv*100):'—'}</td>
+      <td>${f(r.delta,3)}</td>
+      <td>${f(r.theta,3)}</td>
+      <td>${f(r.vega,3)}</td>
+      <td class="${cx(r.unrealized_pnl)}">${fm(r.unrealized_pnl)}</td>
+      <td>${r.dte??'—'}</td>
+    </tr>`).join('') : '<tr><td colspan="12" class="empty">No option positions or recent option executions found.</td></tr>';
+
+  const modelRows = Object.entries(d.pricing_models || {});
+  el('optModelBody').innerHTML = modelRows.length ? modelRows.map(([k,v]) => `
+    <tr>
+      <td style="color:var(--t0)">${k.replace(/_/g,' ')}</td>
+      <td>${f(v.avg_signals_per_symbol,1)}</td>
+      <td class="${cx((v.avg_edge_pct||0)*100)}">${fp((v.avg_edge_pct||0)*100)}</td>
+      <td class="${cx(v.avg_long_pnl)}">${f(v.avg_long_pnl,3)}</td>
+      <td>${fp((v.long_win_rate||0)*100)}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">No pricing-model research summary available.</td></tr>';
+
+  const acts = d.recent_activity || [];
+  el('optActBody').innerHTML = acts.length ? acts.map(r => `
+    <tr>
+      <td style="font-size:9px">${r.filled_at?new Date(r.filled_at).toLocaleString():'—'}</td>
+      <td style="color:var(--t0)">${r.symbol||'—'}</td>
+      <td class="${String(r.side).toUpperCase()==='LONG'?'tlong':'tshort'}">${r.side||'—'}</td>
+      <td>${fm(r.entry_price)}</td>
+      <td>${fm(r.fair_price)}</td>
+      <td>${r.pricing_confidence!=null?f(r.pricing_confidence,2):'—'}</td>
+      <td><span class="bdg ${r.execution_tier==='acceptable'?'bdg-ok':'bdg-info'}">${r.execution_tier||'n/a'}</span></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="empty">No recent option activity logged.</td></tr>';
+
+  await loadOptionChain();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: STOCKS + PAIRS
+════════════════════════════════════════════════════════════════════ */
+async function loadStocks() {
+  const d = await api('/api/stocks/overview');
+  if (!d) return;
+  el('stk-universe').textContent = d.universe_size ?? '—';
+  el('stk-pairs-win').textContent = fp(((d.pairs?.summary?.win_rate)||0)*100);
+  el('stk-pairs-ret').textContent = fp(((d.pairs?.summary?.avg_trade_return)||0)*100);
+  el('stk-alpha-ret').textContent = fp(((d.ml_alpha?.long_only?.annualized_return)||0)*100);
+  el('stk-alpha-sh').textContent = f(d.ml_alpha?.long_only?.sharpe_ratio, 3);
+  el('stk-lookback').textContent = d.pairs?.lookback || '—';
+
+  const leaders = d.research_leaders || [];
+  el('stockBody').innerHTML = leaders.length ? leaders.slice(0,40).map(r => `
+    <tr>
+      <td style="color:var(--t0)">${r.symbol}</td>
+      <td>${r.lookback||'—'}</td>
+      <td>${fp((r.accuracy||0)*100)}</td>
+      <td>${fp((r.hit_ratio||0)*100)}</td>
+      <td class="${cx((r.alpha_daily||0)*100)}">${fsp((r.alpha_daily||0)*100,3)}</td>
+      <td class="${cx((r.strategy_return||0)*100)}">${fsp((r.strategy_return||0)*100,1)}</td>
+      <td class="${cx((r.buy_hold_return||0)*100)}">${fsp((r.buy_hold_return||0)*100,1)}</td>
+      <td>${r.meets_targets?'<span class="bdg bdg-ok">YES</span>':'<span class="bdg bdg-warn">NO</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">No stock research results found.</td></tr>';
+
+  const pairs = d.pairs?.top_pairs || [];
+  el('pairBody').innerHTML = pairs.length ? pairs.map(p => `
+    <tr>
+      <td style="color:var(--t0)">${p.pair}</td>
+      <td>${f(p.correlation,3)}</td>
+      <td>${p.signals??'—'}</td>
+      <td>${fp((p.win_rate||0)*100)}</td>
+      <td class="${cx((p.avg_trade_return||0)*100)}">${fsp((p.avg_trade_return||0)*100,2)}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">No pairs summary available.</td></tr>';
+
+  el('stockSample').innerHTML = (d.universe_sample || []).map(s => `<span class="bdg bdg-info">${s}</span>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: TRADE ODDS
+════════════════════════════════════════════════════════════════════ */
+async function loadOdds() {
+  const d = await api('/api/trades/odds');
+  if (!d) return;
+  const trades = d.trades || [];
+  el('odds-count').textContent = trades.length;
+  const best = trades.slice().sort((a,b)=>(b.prob_profit_pct||0)-(a.prob_profit_pct||0))[0];
+  const avgProb = trades.length ? trades.reduce((s,t)=>s+(t.prob_profit_pct||0),0)/trades.length : null;
+  el('odds-best').textContent = fp(best?.prob_profit_pct);
+  el('odds-avg').textContent = fp(avgProb);
+  el('odds-live').textContent = fsp(d.distribution?.mean, 2);
+
+  bellChart('oddsChart', d.curve || [], trades);
+  el('oddsBody').innerHTML = trades.length ? trades.map(t => `
+    <tr>
+      <td style="color:var(--t0)">${t.symbol}</td>
+      <td>${t.market}</td>
+      <td class="${String(t.side).toUpperCase()==='LONG'?'tlong':'tshort'}">${t.side}</td>
+      <td>${fp(t.prob_profit_pct)}</td>
+      <td class="${cx(t.expected_pnl_pct)}">${fsp(t.expected_pnl_pct)}</td>
+      <td>${fp(t.var_95_pct)}</td>
+      <td>${fp(t.cvar_95_pct)}</td>
+      <td>${fp(t.annual_vol*100)}</td>
+      <td>${fm(t.stop_loss_price)}</td>
+      <td>${fm(t.take_profit_price)}</td>
+    </tr>`).join('') : '<tr><td colspan="10" class="empty">No trade probability set available.</td></tr>';
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1153,6 +1996,178 @@ function renderVarSurface({levels, horizons, var:vg, cvar:cg}) {
 el('refreshHm').addEventListener('click', loadRisk);
 
 /* ═══════════════════════════════════════════════════════════════════
+   TAB: SIM LAB
+════════════════════════════════════════════════════════════════════ */
+async function loadSimLab() {
+  const d = await api('/api/options/simulations');
+  if (!d) return;
+  const mc = d.monte_carlo || {}, lv = d.las_vegas || {}, labels = d.labels || [];
+
+  el('sim-mc-profit').textContent = fp(mc.prob_profit_pct);
+  el('sim-mc-p50').textContent = fm(mc.terminal?.p50);
+  el('sim-mc-p95').textContent = fm(mc.terminal?.p95);
+  el('sim-lv-profit').textContent = fp(lv.prob_profit_pct);
+  el('sim-lv-p50').textContent = fm(lv.terminal?.p50);
+  el('sim-vix').textContent = d.risk_context?.vix!=null ? f(d.risk_context.vix,2) : '—';
+
+  const mcBands = mc.bands || {}, lvBands = lv.bands || {};
+  const mkDollarSeries = (band, color, label, dash=[]) => ({
+    label, data: labels.map((day,i)=>({x:day,y:(band||[])[i]})),
+    borderColor:color, borderWidth:label.includes('Median')?2:1.2,
+    pointRadius:0, fill:false, tension:.25, borderDash:dash,
+  });
+
+  if (labels.length) {
+    lineChart('simMcChart', [
+      mkDollarSeries(mcBands.p5, '#f7525a', 'P5', [4,3]),
+      mkDollarSeries(mcBands.p50, '#4f8ef7', 'Median'),
+      mkDollarSeries(mcBands.p95, '#00d68f', 'P95', [4,3]),
+    ], {dollar:true});
+    if (CHARTS.simMcChart) {
+      CHARTS.simMcChart.options.scales.x.type = 'linear';
+      CHARTS.simMcChart.options.scales.x.title = {display:true, text:'Forward Day', color:'#4d6080'};
+      CHARTS.simMcChart.update();
+    }
+
+    lineChart('simLvChart', [
+      mkDollarSeries(lvBands.p5, '#f7525a', 'P5', [4,3]),
+      mkDollarSeries(lvBands.p50, '#fb923c', 'Median'),
+      mkDollarSeries(lvBands.p95, '#22d3ee', 'P95', [4,3]),
+    ], {dollar:true});
+    if (CHARTS.simLvChart) {
+      CHARTS.simLvChart.options.scales.x.type = 'linear';
+      CHARTS.simLvChart.options.scales.x.title = {display:true, text:'Forward Day', color:'#4d6080'};
+      CHARTS.simLvChart.update();
+    }
+  }
+
+  el('simBandsBody').innerHTML = `
+    <tr>
+      <td style="color:var(--t0)">Monte Carlo</td>
+      <td>${fm(mc.terminal?.p5)}</td>
+      <td>${fm(mc.terminal?.p50)}</td>
+      <td>${fm(mc.terminal?.p95)}</td>
+      <td>${fp(mc.prob_profit_pct)}</td>
+      <td>${d.source||'—'}</td>
+    </tr>
+    <tr>
+      <td style="color:var(--t0)">Las Vegas</td>
+      <td>${fm(lv.terminal?.p5)}</td>
+      <td>${fm(lv.terminal?.p50)}</td>
+      <td>${fm(lv.terminal?.p95)}</td>
+      <td>${fp(lv.prob_profit_pct)}</td>
+      <td>${d.source||'—'}</td>
+    </tr>`;
+
+  el('simCtx').innerHTML = `
+    <div class="irow"><span class="fl" style="margin-bottom:0">Macro Regime</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.macro_regime||'—'}</span></div>
+    <div class="irow"><span class="fl" style="margin-bottom:0">Movement Bias</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.movement_bias||'—'}</span></div>
+    <div class="irow"><span class="fl" style="margin-bottom:0">Daily P&L %</span><span style="font-family:var(--mono);color:${csh(d.risk_context?.daily_pnl_pct||0)}">${fsp((d.risk_context?.daily_pnl_pct||0)*100,2)}</span></div>
+    <div class="irow"><span class="fl" style="margin-bottom:0">Risk Score</span><span style="font-family:var(--mono);color:var(--t0)">${f(d.risk_context?.risk_score,3)}</span></div>
+    <div class="irow"><span class="fl" style="margin-bottom:0">Runtime Paths</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.simulation_paths ?? '—'}</span></div>
+    <div style="font-size:10px;color:var(--t2);line-height:1.6;margin-top:8px">
+      Source mode: <strong style="color:var(--t1)">${d.source||'unknown'}</strong>. When a rich equity history is unavailable, the simulation falls back to runtime risk proxies so the desk still gets a forward scenario envelope.
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: STRATEGY LAB
+════════════════════════════════════════════════════════════════════ */
+function populatePermParams() {
+  const name = el('perm-strategy')?.value;
+  const params = permStratParams[name] || {};
+  const options = Object.entries(params).map(([k,v]) => `<option value="${k}" ${typeof v==='number'?'selected':''}>${k}</option>`).join('');
+  el('perm-params').innerHTML = options || '<option disabled>No numeric params</option>';
+}
+
+async function loadStratLab() {
+  const [paramsRes, sweepRes] = await Promise.all([
+    api('/api/strategies/params'),
+    api('/api/permutations/strategies'),
+  ]);
+  if (!paramsRes?.strategies) return;
+  permStratParams = paramsRes.strategies || {};
+  const supportedMap = Object.fromEntries((sweepRes?.strategies||[]).map(item => [item.strategy, item.supported_params||[]]));
+  const sel = el('perm-strategy');
+  const current = sel.value;
+  sel.innerHTML = Object.keys(permStratParams).map(name => `<option value="${name}">${name.replace(/_/g,' ')}</option>`).join('');
+  if (current && permStratParams[current]) sel.value = current;
+  sel.onchange = () => {
+    const name = sel.value;
+    const params = permStratParams[name] || {};
+    const supported = new Set(supportedMap[name] || []);
+    const options = Object.entries(params)
+      .filter(([k,v]) => typeof v === 'number' && supported.has(k))
+      .map(([k]) => `<option value="${k}" selected>${k}</option>`)
+      .join('');
+    el('perm-params').innerHTML = options || '<option disabled>No constructor-backed sweep params</option>';
+  };
+  sel.onchange();
+}
+
+function renderPermResults(job) {
+  const rows = job.results || [];
+  el('permBody').innerHTML = rows.length ? rows.slice(0,18).map((r,i) => `
+    <tr>
+      <td style="color:var(--t0)">${i+1}</td>
+      <td style="font-size:9px;white-space:normal;max-width:260px">${Object.entries(r.params||{}).map(([k,v])=>`${k}=${v}`).join(', ')}</td>
+      <td>${f(r.score,3)}</td>
+      <td style="color:${csh(r.sharpe)}">${f(r.sharpe,3)}</td>
+      <td style="color:${csh(r.total_return_pct)}">${fsp(r.total_return_pct,2)}</td>
+      <td style="color:var(--red)">${fp(r.max_drawdown_pct)}</td>
+      <td>${fp(r.win_rate_pct)}</td>
+      <td>${r.trades}</td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">No sweep results yet.</td></tr>';
+
+  const best = job.best || {};
+  if ((best.equity||[]).length && (best.timestamps||[]).length) {
+    lineChart('permBestChart', [{
+      label:'Best Variant',
+      data: best.timestamps.map((t,i)=>({x:new Date(t), y:best.equity[i]})),
+      borderColor:'#00d68f', borderWidth:2,
+      backgroundColor:'rgba(0,214,143,.10)',
+      fill:true, pointRadius:0, tension:.25,
+    }], {dollar:true, legend:false});
+  }
+}
+
+async function pollPerm(jid) {
+  const j = await api(`/api/permutations/jobs/${jid}`);
+  if (!j) { setTimeout(()=>pollPerm(jid),2500); return; }
+  el('permProgLbl').textContent = `Job ${jid}: ${j.status} · ${j.current_variant||0}/${j.total_variants||0}`;
+  if (j.status === 'DONE') {
+    el('permProg').style.display='none'; el('permBadge').style.display='none';
+    el('runPerm').disabled = false; renderPermResults(j); toast('Permutation sweep complete!','ok');
+  } else if (j.status === 'ERROR') {
+    el('permProg').style.display='none'; el('permBadge').style.display='none';
+    el('runPerm').disabled = false; toast(`Error: ${j.error}`,'err');
+  } else { setTimeout(()=>pollPerm(jid),2500); }
+}
+
+el('runPerm').addEventListener('click', async () => {
+  const params = Array.from(el('perm-params').selectedOptions).map(o => o.value);
+  const symsRaw = el('perm-sym').value.trim();
+  const body = {
+    strategy: el('perm-strategy').value,
+    params,
+    start: el('perm-start').value,
+    end: el('perm-end').value || undefined,
+    interval: el('perm-int').value,
+    capital: parseFloat(el('perm-cap').value),
+    symbols: symsRaw ? symsRaw.split(',').map(s=>s.trim()).filter(Boolean) : undefined,
+  };
+  const r = await fetch(`${BASE}/api/permutations/run`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+  });
+  if (!r.ok) { toast('Permutation endpoint unavailable','err'); return; }
+  const job = await r.json();
+  el('permProg').style.display='block';
+  el('permBadge').style.display='';
+  el('runPerm').disabled = true;
+  pollPerm(job.job_id);
+});
+
+/* ═══════════════════════════════════════════════════════════════════
    TAB: FORWARD TEST
 ════════════════════════════════════════════════════════════════════ */
 document.querySelectorAll('.ft-mc').forEach(card => {
@@ -1287,9 +2302,14 @@ function initLogs() {
 ════════════════════════════════════════════════════════════════════ */
 const TAB_INIT = {
   live:      () => { loadLive(); connectLiveWs(); },
+  options:   () => { loadOptions(); },
+  stocks:    () => { loadStocks(); },
+  odds:      () => { loadOdds(); },
   backtests: () => { loadBacktests(); },
   params:    () => { loadParams(); },
   risk:      () => { loadRisk(); },
+  simlab:    () => { loadSimLab(); },
+  stratlab:  () => { loadStratLab(); },
   ftest:     () => { /* no auto-load */ },
   logs:      () => { initLogs(); },
 };
@@ -1320,6 +2340,18 @@ document.querySelectorAll('.ntab').forEach(tab => {
   }, 60000);
   setInterval(() => {
     if (el('tab-risk').classList.contains('active')) loadRisk();
+  }, 300000);
+  setInterval(() => {
+    if (el('tab-options').classList.contains('active')) loadOptions();
+  }, 180000);
+  setInterval(() => {
+    if (el('tab-stocks').classList.contains('active')) loadStocks();
+  }, 300000);
+  setInterval(() => {
+    if (el('tab-simlab').classList.contains('active')) loadSimLab();
+  }, 300000);
+  setInterval(() => {
+    if (el('tab-odds').classList.contains('active')) loadOdds();
   }, 300000);
   setInterval(checkHealth, 30000);
 })();
