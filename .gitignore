@@ -9,7 +9,8 @@ __pycache__/
 /venv
 /env
 .env
-
+.log
+.parquet
 # Mac stuff
 .DS_Store
 

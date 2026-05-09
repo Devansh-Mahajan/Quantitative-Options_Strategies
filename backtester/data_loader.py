@@ -17,7 +17,8 @@ import requests
 
 log = logging.getLogger("backtester.data_loader")
 
-CACHE_DIR = Path(".backtest_cache")
+_ROOT = Path(__file__).resolve().parents[1]
+CACHE_DIR = _ROOT / ".backtest_cache"
 BINANCE_BASE = "https://api.binance.com"
 MAX_KLINES_PER_REQUEST = 1000   # Binance hard limit
 RATE_LIMIT_PAUSE = 0.12         # seconds between requests (~8 req/s, well under limit)

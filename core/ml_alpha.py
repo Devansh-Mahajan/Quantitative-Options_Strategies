@@ -26,7 +26,8 @@ from core.universe_maintenance import dedupe_symbols, download_close_matrix
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
-DEFAULT_ALPHA_CACHE_PATH = Path(".runtime/ml_alpha_snapshot.json")
+_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ALPHA_CACHE_PATH = _ROOT / ".runtime" / "ml_alpha_snapshot.json"
 
 
 @dataclass(frozen=True)

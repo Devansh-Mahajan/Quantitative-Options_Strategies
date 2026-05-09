@@ -109,3 +109,25 @@ Traceback (most recent call last):
     sys.exit(0)
 SystemExit: 0
 2026-05-08 21:58:38 | CRITICAL | risk.risk_guard | TRADING HALTED: Max drawdown 88.9% >= limit 15.0%
+2026-05-09 23:23:59 | ERROR    | asyncio | Task exception was never retrieved
+future: <Task finished name='Task-168' coro=<_shutdown() done, defined at /home/dash/options-spread/scripts/run_bot.py:35> exception=SystemExit(0)>
+Traceback (most recent call last):
+  File "/home/dash/options-spread/scripts/run_bot.py", line 48, in main
+    asyncio.run(_main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/dash/options-spread/scripts/run_bot.py", line 42, in _shutdown
+    sys.exit(0)
+SystemExit: 0

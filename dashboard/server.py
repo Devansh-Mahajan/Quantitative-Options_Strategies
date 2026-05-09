@@ -55,9 +55,11 @@ from dashboard.analytics import (
 
 log = logging.getLogger("dashboard.server")
 
-PORT     = int(cfg.__dict__.get("dashboard_port", 8080) if hasattr(cfg, "__dict__") else 8080)
-STATIC   = Path(__file__).parent / "static"
-LOG_DIR  = cfg.log_dir
+PORT          = int(cfg.__dict__.get("dashboard_port", 8080) if hasattr(cfg, "__dict__") else 8080)
+ROOT          = Path(__file__).resolve().parents[1]
+STATIC        = Path(__file__).parent / "static"
+LOG_DIR       = cfg.log_dir
+BACKTEST_DIR  = ROOT / "backtest_reports"
 WF_CONN: set[WebSocket] = set()   # live broadcast connections
 
 
@@ -216,7 +218,9 @@ async def _poll_exchange_loop() -> None:
 
             if equity > 0:
                 state.record_equity(equity, 0)
+                daily_pnl = state.get_daily_pnl()
                 await _broadcast({"type": "equity_tick", "equity": equity,
+                                   "daily_pnl": daily_pnl,
                                    "ts": datetime.now(timezone.utc).isoformat()})
         except Exception as exc:
             log.debug("Exchange poll error: %s", exc)
@@ -322,8 +326,9 @@ async def get_benchmark(symbol: str = Query("BTCUSDT"), window: str = Query("1w"
             return {"timestamps": [], "prices": []}
         df = df.reset_index()
         ts_col = "open_time" if "open_time" in df.columns else df.columns[0]
+        ts_series = pd.to_datetime(df[ts_col], utc=True)
         return {
-            "timestamps": df[ts_col].astype(str).tolist(),
+            "timestamps": ts_series.dt.strftime("%Y-%m-%dT%H:%M:%SZ").tolist(),
             "prices":     df["close"].round(4).tolist(),
         }
     except Exception as exc:
@@ -334,7 +339,17 @@ async def get_benchmark(symbol: str = Query("BTCUSDT"), window: str = Query("1w"
 @app.get("/api/positions")
 async def get_positions():
     trades = state.get_open_trades()
-    return {"positions": trades, "count": len(trades)}
+    positions = []
+    for t in trades:
+        side = t.get("side", "")
+        positions.append({
+            **t,
+            "entry_price":    t.get("price"),
+            "opened_at":      t.get("ts"),
+            "side":           "LONG" if side in ("BUY", "LONG") else "SHORT" if side in ("SELL", "SHORT") else side,
+            "unrealized_pnl": t.get("pnl", 0),
+        })
+    return {"positions": positions, "count": len(positions)}
 
 
 @app.get("/api/trades")
@@ -391,7 +406,7 @@ async def risk_snapshot():
             "SELECT ts, equity, drawdown FROM equity_curve ORDER BY ts DESC LIMIT 8760"
         ).fetchall()
 
-    if not rows:
+    if len(rows) < 2:
         return {}
 
     equity = [float(r["equity"]) for r in reversed(rows)]
@@ -605,7 +620,7 @@ async def strategies_pnl():
     with _db_conn() as c:
         try:
             rows = c.execute(
-                "SELECT strategy, pnl, ts FROM trades ORDER BY ts DESC LIMIT 3000"
+                "SELECT strategy, pnl, ts FROM trades WHERE status='closed' ORDER BY ts DESC LIMIT 3000"
             ).fetchall()
         except Exception:
             return {"strategies": [], "total_pnl": 0}
@@ -709,7 +724,7 @@ async def permutation_strategies():
 
 @app.get("/api/backtest/list")
 async def backtest_list():
-    report_dir = Path("backtest_reports")
+    report_dir = BACKTEST_DIR
     results = []
     if report_dir.exists():
         for f in sorted(report_dir.glob("backtest_*.json"), reverse=True)[:20]:
@@ -732,7 +747,7 @@ async def backtest_list():
 
 @app.get("/api/backtest/{run_id}")
 async def backtest_detail(run_id: str):
-    path = Path("backtest_reports") / f"backtest_{run_id}.json"
+    path = BACKTEST_DIR / f"backtest_{run_id}.json"
     if not path.exists():
         raise HTTPException(404, "Report not found")
     return json.loads(path.read_text())
@@ -1204,6 +1219,7 @@ async def ws_live(ws: WebSocket):
             await ws.send_json({
                 "type": "equity_tick",
                 "equity": float(rows[0]["equity"]),
+                "daily_pnl": state.get_daily_pnl(),
                 "ts": rows[0]["ts"],
             })
         while True:
@@ -1288,7 +1304,7 @@ async def ml_alpha_snapshot():
     return {
         "generated_at_utc": snap.get("generated_at_utc"),
         "requested_symbols": snap.get("requested_symbols", 0),
-        "signals": sorted(signals, key=lambda s: abs(s.get("alpha_score", 0)), reverse=True),
+        "signals": sorted(signals, key=lambda s: abs(s.get("alpha_score") or 0), reverse=True),
     }
 
 
@@ -1347,8 +1363,14 @@ async def system_health():
         "risk_interval_s":     safe_int(rp.get("risk_interval_seconds")),
         "regime_interval_s":   safe_int(rp.get("regime_interval_seconds")),
         "automation_state":    auto,
-        "preflight_passed":    pre.get("passed"),
-        "preflight_summary":   pre.get("summary", {}),
+        "preflight_passed":    pre.get("ok"),
+        "preflight_summary":   {
+            "Passed":             pre.get("ok"),
+            "Issues":             len(pre.get("issues", [])) if pre.get("issues") is not None else "—",
+            "Source files":       pre.get("source_files"),
+            "JSON files":         pre.get("json_files"),
+            "Artifacts checked":  pre.get("artifacts_checked"),
+        } if pre else {},
     }
 
 

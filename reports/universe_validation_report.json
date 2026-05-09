@@ -1,6 +1,6 @@
 {
-  "symbols_input": 503,
-  "symbols_valid": 503,
+  "symbols_input": 502,
+  "symbols_valid": 502,
   "symbols_invalid": 0,
   "valid_symbols": [
     "WMT",
@@ -264,7 +264,6 @@
     "REGN",
     "INCY",
     "TECH",
-    "WST",
     "A",
     "MTD",
     "WAT",
@@ -774,7 +773,6 @@
     "REGN": "REGN",
     "INCY": "INCY",
     "TECH": "TECH",
-    "WST": "WST",
     "A": "A",
     "MTD": "MTD",
     "WAT": "WAT",

@@ -1774,8 +1774,8 @@ async function loadLive() {
     el('mv-ar').textContent  = fp(m.annualised_return_pct);
   }
 
-  if (pnl && eq?.metrics) {
-    const d = (pnl.daily_pnl||0) * (eq.metrics.current_equity||1);
+  if (pnl) {
+    const d = pnl.daily_pnl || 0;
     const hp = el('hPnl');
     hp.textContent = fm(d);
     hp.style.color = d >= 0 ? 'var(--green)' : 'var(--red)';
@@ -1818,16 +1818,16 @@ async function loadLive() {
     el('posCount').textContent = pos.count;
     const tb = el('posBody');
     tb.innerHTML = pos.positions.length ? pos.positions.map(p => {
-      const pv = p.unrealized_pnl||0;
+      const pv = p.unrealized_pnl || p.pnl || 0;
       return `<tr>
         <td style="color:var(--t0)">${p.symbol||'—'}</td>
-        <td class="${p.side==='LONG'?'tlong':'tshort'}">${p.side||'—'}</td>
+        <td class="${['LONG','BUY'].includes(p.side)?'tlong':'tshort'}">${p.side||'—'}</td>
         <td>${f(p.quantity,4)}</td>
-        <td>${fm(p.entry_price)}</td>
-        <td>${fm(p.mark_price||p.current_price)}</td>
+        <td>${fm(p.entry_price || p.price)}</td>
+        <td>${fm(p.mark_price || p.current_price || p.price)}</td>
         <td class="${cx(pv)}">${fm(pv)}</td>
         <td style="color:var(--t2)">${p.strategy||'—'}</td>
-        <td style="font-size:9px;color:var(--t2)">${p.opened_at?new Date(p.opened_at).toLocaleString():'—'}</td>
+        <td style="font-size:9px;color:var(--t2)">${(p.opened_at||p.ts)?new Date(p.opened_at||p.ts).toLocaleString():'—'}</td>
       </tr>`;
     }).join('') : '<tr><td colspan="8" class="empty">No open positions</td></tr>';
   }
@@ -1873,6 +1873,11 @@ function connectLiveWs() {
       if (d.type === 'equity_tick') {
         el('hEq').textContent = fm(d.equity);
         el('mv-eq').textContent = fm(d.equity);
+        if (d.daily_pnl != null) {
+          const hp = el('hPnl');
+          hp.textContent = fm(d.daily_pnl);
+          hp.style.color = d.daily_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        }
       }
     } catch{}
   };

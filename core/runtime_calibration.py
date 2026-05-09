@@ -7,8 +7,9 @@ from pathlib import Path
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
-STRATEGY_PACK_PATH = Path("config") / "quant_strategy_pack.json"
-MARKET_POLICY_PATH = Path("config") / "market_regime_policy.json"
+_ROOT = Path(__file__).resolve().parents[1]
+STRATEGY_PACK_PATH = _ROOT / "config" / "quant_strategy_pack.json"
+MARKET_POLICY_PATH = _ROOT / "config" / "market_regime_policy.json"
 
 
 @dataclass

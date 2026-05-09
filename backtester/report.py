@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("backtester.report")
 
-REPORTS_DIR = Path("backtest_reports")
+_ROOT = Path(__file__).resolve().parents[1]
+REPORTS_DIR = _ROOT / "backtest_reports"
 
 
 def print_report(result: "BacktestResult", title: str = "Backtest Report") -> None:

@@ -15,7 +15,8 @@ import sys
 from pathlib import Path
 
 # Ensure project root is on path when called as a script
-sys.path.insert(0, str(Path(__file__).parent.parent))
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
 
 import numpy as np
 from backtester.data_loader import load_multi, align_and_ffill
@@ -246,7 +247,7 @@ def main() -> None:
             n_trials=args.opt_trials,
             n_wf_folds=args.opt_folds,
             initial_equity=args.capital,
-            output_dir=args.output_dir or Path("backtest_reports"),
+            output_dir=args.output_dir or _ROOT / "backtest_reports",
         )
         opt_result = optimizer.run(verbose=args.verbose)
         opt_overrides = opt_result.best_params
@@ -317,8 +318,7 @@ def main() -> None:
         if args.save_report:
             # Save WF summary alongside main report
             import json, datetime
-            from pathlib import Path as P
-            out_dir = args.output_dir or P("backtest_reports")
+            out_dir = args.output_dir or _ROOT / "backtest_reports"
             out_dir.mkdir(parents=True, exist_ok=True)
             run_id = args.run_id or datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             wf_path = out_dir / f"walk_forward_{run_id}.json"
@@ -372,8 +372,7 @@ def main() -> None:
 
         if args.save_report:
             import json, datetime
-            from pathlib import Path as P
-            out_dir = args.output_dir or P("backtest_reports")
+            out_dir = args.output_dir or _ROOT / "backtest_reports"
             out_dir.mkdir(parents=True, exist_ok=True)
             run_id_mc = args.run_id or datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             mc_path = out_dir / f"monte_carlo_{run_id_mc}.json"

@@ -10,7 +10,8 @@ from typing import Any
 
 log = logging.getLogger("bot.state")
 
-_DB_PATH = Path(".runtime") / "bot_state.db"
+_ROOT = Path(__file__).resolve().parents[1]
+_DB_PATH = _ROOT / ".runtime" / "bot_state.db"
 
 
 def _conn() -> sqlite3.Connection:

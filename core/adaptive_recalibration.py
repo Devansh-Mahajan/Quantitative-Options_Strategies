@@ -6,7 +6,8 @@ from pathlib import Path
 
 logger = logging.getLogger(f"strategy.{__name__}")
 
-ADAPTIVE_PROFILE_FILE = Path("config") / "adaptive_profile.json"
+_ROOT = Path(__file__).resolve().parents[1]
+ADAPTIVE_PROFILE_FILE = _ROOT / "config" / "adaptive_profile.json"
 
 
 class AdaptiveRecalibrationEngine:

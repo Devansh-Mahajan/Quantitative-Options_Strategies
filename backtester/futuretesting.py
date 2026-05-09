@@ -181,6 +181,7 @@ class FuturetestResult:
     win_rate_dist:    np.ndarray
     failed_paths:     int             # paths where strategy crashed
     acceptance_rate:  float           # fraction of paths with Sharpe > 0.5
+    results:          list = field(default_factory=list)  # per-path BacktestResult objects
 
     def print_summary(self) -> None:
         def pct(arr: np.ndarray, p: int) -> str:
@@ -313,14 +314,13 @@ class FuturetestEngine:
         Run the strategy on N synthetic paths.
 
         Args:
-            engine_factory:   callable(data, strategies) → BacktestEngine
-            strategy_factory: callable() → list[strategy]
+            engine_factory:   callable(sim_df: DataFrame) → BacktestEngine
+            strategy_factory: callable() → list[strategy]  (unused in call; kept for API compat)
             symbol:           symbol name for the synthetic data
             verbose:          print progress every 10%
         """
-        from backtester.metrics import compute_metrics
-
         sharpes, returns, max_dds, win_rates = [], [], [], []
+        path_results = []
         failed = 0
 
         log.info("Futuretesting: %d paths × %d bars  model=%s", self._n_paths, self._horizon, self._model)
@@ -331,15 +331,16 @@ class FuturetestEngine:
             try:
                 path = self._generate_path()
                 df   = self._path_to_df(path)
-                engine = engine_factory({symbol: df}, strategy_factory())
-                result = engine.run()
+                engine = engine_factory(df)
+                path_result = engine.run()
 
-                m = result.metrics
+                m = path_result.metrics
                 sharpes.append(m.sharpe)
                 returns.append(m.total_return_pct / 100)
                 max_dds.append(abs(m.max_drawdown_pct) / 100)
                 wr = m.win_rate_pct / 100 if m.win_rate_pct else 0.0
                 win_rates.append(wr)
+                path_results.append(path_result)
 
             except Exception as exc:
                 log.debug("Path %d failed: %s", i, exc)
@@ -361,6 +362,7 @@ class FuturetestEngine:
             win_rate_dist=np.array(win_rates),
             failed_paths=failed,
             acceptance_rate=acceptance,
+            results=path_results,
         )
         result.print_summary()
         return result

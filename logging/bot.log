@@ -2281,3 +2281,131 @@ SystemExit: 0
 2026-05-08 23:34:38 | INFO     | bot.orchestrator | Approved signals after risk filter: 0
 [32m2026-05-08 23:34:38 | INFO    [0m | [36mbot.orchestrator[0m | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0[0m
 2026-05-08 23:34:38 | INFO     | bot.orchestrator | Snapshot | equity=1027.12 | regime=unknown | positions=1 | upnl=0.00 | signals_approved=0
+2026-05-09 23:23:59 | ERROR    | asyncio | Task exception was never retrieved
+future: <Task finished name='Task-168' coro=<_shutdown() done, defined at /home/dash/options-spread/scripts/run_bot.py:35> exception=SystemExit(0)>
+Traceback (most recent call last):
+  File "/home/dash/options-spread/scripts/run_bot.py", line 48, in main
+    asyncio.run(_main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/dash/options-spread/scripts/run_bot.py", line 42, in _shutdown
+    sys.exit(0)
+SystemExit: 0
+2026-05-10 00:05:01 | INFO     | scripts.system_check | ══════════════════════════════════════════════════════════
+2026-05-10 00:05:01 | INFO     | scripts.system_check |   SYSTEM PRE-FLIGHT CHECK
+2026-05-10 00:05:01 | INFO     | scripts.system_check | ══════════════════════════════════════════════════════════
+2026-05-10 00:05:01 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [1] Python packages
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:01 | INFO     | scripts.system_check |   [PASS] numpy
+2026-05-10 00:05:01 | INFO     | scripts.system_check |   [PASS] pandas
+2026-05-10 00:05:01 | INFO     | scripts.system_check |   [PASS] scipy
+2026-05-10 00:05:02 | INFO     | scripts.system_check |   [PASS] sklearn
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] torch
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] hmmlearn
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] httpx
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] tqdm
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] optuna
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] pyarrow
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] alpaca
+2026-05-10 00:05:03 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [2] GPU / CUDA
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:03 | WARNING  | scripts.system_check |   [WARN] CUDA not available — CPU mode (training will be slower)
+2026-05-10 00:05:03 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [3] Disk space
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] Disk: 57.4 GB free
+2026-05-10 00:05:03 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [4] Environment (.env)
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:03 | INFO     | scripts.system_check |   [PASS] .env loaded — broker=alpaca  key=your...here
+2026-05-10 00:05:03 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [5] Internal modules (import check)
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.engine
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.fill_model
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.metrics
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.report
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.walk_forward
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.monte_carlo_bt
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.optimizer
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] backtester.data_loader
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] risk.monte_carlo
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] risk.portfolio_risk
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] execution.position_manager
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] exchange.streams
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] ml.features
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] bot.config
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] bot.state
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] bot.notifications
+2026-05-10 00:05:04 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [6] Strategy classes (import + instantiate)
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] strategies.momentum.MomentumStrategy                  name='momentum'
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] strategies.mean_reversion.MeanReversionStrategy       name='mean_reversion'
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] strategies.funding_arb.FundingArbStrategy             name='funding_arb'
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] strategies.basis_trade.BasisTradeStrategy             name='basis_trade'
+2026-05-10 00:05:04 | INFO     | scripts.system_check |   [PASS] strategies.pairs_arb.PairsArbStrategy                 name='pairs_arb'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.options_vol.OptionsVolatilityStrategy      name='options_vol'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.order_flow.OrderFlowStrategy               name='order_flow'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.breakout.BreakoutStrategy                  name='breakout'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.statistical_arb.StatisticalArbStrategy     name='statistical_arb'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.cross_sectional_momentum.CrossSectionalMomentumStrategy  name='cross_sectional_momentum'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.liquidation_cascade.LiquidationCascadeStrategy  name='liquidation_cascade'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.carry_portfolio.CarryPortfolioStrategy     name='carry_portfolio'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.tsmom.TSMomentumStrategy                   name='tsmom'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.quant_factors.QuantFactorsStrategy         name='quant_factors'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.contrarian_oi.ContrarianOIStrategy         name='contrarian_oi'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.rma_strategy.RMAStrategy                   name='rma_strategy'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.vpin_flow.VPINFlowStrategy                 name='vpin_flow'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.knn_predictor.KNNPredictorStrategy         name='knn_predictor'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.pivot_sr.PivotSRStrategy                   name='pivot_sr'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.hp_trend.HPTrendStrategy                   name='hp_trend'
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] strategies.momentum_carry_combo.MomentumCarryComboStrategy  name='momentum_carry_combo'
+2026-05-10 00:05:05 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [7] Backtester — metrics smoke test
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] metrics smoke test  Sharpe=67.671  MaxDD=-0.13%
+2026-05-10 00:05:05 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [8] Backtester — fill model smoke test
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:05 | INFO     | scripts.system_check |   [PASS] fill_model smoke test  fills=0
+2026-05-10 00:05:05 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [9] Backtester — 200-bar smoke backtest
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:05 | INFO     | backtester.engine | Backtest starting: 1 symbols × 300 bars (1704067200 to 1705143600)
+2026-05-10 00:05:06 | INFO     | backtester.engine | Backtest complete — 0.53% total return, Sharpe=129723.914, MaxDD=-0.49%
+2026-05-10 00:05:06 | INFO     | scripts.system_check |   [PASS] smoke backtest (200 bars)  return=0.53%  trades=1
+2026-05-10 00:05:06 | INFO     | scripts.system_check | 
+──────────────────────────────────────────────────────────
+  [10] ALPACA API connectivity
+──────────────────────────────────────────────────────────
+2026-05-10 00:05:07 | INFO     | exchange.alpaca_client | Alpaca client connected (paper=True) — account=c006ab26-c163-4da8-8b20-67550986783a equity=$9974.47
+2026-05-10 00:05:07 | INFO     | exchange.alpaca_client | Alpaca client closed
+2026-05-10 00:05:07 | INFO     | scripts.system_check |   [PASS] ALPACA API  BTC=80762.35 USD  server_time=1778364307231
+2026-05-10 00:05:07 | INFO     | scripts.system_check | 
+══════════════════════════════════════════════════════════
+2026-05-10 00:05:07 | INFO     | scripts.system_check |   ALL CHECKS PASSED — system is ready
+2026-05-10 00:05:07 | INFO     | scripts.system_check | ══════════════════════════════════════════════════════════

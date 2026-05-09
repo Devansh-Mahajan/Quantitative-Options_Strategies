@@ -1,51 +1,33 @@
 {
   "weekend_recalibration": {
-    "timestamp_utc": "2026-04-15T21:52:21.234230+00:00",
-    "symbols_input": 503,
-    "symbols_retained": 503,
+    "timestamp_utc": "2026-05-09T22:38:45.087992+00:00",
+    "symbols_input": 502,
+    "symbols_retained": 502,
     "symbols_removed": 0,
     "top_n_requested": 0,
-    "top_n_applied": 503,
+    "top_n_applied": 502,
     "volatile_symbols_file": "config/volatile_symbols.txt",
     "target_daily_return": 0.002,
     "target_accuracy": 0.56,
     "adaptive_profile": {
       "version": 2,
-      "last_updated_utc": "2026-04-15T21:49:57.582653+00:00",
+      "last_updated_utc": "2026-05-08T21:30:36.400228+00:00",
       "lookback": 30,
       "daily_returns": [
-        0.004313207905243525,
-        0.007979434624705427,
-        0.004313207905243525,
-        0.009273396996288291,
-        0.006901132648389641,
-        0.006793302450756101,
-        0.0008626415810487052,
-        0.00905773660102121,
-        0.009273396996288291,
-        0.0014017925691967906
+        0.017701331053741002
       ],
       "confidence_samples": [
-        0.5141922617877803,
-        0.5141923378014699,
-        0.5141922780894477,
-        0.5141923657228816,
-        0.5141921942941502,
-        0.5141922527879536,
-        0.514192271202947,
-        0.5141923089023981,
-        0.5141922748395801,
-        0.5141927783048664
+        0.5221014275122162
       ],
-      "risk_multiplier": 0.8034,
-      "deployment_multiplier": 0.8536,
-      "trade_intensity_multiplier": 0.8536,
+      "risk_multiplier": 0.8053,
+      "deployment_multiplier": 0.8556,
+      "trade_intensity_multiplier": 0.8556,
       "regime": "defensive",
       "notes": "Foundry profile controls are optimization levers, not profit guarantees.",
       "foundry_mode": "weekend-calibrate",
       "foundry_min_confidence": 0.55,
-      "rolling_avg_return_pct": 0.006,
-      "rolling_avg_confidence": 0.5142
+      "rolling_avg_return_pct": 0.0177,
+      "rolling_avg_confidence": 0.5221
     },
     "profile_score_floor": 0.48,
     "note": "Weekend recalibration prepares the stack automatically, but targets remain optimization objectives, not guarantees."

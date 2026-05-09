@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent.parent / ".env", override=False)
+_ROOT = Path(__file__).resolve().parents[1]
+
+load_dotenv(_ROOT / ".env", override=False)
 
 
 def _bool(key: str, default: bool = False) -> bool:
@@ -97,8 +99,8 @@ class Config:
 
     # --- ML ---
     device: str = field(default_factory=lambda: os.getenv("DEVICE", "cuda"))
-    model_dir: Path = field(default_factory=lambda: Path(os.getenv("MODEL_DIR", "./models/live")))
-    training_dir: Path = field(default_factory=lambda: Path(os.getenv("TRAINING_DIR", "./models/training")))
+    model_dir: Path = field(default_factory=lambda: Path(os.getenv("MODEL_DIR", str(_ROOT / "models" / "live"))))
+    training_dir: Path = field(default_factory=lambda: Path(os.getenv("TRAINING_DIR", str(_ROOT / "models" / "training"))))
     retrain_lookback_days: int = field(default_factory=lambda: _int("RETRAIN_LOOKBACK_DAYS", 90))
     lstm_lookback: int = field(default_factory=lambda: _int("LSTM_LOOKBACK", 50))
     hmm_states: int = field(default_factory=lambda: _int("HMM_STATES", 4))
@@ -118,7 +120,7 @@ class Config:
 
     # --- Logging ---
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
-    log_dir: Path = field(default_factory=lambda: Path(os.getenv("LOG_DIR", "./logging")))
+    log_dir: Path = field(default_factory=lambda: Path(os.getenv("LOG_DIR", str(_ROOT / "logging"))))
 
     @property
     def is_alpaca(self) -> bool:

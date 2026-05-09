@@ -1,0 +1,14 @@
+
+══════════════════════════════════════════════════════
+  Deploy started at 2026-05-10 00:00:01
+  Repo: /home/dash/options-spread  →  branch: main
+══════════════════════════════════════════════════════
+
+══════════════════════════════════════════════════════
+  Deploy started at 2026-05-10 00:00:01
+  Repo: /home/dash/options-spread  →  branch: main
+══════════════════════════════════════════════════════
+ERROR: Working tree has uncommitted changes. Aborting deploy.
+       Commit or stash your changes before deploying.
+ERROR: Working tree has uncommitted changes. Aborting deploy.
+       Commit or stash your changes before deploying.

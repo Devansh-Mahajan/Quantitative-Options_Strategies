@@ -123,7 +123,7 @@ class BacktestOptimizer:
         self.n_trials = n_trials
         self.n_wf_folds = n_wf_folds
         self.initial_equity = initial_equity
-        self.output_dir = output_dir or Path("backtest_reports")
+        self.output_dir = output_dir or Path(__file__).resolve().parents[1] / "backtest_reports"
 
     # ------------------------------------------------------------------ #
     # Optuna objective
