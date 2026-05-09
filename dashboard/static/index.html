@@ -80,15 +80,18 @@ html{font-family:var(--sans);background:var(--bg0);color:var(--t0);min-height:10
 .ctitle{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
 
 /* ── METRIC CARDS ──────────────────────────────────────────────────── */
-.mcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px;margin-bottom:14px}
+.mcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:14px}
 .mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
-  padding:12px 14px;position:relative;overflow:hidden}
+  padding:13px 14px 12px;position:relative;overflow:hidden;min-height:70px}
 .mc::after{content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(255,255,255,.02) 0%,transparent 55%);pointer-events:none}
 .mc-bar{position:absolute;top:0;left:0;right:0;height:2px}
-.mc-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);margin-bottom:4px}
-.mc-val{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--t0);line-height:1}
-.mc-sub{font-size:9px;color:var(--t2);margin-top:3px}
+.mc-lbl{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t2);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-val{font-family:var(--mono);font-size:clamp(12px,1.4vw,17px);font-weight:700;
+  color:var(--t0);line-height:1.1;word-break:break-all;overflow-wrap:anywhere}
+.mc-sub{font-size:8.5px;color:var(--t2);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pos{color:var(--green)!important}.neg{color:var(--red)!important}
 
 /* ── CHART CONTAINERS ──────────────────────────────────────────────── */
@@ -246,26 +249,35 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .ft-md{font-size:8px;color:var(--t2)}
 
 /* ── INTELLIGENCE TAB ───────────────────────────────────────────────── */
-.alpha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px}
-.alpha-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px;position:relative;overflow:hidden}
-.alpha-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent)}
+.alpha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin-top:10px}
+.alpha-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+  padding:11px 11px 10px 14px;position:relative;min-height:80px}
+.alpha-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent);border-radius:var(--r) 0 0 var(--r)}
 .alpha-card.bull::before{background:var(--green)}
 .alpha-card.bear::before{background:var(--red)}
-.alpha-sym{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t0);margin-bottom:4px}
-.alpha-dir{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.alpha-sym{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t0);
+  margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alpha-dir{font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
 .alpha-dir.bull{color:var(--green)}.alpha-dir.bear{color:var(--red)}.alpha-dir.neutral{color:var(--t2)}
-.alpha-score{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:2px}
-.alpha-ret{font-size:9px;color:var(--t2);font-family:var(--mono)}
-.alpha-src{position:absolute;top:8px;right:8px;font-size:7px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
-.exec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
-.exec-kv{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px}
-.exec-lbl{font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
-.exec-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--t0)}
+.alpha-score{font-family:var(--mono);font-size:14px;font-weight:700;margin-bottom:2px;
+  word-break:break-all}
+.alpha-ret{font-size:8.5px;color:var(--t2);font-family:var(--mono);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alpha-src{font-size:7px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;
+  margin-bottom:4px}
+.exec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.exec-kv{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px;overflow:hidden}
+.exec-lbl{font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exec-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--t0);
+  word-break:break-all;overflow-wrap:anywhere}
 .sys-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.sys-bar-lbl{font-size:9px;color:var(--t2);min-width:80px}
-.sys-bar-trk{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.sys-bar-lbl{font-size:9px;color:var(--t2);min-width:70px;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sys-bar-trk{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;min-width:0}
 .sys-bar-fill{height:100%;border-radius:3px;transition:width .4s}
-.sys-bar-val{font-family:var(--mono);font-size:9px;color:var(--t1);min-width:40px;text-align:right}
+.sys-bar-val{font-family:var(--mono);font-size:9px;color:var(--t1);min-width:38px;text-align:right;flex-shrink:0}
 
 /* ── TRADE ANALYSIS TAB ─────────────────────────────────────────────── */
 .ta-streak{display:flex;gap:8px;margin-top:8px}
@@ -822,12 +834,13 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="row">
     <div class="col card">
       <div class="card-hdr">
-        <span class="ctitle">Asset Correlation Heatmap</span>
+        <span class="ctitle">Multi-Asset Correlation Heatmap</span>
+        <span style="font-size:8px;color:var(--t2)">Futures + Spot</span>
         <button class="btn btn-g btn-sm" id="refreshHm">↻ Refresh</button>
       </div>
       <div class="hmwrap" id="hmCont"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       <hr class="dv">
-      <div class="ctitle" style="margin-bottom:9px">Annualised Volatility</div>
+      <div class="ctitle" style="margin-bottom:9px">Annualised Volatility by Asset</div>
       <div id="volBars"></div>
     </div>
     <div class="col card">
@@ -836,6 +849,24 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
         <span style="font-size:9px;color:var(--t2)">Confidence × Horizon</span>
       </div>
       <div id="varSurf"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- OPTIONS GREEKS + STRESS SCENARIOS -->
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Portfolio Greeks (Live)</span>
+        <span style="font-size:8px;color:var(--t2)">Options + Delta exposure</span>
+      </div>
+      <div id="riskOptionsGreeks" class="empty">Loading…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Stress Scenarios</span>
+        <span style="font-size:8px;color:var(--t2)">Portfolio P&L under shock</span>
+      </div>
+      <div id="riskStressScenarios" class="empty">Loading…</div>
     </div>
   </div>
 
@@ -1280,12 +1311,29 @@ function norm(a) {
   const b=a[0]; return a.map(v=>((v-b)/Math.abs(b||1))*100);
 }
 
-async function api(url) {
+async function api(url, opts={}) {
   try {
-    const r = await fetch(BASE+url);
-    if (!r.ok) throw new Error(r.status);
+    const r = await fetch(BASE+url, opts);
+    if (r.status === 404) {
+      console.warn(`404 ${url} — restart the dashboard server to load new endpoints`);
+      return null;
+    }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch(e) { console.warn(url, e.message); return null; }
+}
+
+// Wrapper that shows a "loading" spinner in a container, then renders result
+async function apiInto(url, containerId, renderFn) {
+  const el_ = el(containerId);
+  if (el_) el_.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  const d = await api(url);
+  if (!d && el_) {
+    el_.innerHTML = '<div class="empty" style="color:var(--orange)">⚠ Endpoint unavailable — <strong>restart the server</strong> to activate.</div>';
+    return null;
+  }
+  if (el_) renderFn(d, el_);
+  return d;
 }
 
 function toast(msg, type='info') {
@@ -2362,18 +2410,59 @@ async function loadRisk() {
   const hmCont = el('hmCont');
   if (hm?.symbols?.length) {
     renderHeatmap(hm, hmCont);
-    const maxV = Math.max(...Object.values(hm.vols||{}), 1);
-    el('volBars').innerHTML = Object.entries(hm.vols||{})
+    const vols = hm.vols || {};
+    const maxV = Math.max(...Object.values(vols), 1);
+    const futSet = new Set(hm.futures_syms || []);
+    el('volBars').innerHTML = Object.entries(vols)
       .sort(([,a],[,b])=>b-a)
-      .map(([s,v]) => `
-        <div class="vbrow">
-          <span class="vbsym">${s.replace('USDT','')}</span>
+      .map(([s,v]) => {
+        const tag = futSet.has(s)
+          ? `<span style="font-size:7px;color:var(--purple);background:var(--purple-a);padding:1px 4px;border-radius:2px;margin-left:4px">FUT</span>`
+          : `<span style="font-size:7px;color:var(--cyan);background:var(--cyan-a);padding:1px 4px;border-radius:2px;margin-left:4px">SPOT</span>`;
+        return `<div class="vbrow">
+          <span class="vbsym">${s.replace('USDT','')}${tag}</span>
           <div class="vbtrk"><div class="vbfil" style="width:${(v/maxV)*100}%"></div></div>
           <span class="vbval">${fp(v)}</span>
-        </div>`).join('');
+        </div>`;
+      }).join('');
   } else {
     hmCont.innerHTML = '<div class="empty">No market data for heatmap</div>';
     el('volBars').innerHTML = '';
+  }
+
+  // Render options Greeks panel from heatmap data
+  const og = hm?.options_greeks || {};
+  const stressEl = el('riskStressScenarios');
+  const ogEl = el('riskOptionsGreeks');
+  if (ogEl && Object.keys(og).length) {
+    ogEl.innerHTML = infoRows([
+      ['Portfolio Δ',       f(og.portfolio_delta, 4),  csh(og.portfolio_delta)],
+      ['Target Δ',          f(og.target_delta, 4)],
+      ['Portfolio Θ',       f(og.portfolio_theta, 4),  csh(og.portfolio_theta)],
+      ['Target Θ',          f(og.target_theta, 4)],
+      ['Portfolio Vega',    f(og.portfolio_vega, 4),   csh(og.portfolio_vega)],
+      ['Target Vega',       f(og.target_vega, 4)],
+      ['VaR % Equity',      og.var_pct_equity != null ? fp(og.var_pct_equity * 100) : '—', 'var(--red)'],
+      ['CVaR % Equity',     og.cvar_pct_equity != null ? fp(og.cvar_pct_equity * 100) : '—', 'var(--red)'],
+      ['Stress % Equity',   og.stress_pct_equity != null ? fp(og.stress_pct_equity * 100) : '—', 'var(--orange)'],
+      ['Net Δ Exposure',    f(og.net_delta_exposure, 2)],
+      ['Gross Exposure',    og.gross_exposure != null ? fp(og.gross_exposure * 100) : '—'],
+      ['Risk Score',        f(og.risk_score, 3)],
+      ['Kill Switch',       og.kill_switch ? 'ACTIVE' : 'SAFE', og.kill_switch ? 'var(--red)' : 'var(--green)'],
+      ['Macro Regime',      og.macro_regime || '—'],
+      ['VIX',               f(og.vix, 2)],
+      ['Allowed Symbols',   og.allowed_symbols ?? '—'],
+    ]);
+  }
+  const ss = hm?.stress_scenarios || {};
+  if (stressEl && Object.keys(ss).length) {
+    stressEl.innerHTML = Object.entries(ss).map(([name, val]) => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:9px;color:var(--t1)">${name}</span>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${val<0?'var(--red)':'var(--green)'}">${fm(val)}</span>
+      </div>`).join('') || '<div class="empty">No stress data</div>';
+  } else if (stressEl) {
+    stressEl.innerHTML = '<div class="empty">No stress scenario data</div>';
   }
 
   if (surf?.levels?.length) renderVarSurface(surf);
@@ -2851,46 +2940,42 @@ el('refreshTrainJobs').addEventListener('click', loadTrainJobs);
    TAB: INTELLIGENCE (ML Alpha + Execution Quality + System Health)
 ════════════════════════════════════════════════════════════════════ */
 async function loadIntelligence() {
-  const [alpha, eq, sys] = await Promise.all([
-    api('/api/ml/alpha'),
-    api('/api/execution/quality'),
-    api('/api/system/health'),
-  ]);
-  renderAlphaSignals(alpha);
-  renderExecQuality(eq);
-  renderSysHealth(sys);
+  await apiInto('/api/ml/alpha',          'alphaGrid',      (d,_) => renderAlphaSignals(d));
+  await apiInto('/api/execution/quality', 'execQualGrid',   (d,_) => renderExecQuality(d));
+  await apiInto('/api/system/health',     'sysHealthBars',  (d,_) => renderSysHealth(d));
   loadRiskEvents();
 }
 
 function renderAlphaSignals(d) {
   const grid = el('alphaGrid');
-  if (!d) { grid.innerHTML = '<div class="empty">No ML alpha data</div>'; return; }
+  if (!d || !grid) return;
   const sigs = d.signals || [];
-  el('alphaBadge').textContent = `${sigs.length} signals`;
-  el('alphaBadge').className = 'bdg ' + (sigs.length > 0 ? 'bdg-ok' : 'bdg-info');
-  if (!sigs.length) { grid.innerHTML = '<div class="empty">No signals available — run ML training first</div>'; return; }
-  grid.innerHTML = sigs.slice(0, 48).map(s => {
-    const dir = (s.direction || '').toLowerCase();
-    const ret = s.predicted_return != null ? (s.predicted_return * 100).toFixed(2) : '—';
+  const badge = el('alphaBadge');
+  if (badge) { badge.textContent = `${sigs.length} signals`; badge.className = 'bdg ' + (sigs.length > 0 ? 'bdg-ok' : 'bdg-info'); }
+  if (!sigs.length) { grid.innerHTML = '<div class="empty">No signals yet — run ML training first</div>'; return; }
+  grid.innerHTML = sigs.slice(0, 60).map(s => {
+    const dir   = (s.direction || '').toLowerCase();
+    const bull  = dir === 'long', bear = dir === 'short';
+    const ret   = s.predicted_return != null ? (s.predicted_return * 100).toFixed(2) : '—';
     const score = s.alpha_score != null ? s.alpha_score.toFixed(4) : '—';
-    const pct = s.percentile != null ? s.percentile.toFixed(0) : '—';
-    const dispersion = s.model_dispersion != null ? (s.model_dispersion * 100).toFixed(1) : null;
-    return `<div class="alpha-card ${dir === 'long' ? 'bull' : dir === 'short' ? 'bear' : ''}">
+    const pct   = s.percentile  != null ? s.percentile.toFixed(0)  : '—';
+    const clr   = (s.alpha_score||0) > 0 ? 'var(--green)' : (s.alpha_score||0) < 0 ? 'var(--red)' : 'var(--t1)';
+    return `<div class="alpha-card ${bull?'bull':bear?'bear':''}">
       <div class="alpha-src">${s.source || 'ml'}</div>
       <div class="alpha-sym">${s.symbol || '—'}</div>
-      <div class="alpha-dir ${dir === 'long' ? 'bull' : dir === 'short' ? 'bear' : 'neutral'}">${dir || 'neutral'}</div>
-      <div class="alpha-score" style="color:${s.alpha_score > 0 ? 'var(--green)' : s.alpha_score < 0 ? 'var(--red)' : 'var(--t1)'}">${score}</div>
-      <div class="alpha-ret">pred: ${ret}% · p${pct}${dispersion ? ' · disp:' + dispersion + '%' : ''}</div>
+      <div class="alpha-dir ${bull?'bull':bear?'bear':'neutral'}">${dir || 'neutral'}</div>
+      <div class="alpha-score" style="color:${clr}">${score}</div>
+      <div class="alpha-ret">pred ${ret}% · p${pct}</div>
     </div>`;
   }).join('');
 }
 
 function renderExecQuality(q) {
   const grid = el('execQualGrid');
-  if (!q) { grid.innerHTML = '<div class="empty">No execution data</div>'; return; }
+  if (!q || !grid) return;
   const score = q.avg_execution_quality_score;
-  el('execQualBadge').textContent = score != null ? `Score: ${(score*100).toFixed(0)}%` : '—';
-  el('execQualBadge').className = 'bdg ' + (score >= 0.8 ? 'bdg-ok' : score >= 0.6 ? 'bdg-run' : 'bdg-err');
+  const badge = el('execQualBadge');
+  if (badge) { badge.textContent = score != null ? `Score: ${(score*100).toFixed(0)}%` : '—'; badge.className = 'bdg ' + (score >= 0.8 ? 'bdg-ok' : score >= 0.6 ? 'bdg-run' : 'bdg-err'); }
   const items = [
     ['Fill Rate',       q.fill_rate != null ? fp(q.fill_rate * 100) : '—'],
     ['Full Fill Rate',  q.full_fill_rate != null ? fp(q.full_fill_rate * 100) : '—'],
@@ -2916,10 +3001,11 @@ function renderExecQuality(q) {
 }
 
 function renderSysHealth(d) {
-  if (!d) { el('sysHealthBars').innerHTML = '<div class="empty">No system data</div>'; return; }
+  const barsEl = el('sysHealthBars');
+  if (!d || !barsEl) return;
   const p = d.pressure || 'unknown';
-  el('sysPressureBadge').textContent = p.toUpperCase();
-  el('sysPressureBadge').className = 'bdg ' + (p === 'normal' ? 'bdg-ok' : p === 'high' ? 'bdg-run' : 'bdg-err');
+  const badge = el('sysPressureBadge');
+  if (badge) { badge.textContent = p.toUpperCase(); badge.className = 'bdg ' + (p === 'normal' ? 'bdg-ok' : p === 'high' ? 'bdg-run' : 'bdg-err'); }
 
   const mkBar = (lbl, pct, color) => `
     <div class="sys-bar-row">

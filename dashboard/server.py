@@ -429,40 +429,85 @@ async def risk_snapshot():
 @app.get("/api/risk/heatmap")
 async def risk_heatmap():
     """
-    Return correlation matrix and per-symbol volatility for heatmap display.
-    Uses recent Binance/Alpaca kline data.
+    Multi-asset correlation matrix: futures + spot symbols.
+    Also returns options Greeks from the live risk snapshot.
     """
     try:
         from backtester.data_loader import load_multi
         end   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=32)).strftime("%Y-%m-%d")
-        symbols = cfg.futures_symbols[:8]
-        data  = load_multi(symbols, "1h", start, end)
+        start = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y-%m-%d")
 
-        rets_dict = {}
-        vols      = {}
+        # Combine futures + spot for broader cross-asset view (cap at 12 total)
+        fut_syms  = list(cfg.futures_symbols[:6])
+        spot_syms = [s for s in getattr(cfg, "spot_symbols", []) if s not in fut_syms][:4]
+        symbols   = fut_syms + spot_syms
+
+        data = load_multi(symbols, "1h", start, end)
+
+        rets_dict: dict[str, np.ndarray] = {}
+        vols:      dict[str, float]      = {}
         for sym, df in data.items():
-            if df.empty:
+            if df is None or df.empty:
                 continue
             c  = df["close"].astype(float).values
-            lr = np.diff(np.log(c))
+            if len(c) < 20:
+                continue
+            lr = np.diff(np.log(c + 1e-12))
             rets_dict[sym] = lr
             vols[sym] = round(float(lr.std() * np.sqrt(8760) * 100), 2)
 
-        # Correlation matrix on common length
-        syms = list(rets_dict.keys())
-        min_len = min(len(v) for v in rets_dict.values())
-        if min_len < 10:
-            return {"symbols": [], "corr": [], "vols": {}}
+        syms    = list(rets_dict.keys())
+        min_len = min((len(v) for v in rets_dict.values()), default=0)
+        corr: list = []
+        if min_len >= 10 and len(syms) >= 2:
+            mat  = np.column_stack([rets_dict[s][-min_len:] for s in syms])
+            corr = np.corrcoef(mat.T).round(3).tolist()
 
-        mat  = np.column_stack([rets_dict[s][-min_len:] for s in syms])
-        corr = np.corrcoef(mat.T).round(3).tolist()
+        # Pull options Greeks from live risk snapshot
+        risk_snap  = read_json(RISK_SNAPSHOT_PATH, {})
+        guard_snap = read_json(PORTFOLIO_GUARD_PATH, {})
+        eng = guard_snap.get("portfolio_risk_engine") or risk_snap.get("portfolio_risk_engine") or {}
+        top_underlyings = eng.get("top_underlyings", [])
 
-        return {"symbols": syms, "corr": corr, "vols": vols}
+        options_greeks = {
+            "portfolio_delta":   safe_float(risk_snap.get("portfolio_delta")),
+            "portfolio_theta":   safe_float(risk_snap.get("portfolio_theta")),
+            "portfolio_vega":    safe_float(risk_snap.get("portfolio_vega")),
+            "portfolio_gamma":   safe_float(risk_snap.get("portfolio_gamma")),
+            "target_delta":      safe_float(risk_snap.get("target_delta")),
+            "target_theta":      safe_float(risk_snap.get("target_theta")),
+            "target_vega":       safe_float(risk_snap.get("target_vega")),
+            "var_pct_equity":    safe_float(eng.get("var_pct_equity")),
+            "cvar_pct_equity":   safe_float(eng.get("cvar_pct_equity")),
+            "stress_pct_equity": safe_float(eng.get("stress_pct_equity")),
+            "gross_exposure":    safe_float(eng.get("gross_exposure_pct_equity")),
+            "net_delta_exposure":safe_float(eng.get("net_delta_exposure")),
+            "risk_score":        safe_float(eng.get("risk_score")),
+            "kill_switch":       bool(eng.get("kill_switch_active")),
+            "breaches":          list(eng.get("breaches") or []),
+            "top_underlyings":   top_underlyings,
+            "macro_regime":      risk_snap.get("macro_regime"),
+            "vix":               safe_float(risk_snap.get("vix")),
+            "movement_bias":     risk_snap.get("movement_bias"),
+            "allowed_symbols":   safe_int(risk_snap.get("allowed_symbols")),
+        }
+
+        # Stress scenarios from guard
+        stress_losses = eng.get("stress_losses", {})
+
+        return {
+            "symbols":        syms,
+            "corr":           corr,
+            "vols":           vols,
+            "futures_syms":   fut_syms,
+            "spot_syms":      spot_syms,
+            "options_greeks": options_greeks,
+            "stress_scenarios": stress_losses,
+        }
 
     except Exception as exc:
         log.warning("Heatmap error: %s", exc)
-        return {"symbols": [], "corr": [], "vols": {}}
+        return {"symbols": [], "corr": [], "vols": {}, "options_greeks": {}, "stress_scenarios": {}}
 
 
 @app.get("/api/risk/var_surface")
