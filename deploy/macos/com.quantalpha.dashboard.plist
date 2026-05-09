@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+  <key>Label</key>
+  <string>com.quantalpha.dashboard</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/devanshmahajan/Projects/.venv/bin/python</string>
+    <string>-m</string>
+    <string>scripts.run_dashboard</string>
+    <string>--port</string>
+    <string>8080</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+    <key>PYTHONDONTWRITEBYTECODE</key>
+    <string>1</string>
+  </dict>
+
+  <!-- Restart immediately if it exits for any reason -->
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- 10s cooldown between crash restarts so we don't spin-loop on a fatal import error -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <!-- Start when this plist is loaded (i.e. on login / launchctl load) -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies/logs/dashboard.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies/logs/dashboard.log</string>
+
+  <!-- Prevent zombie accumulation if it exits cleanly -->
+  <key>AbandonProcessGroup</key>
+  <false/>
+
+</dict>
+</plist>

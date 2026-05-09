@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+  <key>Label</key>
+  <string>com.quantalpha.watchdog</string>
+
+  <!--
+    Runs ensure_automate_stack.sh every 2 minutes.
+    That script checks if the trading stack and dashboard are alive;
+    it restarts them if not. Acts as a belt-and-suspenders on top of
+    com.quantalpha.dashboard's KeepAlive.
+  -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies/scripts/ensure_automate_stack.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies</string>
+
+  <!-- Fire every 120 seconds -->
+  <key>StartInterval</key>
+  <integer>120</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies/logs/automate-stack-watchdog.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/devanshmahajan/Projects/Quantitative-Options_Strategies/logs/automate-stack-watchdog.log</string>
+
+</dict>
+</plist>

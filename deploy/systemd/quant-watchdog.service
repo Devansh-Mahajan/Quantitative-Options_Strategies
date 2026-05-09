@@ -1,0 +1,17 @@
+[Unit]
+Description=QuantAlpha Watchdog (health-check run)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=__USER__
+Group=__USER__
+WorkingDirectory=__DIR__
+
+EnvironmentFile=-__DIR__/.env
+
+ExecStart=/usr/bin/bash __DIR__/scripts/ensure_automate_stack.sh
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quant-watchdog

@@ -1,5 +1,5 @@
 [Unit]
-Description=QuantAlpha Trading Dashboard (FastAPI/uvicorn on port 8080)
+Description=QuantAlpha Trading Bot (automation controller)
 After=network-online.target
 Wants=network-online.target
 
@@ -11,20 +11,19 @@ WorkingDirectory=__DIR__
 
 EnvironmentFile=-__DIR__/.env
 Environment=PYTHONUNBUFFERED=1
-Environment=PYTHONDONTWRITEBYTECODE=1
 
-ExecStart=__PYTHON__ -m scripts.run_dashboard --port 8080
+ExecStart=__PYTHON__ -m scripts.automation_controller --restart-on-failure
 
 Restart=always
-RestartSec=10
+RestartSec=15
 StartLimitIntervalSec=0
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=quant-dashboard
+SyslogIdentifier=quant-bot
 
 LimitNOFILE=65536
-MemoryMax=1G
+MemoryMax=2G
 
 [Install]
 WantedBy=multi-user.target
