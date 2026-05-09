@@ -1,0 +1,35 @@
+[Unit]
+Description=Quant Trading Dashboard (FastAPI/uvicorn on port 8080)
+Documentation=https://github.com/devanshmahajan/Quantitative-Options_Strategies
+After=network-online.target quant-bot.service
+Wants=network-online.target
+# Start after the trader so bot_state.db is initialised
+After=quant-bot.service
+
+[Service]
+Type=simple
+User=CHANGE_ME
+Group=CHANGE_ME
+WorkingDirectory=/opt/quant-bot          # ← set to your deployment path
+
+# Use the virtualenv Python that has fastapi + uvicorn installed
+ExecStart=/opt/quant-bot/.venv/bin/run-dashboard
+# Alternative if not installed as entry-point:
+# ExecStart=/opt/quant-bot/.venv/bin/python -m dashboard.server
+
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quant-dashboard
+
+# Resource limits
+LimitNOFILE=65536
+# Cap memory in case of leak during long runs
+MemoryMax=512M
+
+# Networking — bind to 0.0.0.0:8080 (LAN-reachable via VPN)
+# No PrivateNetwork so the process can reach the broker API
+
+[Install]
+WantedBy=multi-user.target

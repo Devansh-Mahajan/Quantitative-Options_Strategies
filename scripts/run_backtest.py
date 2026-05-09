@@ -33,6 +33,13 @@ log = logging.getLogger("run_backtest")
 AVAILABLE_STRATEGIES = [
     "momentum", "mean_reversion", "funding_arb", "basis_trade",
     "pairs_arb", "options_vol", "order_flow", "breakout",
+    # Elite strategies (batch 1)
+    "statistical_arb", "cross_sectional_momentum",
+    "liquidation_cascade", "carry_portfolio",
+    # Research-paper strategies (Kakushadze, Bloch, Cartea et al.)
+    "tsmom", "quant_factors", "contrarian_oi", "rma_strategy",
+    "vpin_flow", "knn_predictor", "pivot_sr", "hp_trend",
+    "momentum_carry_combo",
 ]
 
 DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
@@ -49,6 +56,20 @@ def _build_strategies(names: list[str]):
     from strategies.order_flow import OrderFlowStrategy
     from strategies.breakout import BreakoutStrategy
 
+    from strategies.statistical_arb import StatisticalArbStrategy
+    from strategies.cross_sectional_momentum import CrossSectionalMomentumStrategy
+    from strategies.liquidation_cascade import LiquidationCascadeStrategy
+    from strategies.carry_portfolio import CarryPortfolioStrategy
+    from strategies.tsmom import TSMomentumStrategy
+    from strategies.quant_factors import QuantFactorsStrategy
+    from strategies.contrarian_oi import ContrarianOIStrategy
+    from strategies.rma_strategy import RMAStrategy
+    from strategies.vpin_flow import VPINFlowStrategy
+    from strategies.knn_predictor import KNNPredictorStrategy
+    from strategies.pivot_sr import PivotSRStrategy
+    from strategies.hp_trend import HPTrendStrategy
+    from strategies.momentum_carry_combo import MomentumCarryComboStrategy
+
     factory_map = {
         "momentum": MomentumStrategy,
         "mean_reversion": MeanReversionStrategy,
@@ -58,6 +79,19 @@ def _build_strategies(names: list[str]):
         "options_vol": OptionsVolStrategy,
         "order_flow": OrderFlowStrategy,
         "breakout": BreakoutStrategy,
+        "statistical_arb": StatisticalArbStrategy,
+        "cross_sectional_momentum": CrossSectionalMomentumStrategy,
+        "liquidation_cascade": LiquidationCascadeStrategy,
+        "carry_portfolio": CarryPortfolioStrategy,
+        "tsmom": TSMomentumStrategy,
+        "quant_factors": QuantFactorsStrategy,
+        "contrarian_oi": ContrarianOIStrategy,
+        "rma_strategy": RMAStrategy,
+        "vpin_flow": VPINFlowStrategy,
+        "knn_predictor": KNNPredictorStrategy,
+        "pivot_sr": PivotSRStrategy,
+        "hp_trend": HPTrendStrategy,
+        "momentum_carry_combo": MomentumCarryComboStrategy,
     }
     result = []
     for name in names:

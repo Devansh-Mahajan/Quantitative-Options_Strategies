@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QUANT/ALPHA — Elite Trading Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#080b10;--bg1:#0d1117;--bg2:#131923;--bg3:#1a2234;--bg4:#212d42;
+  --border:#1e2b42;--border2:#2a3b5a;
+  --t0:#dde6f5;--t1:#8fa3bf;--t2:#4d6080;
+  --green:#00d68f;--green-a:rgba(0,214,143,.16);
+  --red:#f7525a;--red-a:rgba(247,82,90,.16);
+  --yellow:#f5c518;--yellow-a:rgba(245,197,24,.16);
+  --blue:#3b82f6;--blue-a:rgba(59,130,246,.16);
+  --purple:#a855f7;--purple-a:rgba(168,85,247,.16);
+  --cyan:#22d3ee;--cyan-a:rgba(34,211,238,.16);
+  --orange:#fb923c;--orange-a:rgba(251,146,60,.16);
+  --accent:#4f8ef7;--accent-a:rgba(79,142,247,.14);
+  --r:8px;--rs:4px;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'SF Mono','Monaco','Inconsolata','Fira Code',monospace;
+}
+html{font-family:var(--sans);background:var(--bg0);color:var(--t0);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HEADER ────────────────────────────────────────────────────────── */
+.hdr{
+  background:linear-gradient(180deg,var(--bg1) 0%,rgba(13,17,23,.97) 100%);
+  border-bottom:1px solid var(--border);height:52px;padding:0 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:300;backdrop-filter:blur(14px);
+}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.logo{font-family:var(--mono);font-size:14px;font-weight:800;letter-spacing:.18em;
+  color:var(--accent);text-shadow:0 0 20px rgba(79,142,247,.4)}
+.logo span{color:var(--t2)}
+.broker-badge{font-family:var(--mono);font-size:9px;font-weight:800;
+  letter-spacing:.14em;padding:3px 8px;border-radius:3px;text-transform:uppercase}
+.broker-badge.binance{background:#f3a009;color:#000}
+.broker-badge.alpaca{background:#3ddc97;color:#000}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--t2);flex-shrink:0}
+.sdot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2.5s infinite}
+.slbl{font-size:10px;color:var(--t2);font-family:var(--mono)}
+.hdr-r{display:flex;align-items:center;gap:18px}
+.hticker{font-size:11px;color:var(--t1);white-space:nowrap}
+.hticker strong{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green)}
+.hclock{font-family:var(--mono);font-size:10px;color:var(--t2);white-space:nowrap}
+
+/* ── NAV ───────────────────────────────────────────────────────────── */
+.nav{background:var(--bg1);border-bottom:1px solid var(--border);
+  display:flex;padding:0 22px;overflow-x:auto;gap:0}
+.nav::-webkit-scrollbar{height:0}
+.ntab{padding:13px 18px;font-size:10px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--t2);cursor:pointer;
+  border-bottom:2px solid transparent;border:none;background:none;
+  white-space:nowrap;transition:color .15s,border-color .15s}
+.ntab:hover{color:var(--t1)}
+.ntab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── LAYOUT ────────────────────────────────────────────────────────── */
+.content{padding:18px 22px;max-width:1800px;margin:0 auto}
+.tab{display:none}.tab.active{display:block}
+.row{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.col{flex:1;min-width:0}.col2{flex:2;min-width:0}.col3{flex:3;min-width:0}
+@media(max-width:960px){.row{flex-direction:column}}
+
+/* ── CARDS ─────────────────────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ctitle{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
+
+/* ── METRIC CARDS ──────────────────────────────────────────────────── */
+.mcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px;margin-bottom:14px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;position:relative;overflow:hidden}
+.mc::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.02) 0%,transparent 55%);pointer-events:none}
+.mc-bar{position:absolute;top:0;left:0;right:0;height:2px}
+.mc-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);margin-bottom:4px}
+.mc-val{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--t0);line-height:1}
+.mc-sub{font-size:9px;color:var(--t2);margin-top:3px}
+.pos{color:var(--green)!important}.neg{color:var(--red)!important}
+
+/* ── CHART CONTAINERS ──────────────────────────────────────────────── */
+.cw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.chdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.cttl{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
+.cctrls{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.wbtn{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 9px;
+  border-radius:var(--rs);border:1px solid var(--border2);
+  background:transparent;color:var(--t2);cursor:pointer;transition:all .15s}
+.wbtn:hover{color:var(--t1);border-color:var(--t2)}
+.wbtn.active{background:var(--accent-a);border-color:var(--accent);color:var(--accent)}
+.bench-sel{font-size:10px;padding:3px 8px;border-radius:var(--rs);
+  border:1px solid var(--border2);background:var(--bg3);color:var(--t1)}
+
+/* ── BUTTONS ───────────────────────────────────────────────────────── */
+.btn{font-size:10px;font-weight:800;padding:7px 14px;border-radius:var(--rs);
+  border:none;cursor:pointer;display:inline-flex;align-items:center;
+  gap:5px;letter-spacing:.05em;transition:all .15s;white-space:nowrap}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:#6aa3f8}
+.btn-p:disabled{opacity:.45;cursor:not-allowed}
+.btn-g{background:transparent;border:1px solid var(--border2);color:var(--t1)}
+.btn-g:hover{border-color:var(--t2);color:var(--t0)}
+.btn-ok{background:var(--green);color:#000}.btn-ok:hover{background:#00eaa0}
+.btn-sm{font-size:9px;padding:4px 9px}
+
+/* ── TABLES ────────────────────────────────────────────────────────── */
+.tw{overflow-x:auto;border-radius:var(--rs)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t2);padding:7px 10px;background:var(--bg3);
+  border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--bg3)}
+tbody td{padding:6px 10px;color:var(--t1);font-family:var(--mono);font-size:10px;white-space:nowrap}
+td.tlong{color:var(--green);font-weight:700}td.tshort{color:var(--red);font-weight:700}
+
+/* ── FORMS ─────────────────────────────────────────────────────────── */
+.fg{margin-bottom:10px}
+.fl{display:block;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t2);margin-bottom:4px}
+.fi,.fs{width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);color:var(--t0);font-family:var(--mono);
+  font-size:11px;padding:6px 9px;outline:none;transition:border-color .15s}
+.fi:focus,.fs:focus{border-color:var(--accent);background:var(--bg4)}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:600px){.fg2,.fg3{grid-template-columns:1fr}}
+
+/* ── STRATEGY PARAM CARDS ──────────────────────────────────────────── */
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
+.sp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.sp-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sp-name{font-size:11px;font-weight:700;color:var(--t0);text-transform:capitalize;letter-spacing:.03em}
+.pr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.pl{font-size:9px;color:var(--t2);font-family:var(--mono);flex:1}
+.pi{width:78px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+  color:var(--t0);font-family:var(--mono);font-size:10px;padding:3px 7px;text-align:right;outline:none;
+  transition:border-color .15s}
+.pi:focus{border-color:var(--accent)}
+
+/* ── BACKTEST CARDS ────────────────────────────────────────────────── */
+.bt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;margin-bottom:12px}
+.bt-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px;cursor:pointer;transition:border-color .15s,background .15s}
+.bt-card:hover{border-color:var(--border2)}
+.bt-card.sel{border-color:var(--accent);background:var(--bg3)}
+.bt-id{font-family:var(--mono);font-size:9px;color:var(--t2);margin-bottom:5px}
+.bt-strats{font-size:9px;color:var(--t1);margin-bottom:7px}
+.bt-ms{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.bt-ml{font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.bt-mv{font-family:var(--mono);font-size:13px;font-weight:700}
+
+/* ── LOG VIEWER ────────────────────────────────────────────────────── */
+.lv{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);
+  height:470px;overflow-y:auto;padding:9px;font-family:var(--mono);font-size:10px;line-height:1.65}
+.ll{white-space:pre-wrap;word-break:break-all;padding:0}
+.ll.ERROR{color:var(--red)}.ll.WARN{color:var(--yellow)}
+.ll.INFO{color:#7ec8ff}.ll.DEBUG{color:var(--t2)}
+.lctrls{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.lsrch{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);
+  color:var(--t0);font-family:var(--mono);font-size:10px;padding:4px 9px;outline:none}
+.lsrch:focus{border-color:var(--accent)}
+.togbtn{font-size:9px;padding:3px 9px;border-radius:var(--rs);
+  border:1px solid var(--border2);background:transparent;color:var(--t2);cursor:pointer}
+.togbtn.on{background:var(--accent-a);border-color:var(--accent);color:var(--accent)}
+
+/* ── HEATMAP ───────────────────────────────────────────────────────── */
+.hmwrap{overflow-x:auto}
+.hmtbl{border-collapse:collapse;font-family:var(--mono)}
+.hmtbl th{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);
+  font-size:8px;color:var(--t2);padding:4px 2px;background:transparent;
+  border-bottom:none;letter-spacing:.04em}
+.hmtbl td{width:44px;height:36px;text-align:center;font-size:9px;font-weight:600}
+.hmrl{padding:3px 8px 3px 0!important;font-size:9px;color:var(--t2);text-align:right;white-space:nowrap;width:auto}
+
+/* ── BADGES ────────────────────────────────────────────────────────── */
+.bdg{font-size:8px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.bdg-ok{background:var(--green-a);color:var(--green);border:1px solid var(--green)}
+.bdg-err{background:var(--red-a);color:var(--red);border:1px solid var(--red)}
+.bdg-warn{background:var(--yellow-a);color:var(--yellow);border:1px solid var(--yellow)}
+.bdg-info{background:var(--blue-a);color:var(--blue);border:1px solid var(--blue)}
+.bdg-run{background:var(--orange-a);color:var(--orange);border:1px solid var(--orange)}
+
+/* ── MISC ──────────────────────────────────────────────────────────── */
+.alert{padding:8px 12px;border-radius:var(--rs);font-size:10px;margin-bottom:10px;
+  display:flex;align-items:flex-start;gap:7px;line-height:1.5}
+.alert-info{background:var(--blue-a);border:1px solid var(--blue);color:#93c5fd}
+.alert-ok{background:var(--green-a);border:1px solid var(--green);color:var(--green)}
+.alert-err{background:var(--red-a);border:1px solid var(--red);color:var(--red)}
+.spinner{width:13px;height:13px;border:2px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;
+  display:inline-block;flex-shrink:0}
+.loading{display:flex;align-items:center;gap:9px;padding:28px;color:var(--t2);font-size:11px;justify-content:center}
+.empty{padding:28px;text-align:center;color:var(--t2);font-size:11px}
+hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
+.stitle{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--t2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.irow{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.toast{position:fixed;top:62px;right:18px;z-index:9999;
+  padding:9px 15px;border-radius:var(--rs);font-size:11px;font-weight:700;
+  animation:slideIn .2s ease;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.toast-ok{background:var(--bg3);border:1px solid var(--green);color:var(--green)}
+.toast-err{background:var(--bg3);border:1px solid var(--red);color:var(--red)}
+.toast-info{background:var(--bg3);border:1px solid var(--blue);color:#93c5fd}
+
+/* ── VOL BARS ──────────────────────────────────────────────────────── */
+.vbrow{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.vbsym{font-size:9px;color:var(--t2);font-family:var(--mono);width:68px;flex-shrink:0}
+.vbtrk{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.vbfil{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.vbval{font-size:9px;font-family:var(--mono);color:var(--t1);width:44px;text-align:right;flex-shrink:0}
+
+/* ── FORWARD TEST MODEL SELECTOR ───────────────────────────────────── */
+.ft-mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:7px;margin-bottom:12px}
+.ft-mc{background:var(--bg3);border:2px solid var(--border);border-radius:var(--rs);
+  padding:9px;cursor:pointer;transition:all .15s;text-align:center}
+.ft-mc:hover{border-color:var(--border2)}
+.ft-mc.sel{border-color:var(--accent);background:var(--accent-a)}
+.ft-mn{font-size:10px;font-weight:700;color:var(--t0);margin-bottom:2px}
+.ft-md{font-size:8px;color:var(--t2)}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ════════════════════════════════════ -->
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="logo">QUANT<span>/</span>ALPHA</div>
+    <div id="brokerBadge" class="broker-badge binance">BINANCE</div>
+    <div id="sdot" class="sdot"></div>
+    <span id="slbl" class="slbl">Connecting…</span>
+  </div>
+  <div class="hdr-r">
+    <div class="hticker">
+      Portfolio:&nbsp;<strong id="hEq">—</strong>&nbsp;&nbsp;
+      Daily P&L:&nbsp;<span id="hPnl" style="font-family:var(--mono);font-size:12px;color:var(--t1)">—</span>
+    </div>
+    <div class="hclock" id="hClock">—</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════ NAV ═══════════════════════════════════════ -->
+<nav class="nav">
+  <button class="ntab active" data-tab="live">Live Performance</button>
+  <button class="ntab" data-tab="backtests">Backtests</button>
+  <button class="ntab" data-tab="params">Strategy Params</button>
+  <button class="ntab" data-tab="risk">Risk Analysis</button>
+  <button class="ntab" data-tab="ftest">Forward Test</button>
+  <button class="ntab" data-tab="logs">Live Logs</button>
+</nav>
+
+<!-- ═══════════════════════ CONTENT ═══════════════════════════════════ -->
+<main class="content">
+
+<!-- ───────────────────── LIVE PERFORMANCE ──────────────────────────── -->
+<div id="tab-live" class="tab active">
+  <div class="mcs" id="liveMcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Equity</div><div class="mc-val" id="mv-eq">—</div><div class="mc-sub">Portfolio value</div></div>
+    <div class="mc"><div class="mc-bar" id="mbar-ret" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Total Return</div><div class="mc-val" id="mv-ret">—</div><div class="mc-sub">Since inception</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Sharpe Ratio</div><div class="mc-val" id="mv-sh">—</div><div class="mc-sub">Annualised</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">Sortino</div><div class="mc-val" id="mv-so">—</div><div class="mc-sub">Downside adj.</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Calmar</div><div class="mc-val" id="mv-ca">—</div><div class="mc-sub">Return / Max DD</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Max Drawdown</div><div class="mc-val neg" id="mv-dd">—</div><div class="mc-sub">Peak-to-trough</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Ann. Volatility</div><div class="mc-val" id="mv-vl">—</div><div class="mc-sub">Annualised σ</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">Ann. Return</div><div class="mc-val" id="mv-ar">—</div><div class="mc-sub">CAGR</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Peak Equity</div><div class="mc-val" id="mv-pk">—</div><div class="mc-sub">All-time high</div></div>
+  </div>
+
+  <div class="cw">
+    <div class="chdr">
+      <span class="cttl">Portfolio vs Benchmark — Normalised %</span>
+      <div class="cctrls">
+        <select class="bench-sel" id="benchSel">
+          <option value="BTCUSDT">BTC / USD</option>
+          <option value="ETHUSDT">ETH / USD</option>
+          <option value="SOLUSDT">SOL / USD</option>
+          <option value="BNBUSDT">BNB / USD</option>
+          <option value="XRPUSDT">XRP / USD</option>
+          <option value="ADAUSDT">ADA / USD</option>
+        </select>
+        <button class="wbtn" data-w="1d">1D</button>
+        <button class="wbtn active" data-w="1w">1W</button>
+        <button class="wbtn" data-w="1m">1M</button>
+        <button class="wbtn" data-w="3m">3M</button>
+        <button class="wbtn" data-w="1y">1Y</button>
+        <button class="wbtn" data-w="max">MAX</button>
+      </div>
+    </div>
+    <canvas id="eqChart" height="270"></canvas>
+  </div>
+
+  <div class="cw">
+    <div class="chdr"><span class="cttl">Drawdown from Peak</span></div>
+    <canvas id="ddChart" height="110"></canvas>
+  </div>
+
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">Open Positions</span>
+        <span id="posCount" class="bdg bdg-info">0</span>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th>
+            <th>Mark</th><th>Unr. PnL</th><th>Strategy</th><th>Opened</th></tr></thead>
+          <tbody id="posBody"><tr><td colspan="8" class="empty">No open positions</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Trade Log Export</span></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="tradeS"></div>
+        <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="tradeE"></div>
+      </div>
+      <button class="btn btn-p" id="dlBtn" style="width:100%;margin-bottom:10px">↓ Download CSV</button>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px">Recent Trades</div>
+      <div class="tw" style="max-height:220px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th><th>PnL</th><th>Strategy</th></tr></thead>
+          <tbody id="recentBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /live -->
+
+<!-- ───────────────────── BACKTESTS ─────────────────────────────────── -->
+<div id="tab-backtests" class="tab">
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Run New Backtest</span>
+        <span id="btBadge" class="bdg bdg-run" style="display:none">RUNNING</span>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="bt-s" value="2024-01-01"></div>
+        <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="bt-e"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Interval</label>
+          <select class="fs" id="bt-int">
+            <option value="1h" selected>1h</option><option value="4h">4h</option>
+            <option value="1d">1d</option><option value="15m">15m</option>
+          </select></div>
+        <div class="fg"><label class="fl">Initial Capital ($)</label><input type="number" class="fi" id="bt-cap" value="10000"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Strategies (ctrl+click)</label>
+        <select class="fs" id="bt-strats" multiple size="7" style="font-size:10px">
+          <option value="momentum" selected>Momentum</option>
+          <option value="mean_reversion">Mean Reversion</option>
+          <option value="breakout">Breakout</option>
+          <option value="statistical_arb">Statistical Arb</option>
+          <option value="cross_sectional_momentum">Cross-Sectional Momentum</option>
+          <option value="tsmom">TSMOM (Moskowitz)</option>
+          <option value="quant_factors">Quant Factors</option>
+          <option value="contrarian_oi">Contrarian OI</option>
+          <option value="rma_strategy">RMA Strategy</option>
+          <option value="vpin_flow">VPIN Flow</option>
+          <option value="knn_predictor">KNN Predictor</option>
+          <option value="pivot_sr">Pivot S/R</option>
+          <option value="hp_trend">HP Trend Filter</option>
+          <option value="carry_portfolio">Carry Portfolio</option>
+          <option value="momentum_carry_combo">Momentum+Carry Combo</option>
+          <option value="order_flow">Order Flow</option>
+          <option value="liquidation_cascade">Liquidation Cascade</option>
+        </select>
+      </div>
+      <div class="fg3">
+        <div class="fg"><label class="fl">Stop Loss %</label><input type="number" class="fi" id="bt-sl" value="5" step="0.5"></div>
+        <div class="fg"><label class="fl">Take Profit %</label><input type="number" class="fi" id="bt-tp" value="10" step="0.5"></div>
+        <div class="fg"><label class="fl">Max Positions</label><input type="number" class="fi" id="bt-mp" value="8"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Lookback Bars</label><input type="number" class="fi" id="bt-lb" value="60"></div>
+        <div class="fg"><label class="fl">Max Risk/Trade %</label><input type="number" class="fi" id="bt-rk" value="2" step="0.1"></div>
+      </div>
+      <div class="fg"><label class="fl">Symbols (blank = use config)</label>
+        <input type="text" class="fi" id="bt-sym" placeholder="BTCUSDT,ETHUSDT,SOLUSDT"></div>
+      <div id="btProg" style="display:none;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
+          <div class="spinner"></div><span id="btProgLbl">Submitting…</span>
+        </div>
+      </div>
+      <button class="btn btn-p" id="runBt" style="width:100%">▶ Run Backtest</button>
+    </div>
+
+    <div class="col2">
+      <div class="stitle">Recent Reports</div>
+      <div id="btCards" class="bt-grid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      <div id="btDetail" style="display:none">
+        <div class="stitle">Detail View</div>
+        <div class="mcs" id="btDMcs" style="margin-bottom:12px"></div>
+        <div class="cw"><div class="chdr"><span class="cttl">Equity Curve</span></div>
+          <canvas id="btEqChart" height="200"></canvas></div>
+        <div class="stitle" style="margin-top:12px">Per-Strategy Breakdown</div>
+        <div id="btPS" class="bt-grid"></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /backtests -->
+
+<!-- ───────────────────── STRATEGY PARAMS ───────────────────────────── -->
+<div id="tab-params" class="tab">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr"><span class="ctitle">Engine Parameters (Global)</span></div>
+    <div class="fg3" id="epCont"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+  </div>
+  <div class="irow">
+    <div class="stitle" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Strategy Parameters</div>
+    <button class="btn btn-g btn-sm" id="resetAllBtn">↺ Reset All to Defaults</button>
+  </div>
+  <div class="sp-grid" id="spCards"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+</div><!-- /params -->
+
+<!-- ───────────────────── RISK ANALYSIS ─────────────────────────────── -->
+<div id="tab-risk" class="tab">
+  <div class="mcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">VaR 95%</div><div class="mc-val neg" id="rv-v95">—</div><div class="mc-sub">1-day worst loss</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">VaR 99%</div><div class="mc-val neg" id="rv-v99">—</div><div class="mc-sub">1-day extreme</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">CVaR 95%</div><div class="mc-val neg" id="rv-c95">—</div><div class="mc-sub">Exp. shortfall</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">CVaR 99%</div><div class="mc-val neg" id="rv-c99">—</div><div class="mc-sub">Exp. shortfall</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Current DD</div><div class="mc-val" id="rv-cdd">—</div><div class="mc-sub">From ATH</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Max DD</div><div class="mc-val neg" id="rv-mdd">—</div><div class="mc-sub">All-time worst</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">Rolling Vol</div><div class="mc-val" id="rv-rvol">—</div><div class="mc-sub">30-day ann.</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Asset Correlation Heatmap</span>
+        <button class="btn btn-g btn-sm" id="refreshHm">↻ Refresh</button>
+      </div>
+      <div class="hmwrap" id="hmCont"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:9px">Annualised Volatility</div>
+      <div id="volBars"></div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">VaR / CVaR Surface</span>
+        <span style="font-size:9px;color:var(--t2)">Confidence × Horizon</span>
+      </div>
+      <div id="varSurf"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="cw">
+    <div class="chdr"><span class="cttl">Rolling Drawdown Series (Last 720 Bars)</span></div>
+    <canvas id="riskDdChart" height="160"></canvas>
+  </div>
+</div><!-- /risk -->
+
+<!-- ───────────────────── FORWARD TEST ──────────────────────────────── -->
+<div id="tab-ftest" class="tab">
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Bloch Futuretesting Framework</span>
+        <span id="ftBadge" class="bdg bdg-run" style="display:none">RUNNING</span>
+      </div>
+      <div class="alert alert-info">
+        Calibrates a stochastic model to historical data, generates N synthetic price paths, and runs the full strategy engine on each — producing a <strong>distribution of outcomes</strong> rather than a single-path backtest result.
+      </div>
+      <div class="fg"><label class="fl">Stochastic Model</label>
+        <div class="ft-mgrid" id="ftMGrid">
+          <div class="ft-mc sel" data-model="gbm"><div class="ft-mn">GBM</div><div class="ft-md">Brownian Motion</div></div>
+          <div class="ft-mc" data-model="gbm_jumps"><div class="ft-mn">GBM + Jumps</div><div class="ft-md">Poisson jump-diffusion</div></div>
+          <div class="ft-mc" data-model="ou"><div class="ft-mn">Ornstein-U.</div><div class="ft-md">Mean-reverting log-price</div></div>
+          <div class="ft-mc" data-model="heston"><div class="ft-mn">Heston</div><div class="ft-md">Stochastic volatility</div></div>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Symbol (calibration source)</label>
+        <select class="fs" id="ft-sym">
+          <option value="BTCUSDT" selected>BTCUSDT</option>
+          <option value="ETHUSDT">ETHUSDT</option>
+          <option value="SOLUSDT">SOLUSDT</option>
+          <option value="BNBUSDT">BNBUSDT</option>
+        </select></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Cal. Start</label><input type="date" class="fi" id="ft-cs" value="2023-01-01"></div>
+        <div class="fg"><label class="fl">Cal. End</label><input type="date" class="fi" id="ft-ce"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Synthetic Paths (N)</label><input type="number" class="fi" id="ft-np" value="50" min="10" max="500"></div>
+        <div class="fg"><label class="fl">Horizon Bars</label><input type="number" class="fi" id="ft-hz" value="500" min="100"></div>
+      </div>
+      <div class="fg"><label class="fl">Strategy to Test</label>
+        <select class="fs" id="ft-strat">
+          <option value="momentum">Momentum</option><option value="mean_reversion">Mean Reversion</option>
+          <option value="breakout">Breakout</option><option value="tsmom">TSMOM</option>
+          <option value="quant_factors">Quant Factors</option><option value="rma_strategy">RMA Strategy</option>
+          <option value="knn_predictor">KNN Predictor</option><option value="vpin_flow">VPIN Flow</option>
+          <option value="pivot_sr">Pivot S/R</option><option value="statistical_arb">Statistical Arb</option>
+        </select></div>
+      <div id="ftProg" style="display:none;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
+          <div class="spinner"></div><span id="ftProgLbl">Running forward test…</span>
+        </div>
+      </div>
+      <button class="btn btn-p" id="runFt" style="width:100%">▶ Run Forward Test</button>
+    </div>
+
+    <div class="col2">
+      <div class="stitle">Forward Test Results</div>
+      <div id="ftRes"><div class="empty">Configure and run a forward test to see the distribution of outcomes.</div></div>
+      <div id="ftChartsArea" style="display:none">
+        <div class="mcs" id="ftMcs" style="margin-bottom:12px"></div>
+        <div class="cw"><div class="chdr"><span class="cttl">Return Distribution Across Paths</span></div>
+          <canvas id="ftDistChart" height="200"></canvas></div>
+        <div class="cw"><div class="chdr"><span class="cttl">Sharpe Distribution</span></div>
+          <canvas id="ftShChart" height="155"></canvas></div>
+        <div class="cw"><div class="chdr"><span class="cttl">Max Drawdown Distribution</span></div>
+          <canvas id="ftDdChart" height="155"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /ftest -->
+
+<!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
+<div id="tab-logs" class="tab">
+  <div class="row">
+    <div class="col">
+      <div class="irow">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="ctitle">Trader Service</span>
+          <div id="traderDot" class="sdot"></div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="togbtn on" id="traderToggle">Auto-scroll</button>
+          <button class="btn btn-g btn-sm" id="clearTrader">Clear</button>
+        </div>
+      </div>
+      <div class="lctrls">
+        <input type="text" class="lsrch" id="traderSrch" placeholder="Filter…">
+      </div>
+      <div class="lv" id="traderLog"></div>
+    </div>
+    <div class="col">
+      <div class="irow">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="ctitle">Risk Manager Service</span>
+          <div id="riskDot" class="sdot"></div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="togbtn on" id="riskToggle">Auto-scroll</button>
+          <button class="btn btn-g btn-sm" id="clearRisk">Clear</button>
+        </div>
+      </div>
+      <div class="lctrls">
+        <input type="text" class="lsrch" id="riskSrch" placeholder="Filter…">
+      </div>
+      <div class="lv" id="riskLog"></div>
+    </div>
+  </div>
+</div><!-- /logs -->
+
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIG & STATE
+════════════════════════════════════════════════════════════════════ */
+const BASE = window.location.origin;
+const WSB  = BASE.replace(/^http/, 'ws');
+
+let W = '1w', BENCH = 'BTCUSDT';
+let CHARTS = {};
+let liveWs, traderWs, riskWs;
+let trSc = true, rkSc = true, trF = '', rkF = '';
+let stratP = {}, engP = {};
+let activeFtModel = 'gbm';
+let tabDone = {};
+
+Chart.defaults.color = '#4d6080';
+Chart.defaults.borderColor = '#1e2b42';
+Chart.defaults.font.family = "'SF Mono','Monaco','Fira Code',monospace";
+Chart.defaults.font.size = 10;
+
+/* ═══════════════════════════════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════════════════════════════════ */
+const el = id => document.getElementById(id);
+
+function f(v, d=2, s='') { return (v==null||isNaN(v)) ? '—' : Number(v).toFixed(d)+s; }
+function fp(v, d=2) { return f(v, d, '%'); }
+function fm(v) {
+  if (v==null||isNaN(v)) return '—';
+  return '$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function csh(v) { return v>0?'var(--green)':v<0?'var(--red)':'var(--t1)'; }
+function cx(v)  { return v>0?'pos':v<0?'neg':''; }
+function norm(a) {
+  if(!a.length) return a;
+  const b=a[0]; return a.map(v=>((v-b)/Math.abs(b||1))*100);
+}
+
+async function api(url) {
+  try {
+    const r = await fetch(BASE+url);
+    if (!r.ok) throw new Error(r.status);
+    return await r.json();
+  } catch(e) { console.warn(url, e.message); return null; }
+}
+
+function toast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+function initDates() {
+  const now = new Date(), w7 = new Date(now-7*864e5);
+  el('tradeE').valueAsDate = now; el('tradeS').valueAsDate = w7;
+  el('bt-e').valueAsDate = now; el('ft-ce').valueAsDate = now;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════════════════════════════════ */
+(function clock() {
+  el('hClock').textContent = new Date().toUTCString().slice(0,-3)+'UTC';
+  setTimeout(clock, 1000);
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHART HELPERS
+════════════════════════════════════════════════════════════════════ */
+function destroyChart(id) { if(CHARTS[id]){ CHARTS[id].destroy(); delete CHARTS[id]; } }
+
+function grad(canvasId, hex, alpha=0.22) {
+  const cv = el(canvasId);
+  if (!cv) return 'transparent';
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0,0,0,(cv.clientHeight||cv.height||280));
+  const r=parseInt(hex.slice(1,3),16), gr=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  g.addColorStop(0, `rgba(${r},${gr},${b},${alpha})`);
+  g.addColorStop(1, `rgba(${r},${gr},${b},0)`);
+  return g;
+}
+
+function lineChart(id, datasets, opts={}) {
+  destroyChart(id);
+  const ctx = el(id)?.getContext('2d');
+  if (!ctx) return;
+  CHARTS[id] = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: {
+          display: opts.legend !== false,
+          labels: { color:'#8fa3bf', font:{size:9}, boxWidth:10, padding:10 }
+        },
+        tooltip: {
+          backgroundColor:'#1a2234', borderColor:'#1e2b42', borderWidth:1,
+          titleColor:'#dde6f5', bodyColor:'#8fa3bf',
+          callbacks: { label: ctx => {
+            const v = ctx.parsed.y;
+            if (opts.dollar) return ` ${ctx.dataset.label}: ${fm(v)}`;
+            return ` ${ctx.dataset.label}: ${v>=0?'+':''}${f(v,2)}%`;
+          }},
+        },
+      },
+      scales: {
+        x: {
+          type: 'time', time:{ tooltipFormat:'MMM d HH:mm' },
+          grid:{ color:'#1a2234' }, ticks:{ color:'#4d6080', maxTicksLimit:8 },
+        },
+        y: {
+          grid:{ color:'#1a2234' },
+          ticks:{ color:'#4d6080',
+            callback: opts.dollar ? v=>fm(v) : v=>(v>=0?'+':'')+f(v,1)+'%'
+          },
+          ...(opts.yMin!==undefined ? {min:opts.yMin} : {}),
+        },
+      },
+      animation:{ duration:350 },
+    }
+  });
+}
+
+function barChart(id, labels, data, color='#4f8ef7') {
+  destroyChart(id);
+  const ctx = el(id)?.getContext('2d');
+  if (!ctx) return;
+  CHARTS[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets:[{
+      data, backgroundColor:color+'99', borderColor:color, borderWidth:1, borderRadius:2,
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ grid:{color:'#1a2234'}, ticks:{color:'#4d6080'} },
+        y:{ grid:{color:'#1a2234'}, ticks:{color:'#4d6080'} },
+      },
+      animation:{ duration:300 },
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HEALTH
+════════════════════════════════════════════════════════════════════ */
+async function checkHealth() {
+  const d = await api('/api/health');
+  if (!d) return;
+  el('sdot').className = 'sdot live';
+  el('slbl').textContent = `Online · ${d.broker}`;
+  const b = el('brokerBadge');
+  b.className = `broker-badge ${(d.broker||'').toLowerCase()}`;
+  b.textContent = (d.broker||'—').toUpperCase();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: LIVE
+════════════════════════════════════════════════════════════════════ */
+async function loadLive() {
+  const [eq, bm, pnl, pos, trades] = await Promise.all([
+    api(`/api/equity?window=${W}`),
+    api(`/api/benchmark?symbol=${BENCH}&window=${W}`),
+    api('/api/daily_pnl'),
+    api('/api/positions'),
+    api('/api/trades?limit=25'),
+  ]);
+
+  if (eq?.metrics) {
+    const m = eq.metrics;
+    el('mv-eq').textContent = fm(m.current_equity);
+    el('hEq').textContent   = fm(m.current_equity);
+    el('mv-pk').textContent = fm(m.peak_equity);
+
+    const rv = el('mv-ret');
+    rv.textContent = fp(m.total_return_pct);
+    rv.className   = 'mc-val ' + cx(m.total_return_pct);
+    el('mbar-ret').style.background = m.total_return_pct >= 0 ? 'var(--green)' : 'var(--red)';
+
+    el('mv-sh').textContent  = f(m.sharpe, 3);
+    el('mv-so').textContent  = f(m.sortino, 3);
+    el('mv-ca').textContent  = f(m.calmar, 3);
+    el('mv-dd').textContent  = fp(m.max_drawdown_pct);
+    el('mv-vl').textContent  = fp(m.volatility_pct);
+    el('mv-ar').textContent  = fp(m.annualised_return_pct);
+  }
+
+  if (pnl && eq?.metrics) {
+    const d = (pnl.daily_pnl||0) * (eq.metrics.current_equity||1);
+    const hp = el('hPnl');
+    hp.textContent = fm(d);
+    hp.style.color = d >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  if (eq?.equity?.length) {
+    const eqN = norm(eq.equity);
+    const datasets = [{
+      label: 'Portfolio',
+      data: eq.timestamps.map((t,i) => ({x:new Date(t),y:eqN[i]})),
+      borderColor:'#4f8ef7', borderWidth:2,
+      backgroundColor: grad('eqChart','#4f8ef7'),
+      fill:true, pointRadius:0, tension:.3,
+    }];
+    if (bm?.prices?.length) {
+      const bmN = norm(bm.prices);
+      datasets.push({
+        label: BENCH.replace('USDT',''),
+        data: bm.timestamps.map((t,i) => ({x:new Date(t),y:bmN[i]})),
+        borderColor:'#f5c518', borderWidth:1.5,
+        backgroundColor: grad('eqChart','#f5c518',0.08),
+        fill:true, pointRadius:0, tension:.3, borderDash:[5,3],
+      });
+    }
+    lineChart('eqChart', datasets);
+  }
+
+  if (eq?.drawdown?.length) {
+    const ddV = eq.drawdown.map(v => v*100);
+    lineChart('ddChart', [{
+      label:'Drawdown',
+      data: eq.timestamps.map((t,i) => ({x:new Date(t),y:ddV[i]})),
+      borderColor:'#f7525a', borderWidth:1.5,
+      backgroundColor: grad('ddChart','#f7525a',0.32),
+      fill:true, pointRadius:0, tension:.2,
+    }], {legend:false});
+  }
+
+  if (pos?.positions) {
+    el('posCount').textContent = pos.count;
+    const tb = el('posBody');
+    tb.innerHTML = pos.positions.length ? pos.positions.map(p => {
+      const pv = p.unrealized_pnl||0;
+      return `<tr>
+        <td style="color:var(--t0)">${p.symbol||'—'}</td>
+        <td class="${p.side==='LONG'?'tlong':'tshort'}">${p.side||'—'}</td>
+        <td>${f(p.quantity,4)}</td>
+        <td>${fm(p.entry_price)}</td>
+        <td>${fm(p.mark_price||p.current_price)}</td>
+        <td class="${cx(pv)}">${fm(pv)}</td>
+        <td style="color:var(--t2)">${p.strategy||'—'}</td>
+        <td style="font-size:9px;color:var(--t2)">${p.opened_at?new Date(p.opened_at).toLocaleString():'—'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty">No open positions</td></tr>';
+  }
+
+  if (trades?.trades) {
+    const tb = el('recentBody');
+    tb.innerHTML = trades.trades.length ? trades.trades.map(t => {
+      const pv = t.pnl||t.realized_pnl||0;
+      return `<tr>
+        <td style="font-size:9px">${t.ts?new Date(t.ts).toLocaleString():'—'}</td>
+        <td style="color:var(--t0)">${t.symbol||'—'}</td>
+        <td class="${['BUY','LONG'].includes(t.side)?'tlong':'tshort'}">${t.side||'—'}</td>
+        <td>${fm(t.price)}</td>
+        <td class="${cx(pv)}">${fm(pv)}</td>
+        <td style="color:var(--t2)">${t.strategy||'—'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No recent trades</td></tr>';
+  }
+}
+
+document.querySelectorAll('.wbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    W = btn.dataset.w;
+    document.querySelectorAll('.wbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadLive();
+  });
+});
+el('benchSel').addEventListener('change', e => { BENCH = e.target.value; loadLive(); });
+el('dlBtn').addEventListener('click', () => {
+  const s = el('tradeS').value, e2 = el('tradeE').value;
+  window.open(`${BASE}/api/trades?start=${s}T00:00:00Z&end=${e2}T23:59:59Z&download=true`);
+});
+
+function connectLiveWs() {
+  if (liveWs) try { liveWs.close(); } catch{}
+  liveWs = new WebSocket(`${WSB}/ws/live`);
+  liveWs.onmessage = ev => {
+    try {
+      const d = JSON.parse(ev.data);
+      if (d.type === 'equity_tick') {
+        el('hEq').textContent = fm(d.equity);
+        el('mv-eq').textContent = fm(d.equity);
+      }
+    } catch{}
+  };
+  liveWs.onclose = () => setTimeout(connectLiveWs, 4000);
+  liveWs.onerror = () => liveWs.close();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: BACKTESTS
+════════════════════════════════════════════════════════════════════ */
+async function loadBacktests() {
+  const d = await api('/api/backtest/list');
+  const c = el('btCards');
+  if (!d?.reports?.length) {
+    c.innerHTML = '<div class="empty">No reports found — run a backtest.</div>'; return;
+  }
+  c.innerHTML = d.reports.map(r => `
+    <div class="bt-card" data-rid="${r.run_id}">
+      <div class="bt-id">${r.run_id}</div>
+      <div class="bt-strats">${(r.strategies||[]).slice(0,4).join(', ')}</div>
+      <div class="bt-ms">
+        <div><div class="bt-ml">Return</div><div class="bt-mv" style="color:${csh(r.total_return_pct)}">${fp(r.total_return_pct)}</div></div>
+        <div><div class="bt-ml">Sharpe</div><div class="bt-mv" style="color:${csh(r.sharpe)}">${f(r.sharpe,3)}</div></div>
+        <div><div class="bt-ml">Max DD</div><div class="bt-mv" style="color:var(--red)">${fp(r.max_drawdown_pct)}</div></div>
+        <div><div class="bt-ml">Trades</div><div class="bt-mv" style="color:var(--t0)">${r.trades??'—'}</div></div>
+      </div>
+    </div>`).join('');
+  c.querySelectorAll('.bt-card').forEach(card => {
+    card.addEventListener('click', () => {
+      c.querySelectorAll('.bt-card').forEach(x => x.classList.remove('sel'));
+      card.classList.add('sel');
+      loadBtDetail(card.dataset.rid);
+    });
+  });
+}
+
+async function loadBtDetail(rid) {
+  const d = await api(`/api/backtest/${rid}`);
+  if (!d) { toast('Failed to load report', 'err'); return; }
+  el('btDetail').style.display = 'block';
+
+  const m = d.metrics||{};
+  const metricsSpec = [
+    ['Return', fp(m.total_return_pct), csh(m.total_return_pct)],
+    ['Sharpe', f(m.sharpe,3), csh(m.sharpe)],
+    ['Sortino', f(m.sortino,3), csh(m.sortino)],
+    ['Max DD', fp(m.max_drawdown_pct), 'var(--red)'],
+    ['Win Rate', fp(m.win_rate_pct), 'var(--cyan)'],
+    ['Profit Factor', f(m.profit_factor,2), 'var(--t0)'],
+    ['Trades', m.total_trades??'—', 'var(--t0)'],
+    ['Volatility', fp(m.volatility_pct), 'var(--yellow)'],
+  ];
+  el('btDMcs').innerHTML = metricsSpec.map(([lbl,val,col]) => `
+    <div class="mc"><div class="mc-bar" style="background:${col}"></div>
+      <div class="mc-lbl">${lbl}</div>
+      <div class="mc-val" style="color:${col}">${val}</div></div>`).join('');
+
+  const eq = d.equity_curve||d.equity||[], ts = d.timestamps||[];
+  if (eq.length && ts.length) {
+    lineChart('btEqChart', [{
+      label:'Equity',
+      data: ts.map((t,i) => ({x:new Date(t),y:parseFloat(eq[i]||0)})),
+      borderColor:'#00d68f', borderWidth:2,
+      backgroundColor:'rgba(0,214,143,.1)',
+      fill:true, pointRadius:0, tension:.3,
+    }], {dollar:true, legend:false});
+  }
+
+  const ps = d.per_strategy_metrics||{};
+  el('btPS').innerHTML = Object.entries(ps).map(([s,m]) => `
+    <div class="bt-card">
+      <div class="bt-id">${s}</div>
+      <div class="bt-ms">
+        <div><div class="bt-ml">Return</div><div class="bt-mv" style="color:${csh(m.total_return_pct)}">${fp(m.total_return_pct)}</div></div>
+        <div><div class="bt-ml">Sharpe</div><div class="bt-mv" style="color:${csh(m.sharpe)}">${f(m.sharpe,3)}</div></div>
+        <div><div class="bt-ml">Win Rate</div><div class="bt-mv" style="color:var(--cyan)">${fp(m.win_rate_pct)}</div></div>
+        <div><div class="bt-ml">Prof. Factor</div><div class="bt-mv" style="color:var(--t0)">${f(m.profit_factor,2)}</div></div>
+      </div>
+    </div>`).join('') || '<div class="empty">No per-strategy data</div>';
+}
+
+el('runBt').addEventListener('click', async () => {
+  const strats = Array.from(el('bt-strats').selectedOptions).map(o => o.value);
+  const symsRaw = el('bt-sym').value.trim();
+  const body = {
+    start: el('bt-s').value, end: el('bt-e').value||undefined,
+    interval: el('bt-int').value,
+    capital: parseFloat(el('bt-cap').value),
+    strategies: strats,
+    symbols: symsRaw ? symsRaw.split(',').map(s=>s.trim()).filter(Boolean) : undefined,
+    stop_loss_pct:      parseFloat(el('bt-sl').value)/100,
+    take_profit_pct:    parseFloat(el('bt-tp').value)/100,
+    max_open_positions: parseInt(el('bt-mp').value),
+    lookback:           parseInt(el('bt-lb').value),
+    max_risk_per_trade: parseFloat(el('bt-rk').value)/100,
+  };
+  const r = await fetch(`${BASE}/api/backtest/run`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+  });
+  if (!r.ok) { toast('Failed to submit','err'); return; }
+  const job = await r.json();
+  el('btProg').style.display='block';
+  el('btBadge').style.display='';
+  el('runBt').disabled = true;
+  pollBt(job.job_id);
+});
+
+async function pollBt(jid) {
+  const j = await api(`/api/backtest/jobs/${jid}`);
+  if (!j) { setTimeout(()=>pollBt(jid),2000); return; }
+  el('btProgLbl').textContent = `Job ${jid}: ${j.status}`;
+  if (j.status === 'DONE') {
+    el('btProg').style.display='none'; el('btBadge').style.display='none';
+    el('runBt').disabled = false; toast('Backtest complete!','ok'); loadBacktests();
+  } else if (j.status === 'ERROR') {
+    el('btProg').style.display='none'; el('btBadge').style.display='none';
+    el('runBt').disabled = false; toast(`Error: ${j.error}`,'err');
+  } else { setTimeout(()=>pollBt(jid),2000); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: STRATEGY PARAMS
+════════════════════════════════════════════════════════════════════ */
+async function loadParams() {
+  const [cur, def] = await Promise.all([
+    api('/api/strategies/params'),
+    api('/api/strategies/defaults'),
+  ]);
+  if (!cur) return;
+  stratP = cur.strategies||{};
+  engP   = cur.engine||{};
+  renderEng(); renderStrats();
+}
+
+function renderEng() {
+  el('epCont').innerHTML = Object.entries(engP).map(([k,v]) => `
+    <div class="fg"><label class="fl">${k.replace(/_/g,' ')}</label>
+      <input type="number" class="fi" id="ep-${k}" value="${v}" step="any"></div>`).join('');
+}
+
+function renderStrats() {
+  const c = el('spCards');
+  if (!Object.keys(stratP).length) { c.innerHTML='<div class="empty">No params</div>'; return; }
+  c.innerHTML = Object.entries(stratP).map(([name,params]) => `
+    <div class="sp-card">
+      <div class="sp-hdr">
+        <span class="sp-name">${name.replace(/_/g,' ')}</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-g btn-sm" onclick="saveP('${name}')">Save</button>
+          <button class="btn btn-g btn-sm" style="color:var(--red)" onclick="resetP('${name}')">↺</button>
+        </div>
+      </div>
+      ${Object.entries(params).map(([p,v]) => `
+        <div class="pr"><span class="pl">${p}</span>
+          <input type="number" class="pi" id="sp-${name}-${p}" value="${v}" step="any"></div>`).join('')}
+    </div>`).join('');
+}
+
+async function saveP(name) {
+  const params={};
+  Object.keys(stratP[name]).forEach(k => {
+    const i=el(`sp-${name}-${k}`); if(i) params[k]=parseFloat(i.value);
+  });
+  const r = await fetch(`${BASE}/api/strategies/${name}/params`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+  if (r.ok) { stratP[name]=params; toast(`${name} saved`,'ok'); }
+  else toast('Save failed','err');
+}
+
+async function resetP(name) {
+  const r = await fetch(`${BASE}/api/strategies/${name}/reset`,{method:'POST'});
+  if (r.ok) { await loadParams(); toast(`${name} reset`,'info'); }
+  else toast('Reset failed','err');
+}
+
+el('resetAllBtn').addEventListener('click', async () => {
+  if (!confirm('Reset ALL strategy parameters to defaults?')) return;
+  await Promise.all(Object.keys(stratP).map(n => fetch(`${BASE}/api/strategies/${n}/reset`,{method:'POST'})));
+  await loadParams(); toast('All strategies reset','info');
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: RISK
+════════════════════════════════════════════════════════════════════ */
+async function loadRisk() {
+  const [snap, hm, surf] = await Promise.all([
+    api('/api/risk/snapshot'),
+    api('/api/risk/heatmap'),
+    api('/api/risk/var_surface'),
+  ]);
+
+  if (snap) {
+    el('rv-v95').textContent  = fp(snap.var_95_pct);
+    el('rv-v99').textContent  = fp(snap.var_99_pct);
+    el('rv-c95').textContent  = fp(snap.cvar_95_pct);
+    el('rv-c99').textContent  = fp(snap.cvar_99_pct);
+    el('rv-cdd').textContent  = fp(snap.current_drawdown_pct);
+    el('rv-mdd').textContent  = fp(snap.max_drawdown_pct);
+    el('rv-rvol').textContent = fp(snap.rolling_vol_pct);
+
+    if (snap.drawdown_series?.length) {
+      const n = snap.drawdown_series.length;
+      const labels = Array.from({length:n},(_,i)=>new Date(Date.now()-(n-i)*36e5));
+      lineChart('riskDdChart', [{
+        label:'Drawdown %',
+        data: labels.map((t,i)=>({x:t,y:snap.drawdown_series[i]})),
+        borderColor:'#f7525a', borderWidth:1.5,
+        backgroundColor:'rgba(247,82,90,.22)',
+        fill:true, pointRadius:0, tension:.2,
+      }], {legend:false});
+    }
+  }
+
+  const hmCont = el('hmCont');
+  if (hm?.symbols?.length) {
+    renderHeatmap(hm, hmCont);
+    const maxV = Math.max(...Object.values(hm.vols||{}), 1);
+    el('volBars').innerHTML = Object.entries(hm.vols||{})
+      .sort(([,a],[,b])=>b-a)
+      .map(([s,v]) => `
+        <div class="vbrow">
+          <span class="vbsym">${s.replace('USDT','')}</span>
+          <div class="vbtrk"><div class="vbfil" style="width:${(v/maxV)*100}%"></div></div>
+          <span class="vbval">${fp(v)}</span>
+        </div>`).join('');
+  } else {
+    hmCont.innerHTML = '<div class="empty">No market data for heatmap</div>';
+    el('volBars').innerHTML = '';
+  }
+
+  if (surf?.levels?.length) renderVarSurface(surf);
+  else el('varSurf').innerHTML = '<div class="empty">Not enough data for VaR surface</div>';
+}
+
+function renderHeatmap({symbols, corr}, container) {
+  const srt = s => s.replace('USDT','');
+  let h = `<table class="hmtbl"><thead><tr><th></th>`;
+  symbols.forEach(s => { h += `<th>${srt(s)}</th>`; });
+  h += `</tr></thead><tbody>`;
+  corr.forEach((row, ri) => {
+    h += `<tr><td class="hmrl">${srt(symbols[ri])}</td>`;
+    row.forEach((val, ci) => {
+      const v = parseFloat(val), a = Math.abs(v);
+      const bg = ri===ci
+        ? 'rgba(79,142,247,.55)'
+        : v>0 ? `rgba(0,214,143,${a*.82})` : `rgba(247,82,90,${a*.82})`;
+      const tc = a>0.38 ? 'rgba(255,255,255,.92)' : 'rgba(77,96,128,.9)';
+      h += `<td style="background:${bg};color:${tc}">${v.toFixed(2)}</td>`;
+    });
+    h += `</tr>`;
+  });
+  h += `</tbody></table>`;
+  container.innerHTML = h;
+}
+
+function renderVarSurface({levels, horizons, var:vg, cvar:cg}) {
+  const cellStyle = v => v<-5?'color:var(--red)':v<-2?'color:var(--orange)':v<-1?'color:var(--yellow)':'color:var(--t1)';
+  const mkTbl = (title, grid) => `
+    <div style="font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin-bottom:4px">${title}</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+      <thead><tr>
+        <th style="text-align:left;padding:5px 7px;font-size:8px;background:var(--bg3);color:var(--t2)">Horizon</th>
+        ${levels.map(l=>`<th style="padding:5px 7px;font-size:8px;background:var(--bg3);color:var(--t2);text-align:center">${l}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${horizons.map((h,ri) => `<tr>
+          <td style="padding:5px 7px;font-size:10px;color:var(--t1);font-family:var(--mono)">${h}</td>
+          ${grid[ri].map(v=>`<td style="padding:5px 7px;font-size:10px;font-family:var(--mono);text-align:center;${cellStyle(v)}">${f(v,3)}%</td>`).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  el('varSurf').innerHTML = mkTbl('Value at Risk (%)', vg) + mkTbl('CVaR / Expected Shortfall (%)', cg);
+}
+
+el('refreshHm').addEventListener('click', loadRisk);
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: FORWARD TEST
+════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.ft-mc').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.ft-mc').forEach(c => c.classList.remove('sel'));
+    card.classList.add('sel');
+    activeFtModel = card.dataset.model;
+  });
+});
+
+el('runFt').addEventListener('click', async () => {
+  const body = {
+    symbol:    el('ft-sym').value,
+    model:     activeFtModel,
+    cal_start: el('ft-cs').value,
+    cal_end:   el('ft-ce').value||undefined,
+    n_paths:   parseInt(el('ft-np').value),
+    horizon:   parseInt(el('ft-hz').value),
+    strategy:  el('ft-strat').value,
+    interval:  '1h',
+  };
+  const r = await fetch(`${BASE}/api/forwardtest/run`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+  });
+  if (!r.ok) {
+    toast('Forward test endpoint unavailable — ensure the full stack is running','err'); return;
+  }
+  const job = await r.json();
+  el('ftProg').style.display='block';
+  el('ftBadge').style.display='';
+  el('runFt').disabled = true;
+  el('ftRes').innerHTML = '';
+  pollFt(job.job_id);
+});
+
+async function pollFt(jid) {
+  const j = await api(`/api/forwardtest/jobs/${jid}`);
+  if (!j) { setTimeout(()=>pollFt(jid),3000); return; }
+  el('ftProgLbl').textContent = `Job ${jid}: ${j.status}`;
+  if (j.status === 'DONE') {
+    el('ftProg').style.display='none'; el('ftBadge').style.display='none';
+    el('runFt').disabled = false; renderFtResults(j.result); toast('Forward test complete!','ok');
+  } else if (j.status === 'ERROR') {
+    el('ftProg').style.display='none'; el('ftBadge').style.display='none';
+    el('runFt').disabled = false; toast(`Error: ${j.error}`,'err');
+  } else { setTimeout(()=>pollFt(jid),2500); }
+}
+
+function renderFtResults(res) {
+  if (!res) { el('ftRes').innerHTML='<div class="empty">No results</div>'; return; }
+  el('ftChartsArea').style.display='block';
+  const spec = [
+    ['Paths Tested', res.n_paths, 'var(--t0)'],
+    ['Median Return', fp(res.median_return_pct), csh(res.median_return_pct)],
+    ['P10 Return', fp(res.p10_return_pct), 'var(--red)'],
+    ['P90 Return', fp(res.p90_return_pct), 'var(--green)'],
+    ['Median Sharpe', f(res.median_sharpe,3), csh(res.median_sharpe)],
+    ['P10 Sharpe', f(res.p10_sharpe,3), 'var(--red)'],
+    ['P90 Sharpe', f(res.p90_sharpe,3), 'var(--green)'],
+    ['% Profitable', fp(res.profitable_pct), 'var(--cyan)'],
+    ['Median Max DD', fp(res.median_maxdd_pct), 'var(--orange)'],
+  ];
+  el('ftMcs').innerHTML = spec.map(([l,v,c]) => `
+    <div class="mc"><div class="mc-bar" style="background:${c}"></div>
+      <div class="mc-lbl">${l}</div><div class="mc-val" style="color:${c}">${v}</div></div>`).join('');
+  if (res.return_hist)
+    barChart('ftDistChart', res.return_hist.bins.map(b=>fp(b)), res.return_hist.counts, '#4f8ef7');
+  if (res.sharpe_hist)
+    barChart('ftShChart', res.sharpe_hist.bins.map(b=>f(b,2)), res.sharpe_hist.counts, '#00d68f');
+  if (res.maxdd_hist)
+    barChart('ftDdChart', res.maxdd_hist.bins.map(b=>fp(b)), res.maxdd_hist.counts, '#f7525a');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB: LOGS
+════════════════════════════════════════════════════════════════════ */
+function initLogs() {
+  function mkWs(url, logEl, dot, getF, getS) {
+    const ws = new WebSocket(url);
+    dot.className = 'sdot';
+    ws.onopen = () => { dot.className = 'sdot live'; };
+    ws.onmessage = ev => {
+      let d; try { d=JSON.parse(ev.data); } catch { d={line:ev.data,level:'DEBUG'}; }
+      const line = d.line||'', lv = d.level||'INFO';
+      if (getF() && !line.toLowerCase().includes(getF().toLowerCase())) return;
+      const div = document.createElement('div');
+      div.className = `ll ${lv}`; div.textContent = line;
+      logEl.appendChild(div);
+      while (logEl.children.length > 3000) logEl.removeChild(logEl.firstChild);
+      if (getS()) logEl.scrollTop = logEl.scrollHeight;
+    };
+    ws.onclose = () => {
+      dot.className = 'sdot';
+      setTimeout(() => mkWs(url, logEl, dot, getF, getS), 3500);
+    };
+    ws.onerror = () => ws.close();
+    return ws;
+  }
+
+  traderWs = mkWs(`${WSB}/ws/logs/trader`, el('traderLog'), el('traderDot'), ()=>trF, ()=>trSc);
+  riskWs   = mkWs(`${WSB}/ws/logs/risk`,   el('riskLog'),   el('riskDot'),   ()=>rkF, ()=>rkSc);
+
+  function togScroll(btnId, get, set) {
+    el(btnId).addEventListener('click', () => {
+      set(!get()); el(btnId).classList.toggle('on', !get());
+    });
+  }
+  // Note: togScroll toggling logic — after set, get() returns new value
+  el('traderToggle').addEventListener('click', () => {
+    trSc = !trSc; el('traderToggle').classList.toggle('on', trSc);
+  });
+  el('riskToggle').addEventListener('click', () => {
+    rkSc = !rkSc; el('riskToggle').classList.toggle('on', rkSc);
+  });
+  el('clearTrader').addEventListener('click', () => el('traderLog').innerHTML='');
+  el('clearRisk').addEventListener('click', () => el('riskLog').innerHTML='');
+
+  function filterLog(srchId, logId, setF) {
+    el(srchId).addEventListener('input', e => {
+      setF(e.target.value);
+      Array.from(el(logId).children).forEach(d => {
+        d.style.display = (!e.target.value || d.textContent.toLowerCase().includes(e.target.value.toLowerCase())) ? '' : 'none';
+      });
+    });
+  }
+  filterLog('traderSrch', 'traderLog', v => { trF=v; });
+  filterLog('riskSrch',   'riskLog',   v => { rkF=v; });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB NAVIGATION
+════════════════════════════════════════════════════════════════════ */
+const TAB_INIT = {
+  live:      () => { loadLive(); connectLiveWs(); },
+  backtests: () => { loadBacktests(); },
+  params:    () => { loadParams(); },
+  risk:      () => { loadRisk(); },
+  ftest:     () => { /* no auto-load */ },
+  logs:      () => { initLogs(); },
+};
+
+document.querySelectorAll('.ntab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.ntab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab').forEach(p => p.classList.remove('active'));
+    el(`tab-${name}`).classList.add('active');
+    if (!tabDone[name]) { tabDone[name]=true; TAB_INIT[name]?.(); }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════════════════════════════ */
+(async function boot() {
+  initDates();
+  await checkHealth();
+  // Live tab is already active by default
+  tabDone['live'] = true;
+  TAB_INIT.live();
+
+  setInterval(() => {
+    if (el('tab-live').classList.contains('active')) loadLive();
+  }, 60000);
+  setInterval(() => {
+    if (el('tab-risk').classList.contains('active')) loadRisk();
+  }, 300000);
+  setInterval(checkHealth, 30000);
+})();
+</script>
+</body>
+</html>
