@@ -45,6 +45,11 @@ from dashboard.analytics import (
     instantiate_strategy,
     permutation_grid,
     supported_strategy_params,
+    RISK_SNAPSHOT_PATH,
+    PORTFOLIO_GUARD_PATH,
+    read_json,
+    safe_float,
+    safe_int,
 )
 
 log = logging.getLogger("dashboard.server")
@@ -92,6 +97,17 @@ ENGINE_DEFAULTS = {
 _backtest_jobs: dict[str, dict] = {}
 _ft_jobs:       dict[str, dict] = {}
 _perm_jobs:     dict[str, dict] = {}
+_train_jobs:    dict[str, dict] = {}
+
+TRAINING_SCRIPTS: dict[str, dict] = {
+    "weekend_training":        {"label": "Weekend Pipeline",       "module": "scripts.weekend_training",             "est_min": 60,  "desc": "Full retrain — data download, all models, validation, deploy"},
+    "train_hmm":               {"label": "HMM Macro Regime",       "module": "scripts.train_hmm",                    "est_min": 5,   "desc": "Retrain Hidden Markov Model for macro-regime detection"},
+    "train_mega_brain":        {"label": "Mega Brain GPU",         "module": "scripts.train_mega_brain",             "est_min": 90,  "desc": "Full GPU-accelerated ensemble (wraps mega_gpu_training)"},
+    "train_gpu_brain":         {"label": "GPU Brain",              "module": "scripts.train_gpu_brain",              "est_min": 45,  "desc": "GPU model training pipeline"},
+    "train_correlation_alpha": {"label": "Correlation Alpha",      "module": "scripts.train_correlation_alpha",      "est_min": 15,  "desc": "Cross-asset correlation alpha models"},
+    "train_regime_movement":   {"label": "Regime + Movement",      "module": "scripts.train_regime_movement_models", "est_min": 20,  "desc": "Regime detection and movement prediction retraining"},
+    "weekend_recalibration":   {"label": "Weekend Recalibration",  "module": "scripts.weekend_recalibration",        "est_min": 30,  "desc": "Recalibrate all live strategy parameters from fresh data"},
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -485,6 +501,97 @@ async def var_surface():
         "horizons": [f"{h}d" for h in horizons],
         "var":      var_grid,
         "cvar":     cvar_grid,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST — Risk Engine (live portfolio guard snapshot)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/risk/engine")
+async def risk_engine_snapshot():
+    """
+    Return the live risk engine state directly from runtime files.
+    No heavy computation — just JSON reads. Safe to poll every 60s.
+    """
+    risk_snap  = read_json(RISK_SNAPSHOT_PATH, {})
+    guard_snap = read_json(PORTFOLIO_GUARD_PATH, {})
+    eng = (guard_snap.get("portfolio_risk_engine") or risk_snap.get("portfolio_risk_engine") or {})
+    return {
+        "generated_at_utc":            datetime.now(timezone.utc).isoformat(),
+        "portfolio_delta":             safe_float(risk_snap.get("portfolio_delta")),
+        "portfolio_theta":             safe_float(risk_snap.get("portfolio_theta")),
+        "portfolio_vega":              safe_float(risk_snap.get("portfolio_vega")),
+        "portfolio_gamma":             safe_float(risk_snap.get("portfolio_gamma")),
+        "target_delta":                safe_float(risk_snap.get("target_delta")),
+        "target_theta":                safe_float(risk_snap.get("target_theta")),
+        "target_vega":                 safe_float(risk_snap.get("target_vega")),
+        "risk_score":                  safe_float(eng.get("risk_score")),
+        "var_pct_equity":              safe_float(eng.get("var_pct_equity")),
+        "cvar_pct_equity":             safe_float(eng.get("cvar_pct_equity")),
+        "stress_pct_equity":           safe_float(eng.get("stress_pct_equity")),
+        "gross_exposure_pct_equity":   safe_float(eng.get("gross_exposure_pct_equity")),
+        "net_delta_exposure":          safe_float(eng.get("net_delta_exposure")),
+        "correlation_concentration":   safe_float(eng.get("correlation_concentration")),
+        "max_underlying_weight":       safe_float(eng.get("max_underlying_weight")),
+        "value_volatility":            safe_float(eng.get("value_volatility")),
+        "simulation_paths":            safe_int(eng.get("simulation_paths")),
+        "kill_switch_active":          bool(eng.get("kill_switch_active")),
+        "underlying_count":            safe_int(eng.get("underlying_count")),
+        "breaches":                    list(eng.get("breaches") or []),
+        "hard_kill_reasons":           list(eng.get("hard_kill_reasons") or []),
+        "top_underlyings":             eng.get("top_underlyings") or [],
+        "macro_regime":                risk_snap.get("macro_regime"),
+        "movement_bias":               risk_snap.get("movement_bias"),
+        "runtime_policy_mode":         risk_snap.get("runtime_policy_mode"),
+        "vix":                         safe_float(risk_snap.get("vix")),
+        "open_positions":              safe_int(risk_snap.get("open_positions")),
+        "buying_power":                safe_float(risk_snap.get("buying_power_budget")),
+        "total_equity":                safe_float(risk_snap.get("total_equity")),
+        "daily_pnl_pct":               safe_float(risk_snap.get("daily_pnl_pct")),
+        "allowed_symbols":             safe_int(risk_snap.get("allowed_symbols")),
+    }
+
+
+@app.get("/api/strategies/pnl")
+async def strategies_pnl():
+    """Per-strategy realized P&L from the trades DB."""
+    with _db_conn() as c:
+        try:
+            rows = c.execute(
+                "SELECT strategy, pnl, realized_pnl, ts FROM trades ORDER BY ts DESC LIMIT 3000"
+            ).fetchall()
+        except Exception:
+            return {"strategies": [], "total_pnl": 0}
+
+    agg: dict[str, dict] = {}
+    for row in rows:
+        name = row["strategy"] or "unknown"
+        pnl  = float(row["pnl"] or row["realized_pnl"] or 0)
+        if name not in agg:
+            agg[name] = {"total_pnl": 0.0, "trades": 0, "wins": 0, "losses": 0}
+        agg[name]["total_pnl"] += pnl
+        agg[name]["trades"]   += 1
+        if pnl > 0:
+            agg[name]["wins"]   += 1
+        elif pnl < 0:
+            agg[name]["losses"] += 1
+
+    result = []
+    for name, d in sorted(agg.items(), key=lambda x: x[1]["total_pnl"], reverse=True):
+        t = max(d["trades"], 1)
+        result.append({
+            "strategy":     name,
+            "total_pnl":    round(d["total_pnl"], 2),
+            "trades":       d["trades"],
+            "wins":         d["wins"],
+            "losses":       d["losses"],
+            "win_rate_pct": round(d["wins"] / t * 100, 1),
+        })
+
+    return {
+        "strategies": result,
+        "total_pnl":  round(sum(s["total_pnl"] for s in result), 2),
     }
 
 
@@ -934,6 +1041,89 @@ async def run_permutations(body: dict):
 @app.get("/api/permutations/jobs/{job_id}")
 async def permutation_job_status(job_id: str):
     job = _perm_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST — ML Training
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/training/scripts")
+async def list_training_scripts():
+    return {"scripts": [{"id": k, **v} for k, v in TRAINING_SCRIPTS.items()]}
+
+
+@app.post("/api/training/run")
+async def run_training(body: dict):
+    script_id = str(body.get("script", ""))
+    if script_id not in TRAINING_SCRIPTS:
+        raise HTTPException(400, f"Unknown script: {script_id!r}. Valid: {list(TRAINING_SCRIPTS)}")
+
+    job_id = str(uuid.uuid4())[:8]
+    info   = TRAINING_SCRIPTS[script_id]
+    _train_jobs[job_id] = {
+        "status":      "PENDING",
+        "script":      script_id,
+        "label":       info["label"],
+        "started_at":  None,
+        "finished_at": None,
+        "exit_code":   None,
+        "log_lines":   [],
+        "error":       None,
+    }
+
+    def _run():
+        import subprocess
+        _train_jobs[job_id]["status"]     = "RUNNING"
+        _train_jobs[job_id]["started_at"] = datetime.now(timezone.utc).isoformat()
+        root = Path(__file__).parent.parent
+        python_bin = str(root / ".venv" / "bin" / "python")
+        if not Path(python_bin).exists():
+            python_bin = sys.executable
+        try:
+            proc = subprocess.Popen(
+                [python_bin, "-m", info["module"]],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, cwd=str(root),
+            )
+            for line in iter(proc.stdout.readline, ""):
+                line = line.rstrip()
+                if line:
+                    _train_jobs[job_id]["log_lines"].append(line)
+                    # Cap memory
+                    if len(_train_jobs[job_id]["log_lines"]) > 2000:
+                        _train_jobs[job_id]["log_lines"] = _train_jobs[job_id]["log_lines"][-1500:]
+            proc.wait()
+            _train_jobs[job_id]["exit_code"] = proc.returncode
+            _train_jobs[job_id]["status"]    = "DONE" if proc.returncode == 0 else "ERROR"
+            if proc.returncode != 0:
+                _train_jobs[job_id]["error"] = f"Process exited with code {proc.returncode}"
+        except Exception as exc:
+            import traceback
+            _train_jobs[job_id]["status"] = "ERROR"
+            _train_jobs[job_id]["error"]  = str(exc)
+            log.error("Training job %s failed: %s\n%s", job_id, exc, traceback.format_exc())
+        finally:
+            _train_jobs[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": job_id, "status": "PENDING", "script": script_id}
+
+
+@app.get("/api/training/jobs")
+async def list_training_jobs():
+    jobs = [
+        {"job_id": jid, **{k: v for k, v in job.items() if k != "log_lines"}}
+        for jid, job in reversed(list(_train_jobs.items()))
+    ]
+    return {"jobs": jobs}
+
+
+@app.get("/api/training/jobs/{job_id}")
+async def training_job_status(job_id: str):
+    job = _train_jobs.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")
     return job

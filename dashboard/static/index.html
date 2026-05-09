@@ -222,6 +222,20 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .vbfil{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
 .vbval{font-size:9px;font-family:var(--mono);color:var(--t1);width:44px;text-align:right;flex-shrink:0}
 
+/* ── TRAINING SCRIPT CARDS ─────────────────────────────────────────── */
+.tr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:12px}
+.tr-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:13px;position:relative}
+.tr-name{font-size:11px;font-weight:700;color:var(--t0);margin-bottom:3px}
+.tr-desc{font-size:9px;color:var(--t2);margin-bottom:8px;line-height:1.5}
+.tr-est{font-size:8px;color:var(--t2);font-family:var(--mono);margin-bottom:9px}
+.tr-btn{width:100%;font-size:9px;font-weight:700;padding:6px;border-radius:var(--rs);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;
+  background:var(--accent-a);border:1px solid var(--accent);color:var(--accent);
+  transition:all .15s;letter-spacing:.04em}
+.tr-btn:hover{background:var(--accent);color:#fff}
+.tr-btn:disabled{opacity:.4;cursor:not-allowed}
+.tr-status{position:absolute;top:10px;right:10px}
+
 /* ── FORWARD TEST MODEL SELECTOR ───────────────────────────────────── */
 .ft-mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:7px;margin-bottom:12px}
 .ft-mc{background:var(--bg3);border:2px solid var(--border);border-radius:var(--rs);
@@ -244,8 +258,16 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
   <div class="hdr-r">
     <div class="hticker">
-      Portfolio:&nbsp;<strong id="hEq">—</strong>&nbsp;&nbsp;
-      Daily P&L:&nbsp;<span id="hPnl" style="font-family:var(--mono);font-size:12px;color:var(--t1)">—</span>
+      Equity:&nbsp;<strong id="hEq">—</strong>&nbsp;&nbsp;
+      P&L:&nbsp;<span id="hPnl" style="font-family:var(--mono);font-size:12px;color:var(--t1)">—</span>
+    </div>
+    <div class="hticker" id="hGreeks" style="display:none">
+      Δ&nbsp;<span id="hDelta" style="font-family:var(--mono);font-size:11px;color:var(--cyan)">—</span>&nbsp;
+      Θ&nbsp;<span id="hTheta" style="font-family:var(--mono);font-size:11px;color:var(--orange)">—</span>&nbsp;
+      V&nbsp;<span id="hVega" style="font-family:var(--mono);font-size:11px;color:var(--purple)">—</span>
+    </div>
+    <div class="hticker" id="hRegime" style="display:none;font-size:9px;color:var(--t2)">
+      <span id="hRegimeTxt"></span>&nbsp;·&nbsp;VIX <span id="hVix" style="font-family:var(--mono)">—</span>
     </div>
     <div class="hclock" id="hClock">—</div>
   </div>
@@ -263,6 +285,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button class="ntab" data-tab="simlab">Sim Lab</button>
   <button class="ntab" data-tab="stratlab">Strategy Lab</button>
   <button class="ntab" data-tab="ftest">Forward Test</button>
+  <button class="ntab" data-tab="training">ML Training</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
 
@@ -398,6 +421,25 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           <tbody id="recentBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
         </table>
       </div>
+    </div>
+  </div>
+  <!-- Strategy P&L attribution -->
+  <div class="row">
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">Strategy P&L Attribution</span>
+        <span id="totalPnlBadge" class="bdg bdg-info">Calculating…</span>
+      </div>
+      <div class="tw" style="max-height:220px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Strategy</th><th>Total P&L</th><th>Trades</th><th>Win Rate</th><th>W / L</th></tr></thead>
+          <tbody id="stratPnlBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Live Risk Gauges</span></div>
+      <div id="liveRiskGauges" class="empty">Loading risk engine…</div>
     </div>
   </div>
 </div><!-- /live -->
@@ -677,6 +719,53 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <!-- ───────────────────── RISK ANALYSIS ─────────────────────────────── -->
 <div id="tab-risk" class="tab">
+
+  <!-- KILL SWITCH + BREACH ALERTS -->
+  <div id="riskKillAlert" class="alert alert-err" style="display:none;margin-bottom:10px">
+    <strong style="letter-spacing:.08em">KILL SWITCH ACTIVE</strong>&nbsp;—&nbsp;<span id="riskKillReason"></span>
+  </div>
+  <div id="riskBreachAlert" class="alert alert-err" style="display:none;margin-bottom:10px">
+    <strong style="letter-spacing:.08em">RISK BREACHES ACTIVE:</strong>&nbsp;<span id="riskBreachList"></span>
+  </div>
+
+  <!-- RISK ENGINE: Greeks + Exposure + VaR (live from risk guard) -->
+  <div class="mcs">
+    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
+      <div class="mc-lbl">Portfolio Δ</div><div class="mc-val" id="re-delta">—</div><div class="mc-sub">vs target <span id="re-tdelta" style="color:var(--t2)">—</span></div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
+      <div class="mc-lbl">Portfolio Θ</div><div class="mc-val" id="re-theta">—</div><div class="mc-sub">vs target <span id="re-ttheta" style="color:var(--t2)">—</span></div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
+      <div class="mc-lbl">Portfolio Vega</div><div class="mc-val" id="re-vega">—</div><div class="mc-sub">vs target <span id="re-tvega" style="color:var(--t2)">—</span></div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
+      <div class="mc-lbl">Net Δ Exposure</div><div class="mc-val" id="re-netd">—</div><div class="mc-sub">Dollar delta</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">Gross Exposure</div><div class="mc-val" id="re-gross">—</div><div class="mc-sub">% of equity</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Engine VaR %</div><div class="mc-val neg" id="re-evar">—</div><div class="mc-sub">Risk guard</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
+      <div class="mc-lbl">Stress Test %</div><div class="mc-val neg" id="re-stress">—</div><div class="mc-sub">Adverse scenario</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
+      <div class="mc-lbl">Kill Switch</div><div class="mc-val" id="re-kill">SAFE</div><div class="mc-sub">Circuit breaker</div></div>
+  </div>
+
+  <!-- RISK ENGINE DETAIL ROW -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Greeks vs Targets</span></div>
+      <div id="riskGreeksDetail" class="empty">Loading…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Exposure Breakdown</span></div>
+      <div id="riskExposureDetail" class="empty">Loading…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Market Context</span></div>
+      <div id="riskContextDetail" class="empty">Loading…</div>
+    </div>
+  </div>
+  <hr class="dv">
+
+  <!-- HISTORICAL METRICS (equity curve based) -->
   <div class="mcs">
     <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
       <div class="mc-lbl">VaR 95%</div><div class="mc-val neg" id="rv-v95">—</div><div class="mc-sub">1-day worst loss</div></div>
@@ -909,6 +998,55 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
   </div>
 </div><!-- /odds -->
+
+<!-- ───────────────────── ML TRAINING ──────────────────────────────── -->
+<div id="tab-training" class="tab">
+  <div class="row">
+    <!-- LEFT: script launcher -->
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Training Scripts</span>
+        <span id="trainRunningBadge" class="bdg bdg-run" style="display:none">RUNNING</span>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:12px">
+        Each script runs as a background subprocess. Progress streams to the log panel. Only one training job should run at a time to avoid GPU contention.
+      </div>
+      <div class="tr-grid" id="trainScripts">
+        <div class="loading"><div class="spinner"></div>Loading scripts…</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: live log + active job status -->
+    <div class="col2">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-hdr">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span class="ctitle">Training Output</span>
+            <div id="trainLogDot" class="sdot"></div>
+            <span id="trainLogLabel" style="font-family:var(--mono);font-size:9px;color:var(--t2)">—</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span id="trainProgressPct" style="font-family:var(--mono);font-size:9px;color:var(--t2)"></span>
+            <button class="btn btn-g btn-sm" id="clearTrainLog">Clear</button>
+          </div>
+        </div>
+        <div class="lv" id="trainLog" style="height:390px"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="ctitle">Job History</span>
+          <button class="btn btn-g btn-sm" id="refreshTrainJobs">↻ Refresh</button>
+        </div>
+        <div class="tw" style="max-height:200px;overflow-y:auto">
+          <table>
+            <thead><tr><th>Job ID</th><th>Script</th><th>Status</th><th>Started</th><th>Finished</th><th>Exit</th></tr></thead>
+            <tbody id="trainJobBody"><tr><td colspan="6" class="empty">No training jobs yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /training -->
 
 <!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
 <div id="tab-logs" class="tab">
@@ -1361,6 +1499,50 @@ function renderEliteOverview(d) {
   ]);
 }
 
+async function loadStrategyPnl() {
+  const d = await api('/api/strategies/pnl');
+  if (!d) return;
+  const rows = d.strategies || [];
+  const totalBadge = el('totalPnlBadge');
+  if (totalBadge) {
+    totalBadge.textContent = `Total ${fm(d.total_pnl)}`;
+    totalBadge.className = 'bdg ' + (d.total_pnl >= 0 ? 'bdg-ok' : 'bdg-err');
+  }
+  const tb = el('stratPnlBody');
+  if (!tb) return;
+  tb.innerHTML = rows.length ? rows.map(s => `
+    <tr>
+      <td style="color:var(--t0)">${s.strategy.replace(/_/g,' ')}</td>
+      <td class="${cx(s.total_pnl)}" style="font-weight:700">${fm(s.total_pnl)}</td>
+      <td style="color:var(--t2)">${s.trades}</td>
+      <td>${fp(s.win_rate_pct)}</td>
+      <td style="font-size:9px;color:var(--t2)">${s.wins}W / ${s.losses}L</td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No trade P&L data yet.</td></tr>';
+}
+
+async function loadLiveRiskGauges() {
+  const d = await api('/api/risk/engine');
+  if (!d) return;
+  const cont = el('liveRiskGauges');
+  if (!cont) return;
+  const ok = d.kill_switch_active ? 'KILL ACTIVE' : 'SAFE';
+  const okC = d.kill_switch_active ? 'var(--red)' : 'var(--green)';
+  cont.innerHTML = infoRows([
+    ['Kill Switch',    ok,                                                        okC],
+    ['Risk Score',     f(d.risk_score, 3)],
+    ['Portfolio Δ',    f(d.portfolio_delta, 3),    csh(d.portfolio_delta)],
+    ['Portfolio Θ',    f(d.portfolio_theta, 3),    csh(d.portfolio_theta)],
+    ['Portfolio Vega', f(d.portfolio_vega, 3),     csh(d.portfolio_vega)],
+    ['Net Δ Exposure', f(d.net_delta_exposure, 2)],
+    ['Gross Exposure', d.gross_exposure_pct_equity!=null?fp(d.gross_exposure_pct_equity*100):'—'],
+    ['VaR % Equity',   d.var_pct_equity!=null?fp(d.var_pct_equity*100):'—',     'var(--red)'],
+    ['Stress Test %',  d.stress_pct_equity!=null?fp(d.stress_pct_equity*100):'—','var(--orange)'],
+    ['Breaches',       (d.breaches||[]).length > 0 ? (d.breaches||[]).join(', ') : 'None', (d.breaches||[]).length>0?'var(--red)':'var(--green)'],
+  ]);
+  renderRiskEngine(d);
+}
+
 async function loadLive() {
   const [eq, bm, pnl, pos, trades, elite] = await Promise.all([
     api(`/api/equity?window=${W}`),
@@ -1370,6 +1552,8 @@ async function loadLive() {
     api('/api/trades?limit=25'),
     api('/api/elite/overview'),
   ]);
+  loadStrategyPnl();
+  loadLiveRiskGauges();
 
   if (eq?.metrics) {
     const m = eq.metrics;
@@ -1903,12 +2087,103 @@ el('resetAllBtn').addEventListener('click', async () => {
 /* ═══════════════════════════════════════════════════════════════════
    TAB: RISK
 ════════════════════════════════════════════════════════════════════ */
+function renderRiskEngine(eng) {
+  if (!eng) return;
+  const g = (id, v, d=3) => { const e=el(id); if(e) e.textContent=v==null?'—':f(v,d); };
+  const gp = (id, v) => { const e=el(id); if(e) e.textContent=v==null?'—':fp(v); };
+
+  g('re-delta', eng.portfolio_delta, 3);
+  g('re-theta', eng.portfolio_theta, 3);
+  g('re-vega',  eng.portfolio_vega,  3);
+  g('re-netd',  eng.net_delta_exposure, 2);
+  gp('re-gross', eng.gross_exposure_pct_equity != null ? eng.gross_exposure_pct_equity * 100 : null);
+  gp('re-evar',  eng.var_pct_equity  != null ? eng.var_pct_equity  * 100 : null);
+  gp('re-stress',eng.stress_pct_equity != null ? eng.stress_pct_equity * 100 : null);
+
+  const td = el('re-tdelta'), tt = el('re-ttheta'), tv = el('re-tvega');
+  if(td) td.textContent = eng.target_delta  != null ? f(eng.target_delta,3)  : '—';
+  if(tt) tt.textContent = eng.target_theta  != null ? f(eng.target_theta,3)  : '—';
+  if(tv) tv.textContent = eng.target_vega   != null ? f(eng.target_vega,3)   : '—';
+
+  const killEl = el('re-kill');
+  if (killEl) {
+    killEl.textContent = eng.kill_switch_active ? 'ACTIVE' : 'SAFE';
+    killEl.className = 'mc-val ' + (eng.kill_switch_active ? 'neg' : 'pos');
+  }
+
+  const killAlert = el('riskKillAlert');
+  const breachAlert = el('riskBreachAlert');
+  if (killAlert) {
+    killAlert.style.display = eng.kill_switch_active ? '' : 'none';
+    const kr = el('riskKillReason');
+    if (kr) kr.textContent = (eng.hard_kill_reasons||[]).join(' · ') || 'Active';
+  }
+  if (breachAlert) {
+    const breaches = eng.breaches || [];
+    breachAlert.style.display = breaches.length ? '' : 'none';
+    const bl = el('riskBreachList');
+    if (bl) bl.textContent = breaches.join(' · ');
+  }
+
+  const greeks = el('riskGreeksDetail');
+  if (greeks) greeks.innerHTML = infoRows([
+    ['Portfolio Δ',   f(eng.portfolio_delta,4),  csh(eng.portfolio_delta)],
+    ['Target Δ',      f(eng.target_delta,4)],
+    ['Portfolio Θ',   f(eng.portfolio_theta,4),  csh(eng.portfolio_theta)],
+    ['Target Θ',      f(eng.target_theta,4)],
+    ['Portfolio Vega',f(eng.portfolio_vega,4),   csh(eng.portfolio_vega)],
+    ['Target Vega',   f(eng.target_vega,4)],
+    ['Portfolio Γ',   f(eng.portfolio_gamma,6)],
+  ]);
+
+  const expo = el('riskExposureDetail');
+  if (expo) expo.innerHTML = infoRows([
+    ['Gross Exposure',    eng.gross_exposure_pct_equity!=null?fp(eng.gross_exposure_pct_equity*100):'—'],
+    ['Net Δ Exposure',    f(eng.net_delta_exposure,2)],
+    ['Corr. Concentration', f(eng.correlation_concentration,3)],
+    ['Max Underlying Wt.', eng.max_underlying_weight!=null?fp(eng.max_underlying_weight*100):'—'],
+    ['Value Volatility',  f(eng.value_volatility,4)],
+    ['Open Positions',    eng.open_positions ?? '—'],
+    ['Underlying Count',  eng.underlying_count ?? '—'],
+    ['Sim Paths',         eng.simulation_paths ?? '—'],
+  ]);
+
+  const ctx = el('riskContextDetail');
+  if (ctx) ctx.innerHTML = infoRows([
+    ['Macro Regime',   eng.macro_regime || '—'],
+    ['Movement Bias',  eng.movement_bias || '—'],
+    ['Policy Mode',    eng.runtime_policy_mode || '—'],
+    ['VIX',            f(eng.vix, 2)],
+    ['Total Equity',   fm(eng.total_equity)],
+    ['Buying Power',   fm(eng.buying_power)],
+    ['Daily P&L %',    eng.daily_pnl_pct!=null ? fsp(eng.daily_pnl_pct*100,2) : '—', csh((eng.daily_pnl_pct||0)*100)],
+    ['Allowed Symbols',eng.allowed_symbols ?? '—'],
+  ]);
+
+  // Populate header Greeks
+  if (eng.portfolio_delta != null || eng.portfolio_theta != null) {
+    const hg = el('hGreeks'), hr = el('hRegime');
+    if (hg) hg.style.display = '';
+    if (hr) hr.style.display = '';
+    const hd = el('hDelta'), ht = el('hTheta'), hv = el('hVega');
+    if (hd) { hd.textContent = f(eng.portfolio_delta,3); hd.style.color = 'var(--cyan)'; }
+    if (ht) { ht.textContent = f(eng.portfolio_theta,3); ht.style.color = 'var(--orange)'; }
+    if (hv) { hv.textContent = f(eng.portfolio_vega,3); hv.style.color = 'var(--purple)'; }
+    const rgt = el('hRegimeTxt'), hvx = el('hVix');
+    if (rgt) rgt.textContent = eng.macro_regime || '';
+    if (hvx) hvx.textContent = f(eng.vix,2);
+  }
+}
+
 async function loadRisk() {
-  const [snap, hm, surf] = await Promise.all([
+  const [snap, hm, surf, eng] = await Promise.all([
     api('/api/risk/snapshot'),
     api('/api/risk/heatmap'),
     api('/api/risk/var_surface'),
+    api('/api/risk/engine'),
   ]);
+
+  if (eng) renderRiskEngine(eng);
 
   if (snap) {
     el('rv-v95').textContent  = fp(snap.var_95_pct);
@@ -2298,6 +2573,119 @@ function initLogs() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   TAB: ML TRAINING
+════════════════════════════════════════════════════════════════════ */
+let activeTrainJob = null;
+let trainPollTimer = null;
+
+async function loadTraining() {
+  const d = await api('/api/training/scripts');
+  if (!d) return;
+  renderTrainScripts(d.scripts || []);
+  loadTrainJobs();
+}
+
+function renderTrainScripts(scripts) {
+  el('trainScripts').innerHTML = scripts.map(s => `
+    <div class="tr-card" id="trc-${s.id}">
+      <div class="tr-status"><span id="trs-${s.id}" class="bdg bdg-info">IDLE</span></div>
+      <div class="tr-name">${s.label}</div>
+      <div class="tr-desc">${s.desc}</div>
+      <div class="tr-est">~${s.est_min} min estimated</div>
+      <button class="tr-btn" id="trb-${s.id}" onclick="triggerTraining('${s.id}')">▶ Run</button>
+    </div>`).join('');
+}
+
+async function triggerTraining(scriptId) {
+  const btn = el(`trb-${scriptId}`);
+  if (btn) btn.disabled = true;
+
+  const r = await fetch(`${BASE}/api/training/run`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({script: scriptId}),
+  });
+  if (!r.ok) {
+    toast('Failed to launch training job', 'err');
+    if (btn) btn.disabled = false;
+    return;
+  }
+  const job = await r.json();
+  toast(`Training job ${job.job_id} started`, 'ok');
+  el('trainLog').innerHTML = '';
+  el('trainLogLabel').textContent = `Job ${job.job_id} — ${scriptId}`;
+  el('trainLogDot').className = 'sdot live';
+  el('trainRunningBadge').style.display = '';
+  activeTrainJob = job.job_id;
+  if (trainPollTimer) clearTimeout(trainPollTimer);
+  pollTrainJob(job.job_id, scriptId, 0);
+}
+
+async function pollTrainJob(jid, scriptId, lastLine) {
+  const j = await api(`/api/training/jobs/${jid}`);
+  if (!j) { trainPollTimer = setTimeout(() => pollTrainJob(jid, scriptId, lastLine), 3000); return; }
+
+  const lines = j.log_lines || [];
+  const logEl = el('trainLog');
+  if (lines.length > lastLine) {
+    const frag = document.createDocumentFragment();
+    for (let i = lastLine; i < lines.length; i++) {
+      const div = document.createElement('div');
+      const txt = lines[i];
+      div.className = 'll ' + (txt.includes('ERROR') ? 'ERROR' : txt.includes('WARN') ? 'WARN' : txt.includes('INFO') ? 'INFO' : 'DEBUG');
+      div.textContent = txt;
+      frag.appendChild(div);
+    }
+    logEl.appendChild(frag);
+    while (logEl.children.length > 3000) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  const badge = el(`trs-${scriptId}`);
+  if (j.status === 'DONE') {
+    if (badge) { badge.className = 'bdg bdg-ok'; badge.textContent = 'DONE'; }
+    el('trainLogDot').className = 'sdot';
+    el('trainRunningBadge').style.display = 'none';
+    const btn = el(`trb-${scriptId}`);
+    if (btn) btn.disabled = false;
+    toast(`Training complete: ${scriptId}`, 'ok');
+    loadTrainJobs();
+  } else if (j.status === 'ERROR') {
+    if (badge) { badge.className = 'bdg bdg-err'; badge.textContent = 'ERROR'; }
+    el('trainLogDot').className = 'sdot';
+    el('trainRunningBadge').style.display = 'none';
+    const btn = el(`trb-${scriptId}`);
+    if (btn) btn.disabled = false;
+    toast(`Training error: ${j.error || scriptId}`, 'err');
+    loadTrainJobs();
+  } else {
+    if (badge) { badge.className = 'bdg bdg-run'; badge.textContent = 'RUNNING'; }
+    trainPollTimer = setTimeout(() => pollTrainJob(jid, scriptId, lines.length), 2000);
+  }
+}
+
+async function loadTrainJobs() {
+  const d = await api('/api/training/jobs');
+  if (!d) return;
+  const jobs = d.jobs || [];
+  const fmt = ts => ts ? new Date(ts).toLocaleString() : '—';
+  const bdgClass = s => s === 'DONE' ? 'bdg-ok' : s === 'ERROR' ? 'bdg-err' : s === 'RUNNING' ? 'bdg-run' : 'bdg-info';
+  el('trainJobBody').innerHTML = jobs.length ? jobs.map(j => `
+    <tr>
+      <td style="font-family:var(--mono);color:var(--t0)">${j.job_id}</td>
+      <td>${j.label || j.script}</td>
+      <td><span class="bdg ${bdgClass(j.status)}">${j.status}</span></td>
+      <td style="font-size:9px">${fmt(j.started_at)}</td>
+      <td style="font-size:9px">${fmt(j.finished_at)}</td>
+      <td style="font-family:var(--mono)">${j.exit_code ?? '—'}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="6" class="empty">No training jobs yet.</td></tr>';
+}
+
+el('clearTrainLog').addEventListener('click', () => el('trainLog').innerHTML = '');
+el('refreshTrainJobs').addEventListener('click', loadTrainJobs);
+
+/* ═══════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════════ */
 const TAB_INIT = {
@@ -2311,6 +2699,7 @@ const TAB_INIT = {
   simlab:    () => { loadSimLab(); },
   stratlab:  () => { loadStratLab(); },
   ftest:     () => { /* no auto-load */ },
+  training:  () => { loadTraining(); },
   logs:      () => { initLogs(); },
 };
 
@@ -2339,8 +2728,11 @@ document.querySelectorAll('.ntab').forEach(tab => {
     if (el('tab-live').classList.contains('active')) loadLive();
   }, 60000);
   setInterval(() => {
+    if (el('tab-live').classList.contains('active')) { loadStrategyPnl(); loadLiveRiskGauges(); }
+  }, 90000);
+  setInterval(() => {
     if (el('tab-risk').classList.contains('active')) loadRisk();
-  }, 300000);
+  }, 120000);
   setInterval(() => {
     if (el('tab-options').classList.contains('active')) loadOptions();
   }, 180000);

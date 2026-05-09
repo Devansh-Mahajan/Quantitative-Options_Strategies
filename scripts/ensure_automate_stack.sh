@@ -8,7 +8,14 @@ RUN_LOG="$LOG_DIR/automate-stack.log"
 WATCHDOG_LOG="$LOG_DIR/automate-stack-watchdog.log"
 PID_FILE="$RUNTIME_DIR/automate-stack.pid"
 LOCK_FILE="$RUNTIME_DIR/automate-stack-watchdog.lock"
-PYTHON_BIN="$REPO_DIR/.venv/bin/python"
+# Use shared Projects venv; fall back to a project-local .venv if present
+if [[ -f "/Users/devanshmahajan/Projects/.venv/bin/python" ]]; then
+  PYTHON_BIN="/Users/devanshmahajan/Projects/.venv/bin/python"
+elif [[ -f "$REPO_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$REPO_DIR/.venv/bin/python"
+else
+  PYTHON_BIN="$(command -v python3)"
+fi
 
 DASHBOARD_PID_FILE="$RUNTIME_DIR/dashboard.pid"
 DASHBOARD_LOG="$LOG_DIR/dashboard.log"
