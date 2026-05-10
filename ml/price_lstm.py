@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from sklearn.preprocessing import RobustScaler
 
 from bot.config import cfg
+from core.torch_device import resolve_torch_runtime
 
 log = logging.getLogger("ml.price_lstm")
 
@@ -88,7 +89,8 @@ class CryptoPricePredictor(nn.Module):
 
 class PricePredictorTrainer:
     def __init__(self, n_features: int) -> None:
-        self.device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
+        self.runtime = resolve_torch_runtime()
+        self.device = self.runtime.device
         self.scaler = RobustScaler()
         self.model = CryptoPricePredictor(n_features).to(self.device)
         log.info("PricePredictor on device: %s", self.device)
@@ -197,7 +199,13 @@ class PricePredictorTrainer:
 
     def load(self, path: Path | str) -> "PricePredictorTrainer":
         data = torch.load(path, map_location=self.device, weights_only=False)
-        self.model = CryptoPricePredictor(data["n_features"]).to(self.device)
+        loaded_n_features = int(data["n_features"])
+        if loaded_n_features != self.model.n_features:
+            raise ValueError(
+                f"Feature-count mismatch for {path}: checkpoint expects {loaded_n_features}, "
+                f"runtime expects {self.model.n_features}"
+            )
+        self.model = CryptoPricePredictor(loaded_n_features).to(self.device)
         self.model.load_state_dict(data["model_state"])
         self.scaler = data["scaler"]
         self.model.eval()

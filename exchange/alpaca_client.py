@@ -32,21 +32,50 @@ log = logging.getLogger("exchange.alpaca_client")
 # --------------------------------------------------------------------------- #
 
 def _to_alpaca(symbol: str) -> str:
-    """'BTCUSDT' → 'BTC/USD'.  'ETHUSDT' → 'ETH/USD'. Handles 'BTCUSD' too."""
+    """Map internal symbols to Alpaca symbols while preserving stock tickers."""
     sym = symbol.upper()
     if "/" in sym:
         return sym
-    # Strip USDT or USD suffix, then append /USD
-    for suffix in ("USDT", "BUSD", "USD"):
-        if sym.endswith(suffix):
-            base = sym[: -len(suffix)]
-            return f"{base}/USD"
-    return f"{sym}/USD"
+    if cfg.is_crypto_symbol(sym):
+        for suffix in ("USDT", "BUSD", "USD"):
+            if sym.endswith(suffix):
+                base = sym[: -len(suffix)]
+                return f"{base}/USD"
+        return f"{sym}/USD"
+    return sym
 
 
 def _from_alpaca(alpaca_sym: str) -> str:
-    """'BTC/USD' → 'BTCUSDT'."""
-    return alpaca_sym.replace("/", "") + "T" if "USD" in alpaca_sym else alpaca_sym.replace("/", "")
+    """'BTC/USD' → 'BTCUSDT'; 'AAPL' → 'AAPL'."""
+    sym = alpaca_sym.upper()
+    if "/" not in sym:
+        return sym
+    base, quote = sym.split("/", 1)
+    if quote in {"USD", "USDT", "BUSD"}:
+        return f"{base}USDT"
+    return sym.replace("/", "")
+
+
+def _is_stock_symbol(symbol: str) -> bool:
+    return cfg.is_stock_symbol(symbol)
+
+
+def _is_crypto_symbol(symbol: str) -> bool:
+    return cfg.is_crypto_symbol(symbol)
+
+
+def _response_get(mapping, key: str):
+    if mapping is None:
+        return None
+    if hasattr(mapping, "data"):
+        data = getattr(mapping, "data", None) or {}
+        return data.get(key)
+    if hasattr(mapping, "get"):
+        return mapping.get(key)
+    try:
+        return mapping[key]
+    except (KeyError, TypeError):
+        return None
 
 
 def _alpaca_interval(interval: str):
@@ -72,20 +101,26 @@ class AlpacaClient:
 
     def __init__(self) -> None:
         self._trading = None   # alpaca.trading.client.TradingClient
-        self._data = None      # alpaca.data.historical.crypto.CryptoHistoricalDataClient
+        self._crypto_data = None
+        self._stock_data = None
         self._price_cache: dict[str, tuple[float, float]] = {}
         self._cache_ttl = 3.0
 
     async def start(self) -> None:
         from alpaca.trading.client import TradingClient
         from alpaca.data.historical.crypto import CryptoHistoricalDataClient
+        from alpaca.data.historical.stock import StockHistoricalDataClient
 
         self._trading = TradingClient(
             api_key=cfg.alpaca_api_key,
             secret_key=cfg.alpaca_api_secret,
             paper=cfg.alpaca_paper,
         )
-        self._data = CryptoHistoricalDataClient(
+        self._crypto_data = CryptoHistoricalDataClient(
+            api_key=cfg.alpaca_api_key,
+            secret_key=cfg.alpaca_api_secret,
+        )
+        self._stock_data = StockHistoricalDataClient(
             api_key=cfg.alpaca_api_key,
             secret_key=cfg.alpaca_api_secret,
         )
@@ -104,9 +139,17 @@ class AlpacaClient:
     # ------------------------------------------------------------------ #
 
     async def get_futures_balance(self) -> dict[str, float]:
-        """Returns {"USDT": available_cash} — mirrors BinanceClient interface."""
+        """Returns equity-first balances for portfolio sizing and monitoring."""
         account = await asyncio.to_thread(self._trading.get_account)
-        return {"USDT": float(account.cash)}
+        equity = float(getattr(account, "portfolio_value", None) or getattr(account, "equity", 0.0) or 0.0)
+        cash = float(getattr(account, "cash", 0.0) or 0.0)
+        buying_power = float(getattr(account, "buying_power", 0.0) or 0.0)
+        return {
+            "USDT": equity,
+            "USD": cash,
+            "CASH": cash,
+            "BUYING_POWER": buying_power,
+        }
 
     async def get_spot_balance(self) -> dict[str, float]:
         positions = await asyncio.to_thread(self._trading.get_all_positions)
@@ -131,6 +174,25 @@ class AlpacaClient:
     async def get_spot_positions(self) -> dict[str, float]:
         return await self.get_spot_balance()
 
+    async def get_account_snapshot(self) -> dict[str, float | str | None]:
+        account = await asyncio.to_thread(self._trading.get_account)
+        total_equity = float(getattr(account, "portfolio_value", None) or getattr(account, "equity", 0.0) or 0.0)
+        cash = float(getattr(account, "cash", 0.0) or 0.0)
+        buying_power = float(getattr(account, "buying_power", 0.0) or 0.0)
+        last_equity = float(getattr(account, "last_equity", 0.0) or 0.0)
+        day_pnl = (total_equity - last_equity) if last_equity else None
+        day_pnl_pct = ((day_pnl / last_equity) * 100.0) if day_pnl is not None and last_equity else None
+        status = getattr(getattr(account, "status", None), "value", getattr(account, "status", None))
+        return {
+            "equity": total_equity,
+            "cash": cash,
+            "buying_power": buying_power,
+            "last_equity": last_equity or None,
+            "day_pnl": day_pnl,
+            "day_pnl_pct": day_pnl_pct,
+            "status": str(status).upper() if status else None,
+        }
+
     # ------------------------------------------------------------------ #
     # Market data
     # ------------------------------------------------------------------ #
@@ -142,21 +204,23 @@ class AlpacaClient:
             if now - ts < self._cache_ttl:
                 return price
 
-        try:
-            from alpaca.data.requests import CryptoLatestBarRequest as _LatestBarReq
-        except ImportError:
-            from alpaca.data.requests import LatestCryptoBarRequest as _LatestBarReq
         alpaca_sym = _to_alpaca(symbol)
-        req = _LatestBarReq(symbol_or_symbols=alpaca_sym)
-        bars_resp = await asyncio.to_thread(self._data.get_crypto_latest_bar, req)
-        if hasattr(bars_resp, "get"):
-            bar = bars_resp.get(alpaca_sym)
+        if _is_stock_symbol(symbol):
+            from alpaca.data.requests import StockLatestTradeRequest
+
+            req = StockLatestTradeRequest(symbol_or_symbols=alpaca_sym)
+            trades_resp = await asyncio.to_thread(self._stock_data.get_stock_latest_trade, req)
+            trade = _response_get(trades_resp, alpaca_sym)
+            price = float(trade.price) if trade else 0.0
         else:
             try:
-                bar = bars_resp[alpaca_sym]
-            except (KeyError, TypeError):
-                bar = None
-        price = float(bar.close) if bar else 0.0
+                from alpaca.data.requests import CryptoLatestBarRequest as _LatestBarReq
+            except ImportError:
+                from alpaca.data.requests import LatestCryptoBarRequest as _LatestBarReq
+            req = _LatestBarReq(symbol_or_symbols=alpaca_sym)
+            bars_resp = await asyncio.to_thread(self._crypto_data.get_crypto_latest_bar, req)
+            bar = _response_get(bars_resp, alpaca_sym)
+            price = float(bar.close) if bar else 0.0
         self._price_cache[symbol] = (price, now)
         return price
 
@@ -167,8 +231,6 @@ class AlpacaClient:
         limit: int = 200,
         futures: bool = True,   # ignored — Alpaca has no futures; uses crypto spot bars
     ) -> list[dict]:
-        from alpaca.data.requests import CryptoBarsRequest
-
         alpaca_sym = _to_alpaca(symbol)
         tf = _alpaca_interval(interval)
 
@@ -178,21 +240,34 @@ class AlpacaClient:
         minutes = delta_map.get(interval, 60) * limit
         start = end - timedelta(minutes=minutes + 60)  # +buffer
 
-        req = CryptoBarsRequest(
-            symbol_or_symbols=alpaca_sym,
-            timeframe=tf,
-            start=start,
-            end=end,
-            limit=limit,
-        )
-        bars_resp = await asyncio.to_thread(self._data.get_crypto_bars, req)
-        # alpaca-py returns either a dict-like BarSet or a plain dict depending on version
+        if _is_stock_symbol(symbol):
+            from alpaca.data.requests import StockBarsRequest
+
+            req = StockBarsRequest(
+                symbol_or_symbols=alpaca_sym,
+                timeframe=tf,
+                start=start,
+                end=end,
+                limit=limit,
+            )
+            bars_resp = await asyncio.to_thread(self._stock_data.get_stock_bars, req)
+        else:
+            from alpaca.data.requests import CryptoBarsRequest
+
+            req = CryptoBarsRequest(
+                symbol_or_symbols=alpaca_sym,
+                timeframe=tf,
+                start=start,
+                end=end,
+                limit=limit,
+            )
+            bars_resp = await asyncio.to_thread(self._crypto_data.get_crypto_bars, req)
+
         if hasattr(bars_resp, "data"):
             bars = bars_resp.data.get(alpaca_sym, [])
         elif hasattr(bars_resp, "get"):
             bars = bars_resp.get(alpaca_sym, [])
         else:
-            # BarSet iteration: yields (symbol, bar_list) or just bars
             try:
                 bars = list(bars_resp[alpaca_sym])
             except (KeyError, TypeError):
@@ -201,6 +276,7 @@ class AlpacaClient:
         result = []
         for bar in bars[-limit:]:
             ts = int(bar.timestamp.timestamp() * 1000)
+            quote_volume = float(bar.volume) * float(bar.close)
             result.append({
                 "open_time": ts,
                 "open": float(bar.open),
@@ -209,10 +285,10 @@ class AlpacaClient:
                 "close": float(bar.close),
                 "volume": float(bar.volume),
                 "close_time": ts + delta_map.get(interval, 60) * 60_000,
-                "quote_volume": float(bar.volume) * float(bar.close),
+                "quote_volume": quote_volume,
                 "trades": int(getattr(bar, "trade_count", 0)),
-                "taker_buy_base": float(bar.volume) * 0.5,   # Alpaca doesn't split taker; use 50% proxy
-                "taker_buy_quote": float(bar.volume) * float(bar.close) * 0.5,
+                "taker_buy_base": float(bar.volume) * 0.5,
+                "taker_buy_quote": quote_volume * 0.5,
             })
         return result
 
@@ -225,17 +301,30 @@ class AlpacaClient:
         return 0.0
 
     async def get_orderbook(self, symbol: str, limit: int = 20, futures: bool = True) -> dict:
-        from alpaca.data.requests import CryptoLatestOrderbookRequest
         alpaca_sym = _to_alpaca(symbol)
-        req = CryptoLatestOrderbookRequest(symbol_or_symbols=alpaca_sym)
         try:
-            ob = await asyncio.to_thread(self._data.get_crypto_latest_orderbook, req)
-            book = ob.get(alpaca_sym)
-            if book:
-                return {
-                    "bids": [[b.p, b.s] for b in book.bids[:limit]],
-                    "asks": [[a.p, a.s] for a in book.asks[:limit]],
-                }
+            if _is_stock_symbol(symbol):
+                from alpaca.data.requests import StockLatestQuoteRequest
+
+                req = StockLatestQuoteRequest(symbol_or_symbols=alpaca_sym)
+                quotes = await asyncio.to_thread(self._stock_data.get_stock_latest_quote, req)
+                quote = _response_get(quotes, alpaca_sym)
+                if quote:
+                    return {
+                        "bids": [[float(quote.bid_price), float(getattr(quote, "bid_size", 0.0) or 0.0)]],
+                        "asks": [[float(quote.ask_price), float(getattr(quote, "ask_size", 0.0) or 0.0)]],
+                    }
+            else:
+                from alpaca.data.requests import CryptoLatestOrderbookRequest
+
+                req = CryptoLatestOrderbookRequest(symbol_or_symbols=alpaca_sym)
+                ob = await asyncio.to_thread(self._crypto_data.get_crypto_latest_orderbook, req)
+                book = _response_get(ob, alpaca_sym)
+                if book:
+                    return {
+                        "bids": [[b.p, b.s] for b in book.bids[:limit]],
+                        "asks": [[a.p, a.s] for a in book.asks[:limit]],
+                    }
         except Exception:
             pass
         return {"bids": [], "asks": []}
@@ -250,12 +339,19 @@ class AlpacaClient:
         return int(time.time() * 1000)
 
     async def get_recent_trades(self, symbol: str, limit: int = 500, futures: bool = True) -> list[dict]:
-        from alpaca.data.requests import CryptoLatestTradeRequest
         alpaca_sym = _to_alpaca(symbol)
-        req = CryptoLatestTradeRequest(symbol_or_symbols=alpaca_sym)
         try:
-            trades = await asyncio.to_thread(self._data.get_crypto_latest_trade, req)
-            t = trades.get(alpaca_sym)
+            if _is_stock_symbol(symbol):
+                from alpaca.data.requests import StockLatestTradeRequest
+
+                req = StockLatestTradeRequest(symbol_or_symbols=alpaca_sym)
+                trades = await asyncio.to_thread(self._stock_data.get_stock_latest_trade, req)
+            else:
+                from alpaca.data.requests import CryptoLatestTradeRequest
+
+                req = CryptoLatestTradeRequest(symbol_or_symbols=alpaca_sym)
+                trades = await asyncio.to_thread(self._crypto_data.get_crypto_latest_trade, req)
+            t = _response_get(trades, alpaca_sym)
             if t:
                 return [{"price": str(t.price), "qty": str(t.size)}]
         except Exception:
@@ -348,6 +444,8 @@ class AlpacaClient:
 
         alpaca_sym = _to_alpaca(symbol)
         alpaca_side = OrderSide.BUY if side.upper() == "BUY" else OrderSide.SELL
+        tif = TimeInForce.DAY if _is_stock_symbol(symbol) else TimeInForce.GTC
+        price_decimals = 2 if _is_stock_symbol(symbol) else 4
 
         try:
             if order_type == "market" or price is None:
@@ -355,15 +453,15 @@ class AlpacaClient:
                     symbol=alpaca_sym,
                     qty=round(quantity, 6),
                     side=alpaca_side,
-                    time_in_force=TimeInForce.GTC,
+                    time_in_force=tif,
                 )
             else:
                 req = LimitOrderRequest(
                     symbol=alpaca_sym,
                     qty=round(quantity, 6),
                     side=alpaca_side,
-                    limit_price=round(price, 4),
-                    time_in_force=TimeInForce.GTC,
+                    limit_price=round(price, price_decimals),
+                    time_in_force=tif,
                 )
             order = await asyncio.to_thread(self._trading.submit_order, req)
             return {"orderId": int(order.id.int) if hasattr(order.id, "int") else hash(str(order.id)),

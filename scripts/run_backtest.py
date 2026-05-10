@@ -41,6 +41,7 @@ AVAILABLE_STRATEGIES = [
     "tsmom", "quant_factors", "contrarian_oi", "rma_strategy",
     "vpin_flow", "knn_predictor", "pivot_sr", "hp_trend",
     "momentum_carry_combo",
+    "microstructure_pressure", "pullback_confluence",
 ]
 
 DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
@@ -70,6 +71,8 @@ def _build_strategies(names: list[str]):
     from strategies.pivot_sr import PivotSRStrategy
     from strategies.hp_trend import HPTrendStrategy
     from strategies.momentum_carry_combo import MomentumCarryComboStrategy
+    from strategies.microstructure_pressure import MicrostructurePressureStrategy
+    from strategies.pullback_confluence import PullbackConfluenceStrategy
 
     factory_map = {
         "momentum": MomentumStrategy,
@@ -93,6 +96,8 @@ def _build_strategies(names: list[str]):
         "pivot_sr": PivotSRStrategy,
         "hp_trend": HPTrendStrategy,
         "momentum_carry_combo": MomentumCarryComboStrategy,
+        "microstructure_pressure": MicrostructurePressureStrategy,
+        "pullback_confluence": PullbackConfluenceStrategy,
     }
     result = []
     for name in names:

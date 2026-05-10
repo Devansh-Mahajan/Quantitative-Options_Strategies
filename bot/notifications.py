@@ -4,12 +4,26 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import httpx
 
 from bot.config import cfg
 
 log = logging.getLogger("bot.notifications")
+_warned_invalid_discord_url = False
+
+
+def _normalize_webhook_url(url: str) -> str:
+    value = str(url or "").strip().strip("\"'")
+    if not value or value.startswith("#"):
+        return ""
+    if value.startswith("discord.com/") or value.startswith("www.discord.com/"):
+        value = f"https://{value}"
+    parsed = urlparse(value)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return value
+    return ""
 
 
 async def _post(url: str, payload: dict) -> None:
@@ -23,7 +37,13 @@ async def _post(url: str, payload: dict) -> None:
 
 
 async def send_discord(message: str, title: str = "", color: int = 0x00B0F4) -> None:
-    if not cfg.discord_webhook_url:
+    global _warned_invalid_discord_url
+
+    url = _normalize_webhook_url(cfg.discord_webhook_url)
+    if not url:
+        if cfg.discord_webhook_url and not _warned_invalid_discord_url:
+            log.warning("Discord notifications disabled: DISCORD_WEBHOOK_URL is blank or malformed.")
+            _warned_invalid_discord_url = True
         return
     payload: dict = {
         "embeds": [
@@ -35,7 +55,7 @@ async def send_discord(message: str, title: str = "", color: int = 0x00B0F4) -> 
             }
         ]
     }
-    await _post(cfg.discord_webhook_url, payload)
+    await _post(url, payload)
 
 
 async def send_telegram(message: str) -> None:

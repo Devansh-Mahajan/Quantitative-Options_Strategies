@@ -98,6 +98,14 @@ def build_registry() -> list[BaseStrategy]:
         from strategies.momentum_carry_combo import MomentumCarryComboStrategy
         strategies.append(MomentumCarryComboStrategy())
 
+    if cfg.enable_microstructure_pressure:
+        from strategies.microstructure_pressure import MicrostructurePressureStrategy
+        strategies.append(MicrostructurePressureStrategy())
+
+    if cfg.enable_pullback_confluence:
+        from strategies.pullback_confluence import PullbackConfluenceStrategy
+        strategies.append(PullbackConfluenceStrategy())
+
     log.info("Strategy registry: %d strategies active — %s",
              len(strategies), [s.name for s in strategies])
     return strategies

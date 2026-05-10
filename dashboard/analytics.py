@@ -6,13 +6,16 @@ import itertools
 import json
 import math
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 
+from bot import state as bot_state
 from bot.config import cfg
+from core.universe_maintenance import download_close_matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_DIR = ROOT / ".runtime"
@@ -25,11 +28,22 @@ EXECUTION_LEDGER_PATH = RUNTIME_DIR / "execution_ledger.json"
 EXECUTION_SUMMARY_PATH = RUNTIME_DIR / "execution_quality_snapshot.json"
 SYSTEM_RESOURCE_PATH = RUNTIME_DIR / "system_resource_snapshot.json"
 BOT_STATE_DB_PATH = RUNTIME_DIR / "bot_state.db"
+CORRELATION_CACHE_PATH = RUNTIME_DIR / "dashboard_correlation_cache.json"
+RESEARCH_DESK_CACHE_PATH = RUNTIME_DIR / "dashboard_research_desk.json"
 
 OPTION_MULTIPLIER = 100.0
 DEFAULT_MC_PATHS = 2500
 DEFAULT_FORECAST_DAYS = 30
 DEFAULT_OPTION_CHAIN_UNDERLYINGS = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL"]
+STOCK_CORRELATION_PERIOD = "1y"
+STOCK_CORRELATION_CACHE_TTL_SECONDS = 4 * 60 * 60
+CRYPTO_CORRELATION_CACHE_TTL_SECONDS = 30 * 60
+CRYPTO_CORRELATION_LOOKBACK_DAYS = 90
+RESEARCH_DESK_CACHE_TTL_SECONDS = 30 * 60
+BROKER_LIVE_CACHE_TTL_SECONDS = 5
+
+_BROKER_POSITION_CACHE: dict[str, Any] = {"generated_at": None, "payload": ([], {"available": False, "reason": "cold_cache"})}
+_BROKER_SNAPSHOT_CACHE: dict[str, Any] = {"generated_at": None, "payload": {"available": False, "reason": "cold_cache"}}
 
 STRATEGY_CLASS_MAP: dict[str, tuple[str, str]] = {
     "momentum": ("strategies.momentum", "MomentumStrategy"),
@@ -49,6 +63,158 @@ STRATEGY_CLASS_MAP: dict[str, tuple[str, str]] = {
     "momentum_carry_combo": ("strategies.momentum_carry_combo", "MomentumCarryComboStrategy"),
     "order_flow": ("strategies.order_flow", "OrderFlowStrategy"),
     "liquidation_cascade": ("strategies.liquidation_cascade", "LiquidationCascadeStrategy"),
+    "microstructure_pressure": ("strategies.microstructure_pressure", "MicrostructurePressureStrategy"),
+    "pullback_confluence": ("strategies.pullback_confluence", "PullbackConfluenceStrategy"),
+}
+
+STRATEGY_RESEARCH_LIBRARY: dict[str, dict[str, Any]] = {
+    "momentum": {
+        "label": "Momentum",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "trend",
+        "asset_class": "multi-asset",
+        "thesis": "Classic directional trend capture.",
+    },
+    "mean_reversion": {
+        "label": "Mean Reversion",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "reversion",
+        "asset_class": "multi-asset",
+        "thesis": "Fade statistically stretched prices.",
+    },
+    "breakout": {
+        "label": "Breakout",
+        "paper_family": "Bloch 2023 Futuretesting",
+        "category": "pattern",
+        "asset_class": "multi-asset",
+        "thesis": "Ride directional expansion through range breaks.",
+    },
+    "pullback_confluence": {
+        "label": "Pullback Confluence",
+        "paper_family": "Bloch 2023 Futuretesting",
+        "category": "pattern",
+        "asset_class": "multi-asset",
+        "thesis": "Wait for trend pullbacks and confluence-based resumptions.",
+    },
+    "pairs_arb": {
+        "label": "Pairs Arb",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "relative value",
+        "asset_class": "stocks+crypto",
+        "thesis": "Exploit spread dislocations in correlated assets.",
+    },
+    "statistical_arb": {
+        "label": "Statistical Arbitrage",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "relative value",
+        "asset_class": "multi-asset",
+        "thesis": "Mean-revert z-scored residuals and spreads.",
+    },
+    "cross_sectional_momentum": {
+        "label": "Cross-Sectional Momentum",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "factors",
+        "asset_class": "stocks+crypto",
+        "thesis": "Rank the universe and rotate into relative winners.",
+    },
+    "tsmom": {
+        "label": "Time-Series Momentum",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "factors",
+        "asset_class": "multi-asset",
+        "thesis": "Trade absolute trend persistence.",
+    },
+    "quant_factors": {
+        "label": "Quant Factors",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "factors",
+        "asset_class": "multi-asset",
+        "thesis": "Blend factor sleeves such as intraday strength and volatility.",
+    },
+    "options_vol": {
+        "label": "Options Volatility",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "options",
+        "asset_class": "crypto options",
+        "thesis": "Trade implied vs realised volatility structures.",
+    },
+    "rma_strategy": {
+        "label": "RMA",
+        "paper_family": "Bloch 2025 RMA",
+        "category": "adaptive",
+        "asset_class": "multi-asset",
+        "thesis": "Use relative moving-average disequilibrium as an adaptive signal.",
+    },
+    "pivot_sr": {
+        "label": "Pivot S/R",
+        "paper_family": "Bloch 2023 Futuretesting",
+        "category": "pattern",
+        "asset_class": "multi-asset",
+        "thesis": "Trade support/resistance and intrabar confirmation.",
+    },
+    "hp_trend": {
+        "label": "HP Trend",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "trend",
+        "asset_class": "multi-asset",
+        "thesis": "Smooth price noise and follow structural trend.",
+    },
+    "order_flow": {
+        "label": "Order Flow",
+        "paper_family": "Cartea et al. 2024",
+        "category": "microstructure",
+        "asset_class": "stocks+crypto",
+        "thesis": "Trade short-horizon imbalance and VWAP displacement.",
+    },
+    "vpin_flow": {
+        "label": "VPIN Flow",
+        "paper_family": "Cartea et al. 2024",
+        "category": "microstructure",
+        "asset_class": "stocks+crypto",
+        "thesis": "Track toxicity and aggressive flow to separate trend from noise.",
+    },
+    "microstructure_pressure": {
+        "label": "Microstructure Pressure",
+        "paper_family": "Cartea et al. 2024",
+        "category": "microstructure",
+        "asset_class": "stocks+crypto",
+        "thesis": "Fuse signed flow, price pressure, VWAP gap, and volume shock.",
+    },
+    "carry_portfolio": {
+        "label": "Carry Portfolio",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "carry",
+        "asset_class": "crypto+macro",
+        "thesis": "Harvest persistent carry premia across instruments.",
+    },
+    "momentum_carry_combo": {
+        "label": "Momentum + Carry",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "carry",
+        "asset_class": "crypto+macro",
+        "thesis": "Blend trend confirmation with carry alignment.",
+    },
+    "liquidation_cascade": {
+        "label": "Liquidation Cascade",
+        "paper_family": "Cartea et al. 2024",
+        "category": "microstructure",
+        "asset_class": "crypto",
+        "thesis": "Exploit forced-flow cascades and transient imbalance.",
+    },
+    "knn_predictor": {
+        "label": "kNN Predictor",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "machine learning",
+        "asset_class": "multi-asset",
+        "thesis": "Nearest-neighbour pattern matching for short-horizon direction.",
+    },
+    "contrarian_oi": {
+        "label": "Contrarian OI",
+        "paper_family": "Kakushadze & Serur 2018",
+        "category": "alternative data",
+        "asset_class": "crypto",
+        "thesis": "Fade crowded open-interest build-ups.",
+    },
 }
 
 
@@ -79,8 +245,536 @@ def safe_int(value: Any) -> int | None:
         return None
 
 
+def safe_mean(values: Any) -> float:
+    nums = [float(value) for value in (values or []) if value is not None]
+    return float(sum(nums) / len(nums)) if nums else 0.0
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_iso_ts(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _is_cache_block_fresh(block: Any, ttl_seconds: int) -> bool:
+    if not isinstance(block, dict):
+        return False
+    generated_at = _parse_iso_ts(block.get("generated_at_utc"))
+    if generated_at is None:
+        return False
+    return (datetime.now(timezone.utc) - generated_at).total_seconds() <= ttl_seconds
+
+
+def _cache_payload_fresh(cache: dict[str, Any], ttl_seconds: int) -> bool:
+    generated_at = _parse_iso_ts(cache.get("generated_at"))
+    if generated_at is None:
+        return False
+    return (datetime.now(timezone.utc) - generated_at).total_seconds() <= ttl_seconds
+
+
+def sp500_universe_symbols() -> list[str]:
+    universe_report = read_json(UNIVERSE_REPORT, {})
+    raw = universe_report.get("valid_symbols") or []
+    symbols: list[str] = []
+    seen: set[str] = set()
+    for symbol in raw:
+        cleaned = str(symbol or "").strip().upper()
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        symbols.append(cleaned)
+    return symbols
+
+
+def _cluster_correlation_symbols(corr_df: pd.DataFrame) -> list[str]:
+    symbols = list(corr_df.columns)
+    if len(symbols) <= 2:
+        return symbols
+    try:
+        from scipy.cluster.hierarchy import linkage, leaves_list
+        from scipy.spatial.distance import squareform
+
+        dist = (1.0 - corr_df.fillna(0.0).clip(-1.0, 1.0)).to_numpy(dtype=float, copy=True)
+        np.fill_diagonal(dist, 0.0)
+        condensed = squareform(dist, checks=False)
+        leaves = leaves_list(linkage(condensed, method="average"))
+        return [symbols[int(idx)] for idx in leaves]
+    except Exception:
+        return sorted(symbols)
+
+
+def _peer_map_from_corr(corr_df: pd.DataFrame, limit: int = 10) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    peer_map: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for symbol in corr_df.columns:
+        row = corr_df.loc[symbol].drop(labels=[symbol], errors="ignore").dropna()
+        positive = [
+            {"symbol": peer, "correlation": round(float(value), 3)}
+            for peer, value in row.sort_values(ascending=False).head(limit).items()
+        ]
+        negative = [
+            {"symbol": peer, "correlation": round(float(value), 3)}
+            for peer, value in row.sort_values(ascending=True).head(limit).items()
+        ]
+        peer_map[symbol] = {"positive": positive, "negative": negative}
+    return peer_map
+
+
+def _pair_extremes_from_corr(corr_df: pd.DataFrame, limit: int = 15) -> dict[str, list[dict[str, Any]]]:
+    positive: list[dict[str, Any]] = []
+    negative: list[dict[str, Any]] = []
+    symbols = list(corr_df.columns)
+    for left_idx, left_symbol in enumerate(symbols):
+        for right_idx in range(left_idx + 1, len(symbols)):
+            right_symbol = symbols[right_idx]
+            value = safe_float(corr_df.iat[left_idx, right_idx])
+            if value is None or math.isnan(value):
+                continue
+            row = {"pair": f"{left_symbol}/{right_symbol}", "correlation": round(float(value), 3)}
+            positive.append(row)
+            negative.append(row)
+    positive.sort(key=lambda item: item["correlation"], reverse=True)
+    negative.sort(key=lambda item: item["correlation"])
+    return {"positive": positive[:limit], "negative": negative[:limit]}
+
+
+def _correlation_stats(corr_df: pd.DataFrame, returns_df: pd.DataFrame) -> dict[str, Any]:
+    if corr_df.empty:
+        return {}
+    mask = np.triu(np.ones(corr_df.shape, dtype=bool), k=1)
+    upper = corr_df.where(mask).stack().astype(float)
+    if upper.empty:
+        return {}
+    strongest = upper.sort_values(ascending=False)
+    weakest = upper.sort_values(ascending=True)
+    return {
+        "symbol_count": int(corr_df.shape[0]),
+        "bar_count": int(len(returns_df)),
+        "avg_corr": round(float(upper.mean()), 3),
+        "avg_abs_corr": round(float(upper.abs().mean()), 3),
+        "median_corr": round(float(upper.median()), 3),
+        "dispersion": round(float(upper.std()), 3),
+        "diversification_score": round(float(max(0.0, 1.0 - upper.abs().mean())), 3),
+        "strongest_pair": {
+            "pair": f"{strongest.index[0][0]}/{strongest.index[0][1]}",
+            "correlation": round(float(strongest.iloc[0]), 3),
+        },
+        "weakest_pair": {
+            "pair": f"{weakest.index[0][0]}/{weakest.index[0][1]}",
+            "correlation": round(float(weakest.iloc[0]), 3),
+        },
+    }
+
+
+def _leaders_from_closes(closes: pd.DataFrame) -> dict[str, list[dict[str, Any]]]:
+    if closes.empty or len(closes) < 3:
+        return {"leaders_1d": [], "laggards_1d": [], "leaders_1m": [], "laggards_1m": []}
+
+    one_day = closes.pct_change().iloc[-1].replace([np.inf, -np.inf], np.nan).dropna()
+    month_lookback = min(21, len(closes) - 1)
+    one_month = closes.pct_change(month_lookback).iloc[-1].replace([np.inf, -np.inf], np.nan).dropna()
+
+    def _rows(series: pd.Series, reverse: bool) -> list[dict[str, Any]]:
+        if series.empty:
+            return []
+        ranked = series.sort_values(ascending=not reverse).head(8)
+        return [{"symbol": symbol, "return_pct": round(float(value) * 100.0, 2)} for symbol, value in ranked.items()]
+
+    return {
+        "leaders_1d": _rows(one_day, True),
+        "laggards_1d": _rows(one_day, False),
+        "leaders_1m": _rows(one_month, True),
+        "laggards_1m": _rows(one_month, False),
+    }
+
+
+def _breadth_from_closes(closes: pd.DataFrame, annualization_factor: float) -> dict[str, Any]:
+    if closes.empty or len(closes) < 3:
+        return {}
+
+    last = closes.iloc[-1]
+    one_day = closes.pct_change().iloc[-1].replace([np.inf, -np.inf], np.nan).dropna()
+    week_lookback = min(5, len(closes) - 1)
+    month_lookback = min(21, len(closes) - 1)
+    one_week = closes.pct_change(week_lookback).iloc[-1].replace([np.inf, -np.inf], np.nan).dropna()
+    one_month = closes.pct_change(month_lookback).iloc[-1].replace([np.inf, -np.inf], np.nan).dropna()
+
+    ma20 = closes.tail(min(20, len(closes))).mean()
+    ma50 = closes.tail(min(50, len(closes))).mean()
+    pct_above_20 = float((last > ma20).mean() * 100.0) if len(ma20) else 0.0
+    pct_above_50 = float((last > ma50).mean() * 100.0) if len(ma50) else 0.0
+    advancers = int((one_day > 0).sum())
+    decliners = int((one_day < 0).sum())
+    unchanged = int(len(one_day) - advancers - decliners)
+
+    xs_dispersion = closes.pct_change().tail(min(20, len(closes) - 1)).std(axis=1).dropna()
+    realised_vol = closes.pct_change().tail(min(20, len(closes) - 1)).std().dropna()
+    breadth_score = max(
+        0.0,
+        min(
+            1.0,
+            0.45 * (pct_above_20 / 100.0)
+            + 0.35 * (pct_above_50 / 100.0)
+            + 0.20 * ((advancers - decliners) / max(len(one_day), 1) + 1.0) / 2.0,
+        ),
+    )
+
+    return {
+        "advancers_1d": advancers,
+        "decliners_1d": decliners,
+        "unchanged_1d": unchanged,
+        "pct_above_20d": round(pct_above_20, 2),
+        "pct_above_50d": round(pct_above_50, 2),
+        "avg_return_1d_pct": round(float(one_day.mean() * 100.0), 2) if not one_day.empty else None,
+        "avg_return_1w_pct": round(float(one_week.mean() * 100.0), 2) if not one_week.empty else None,
+        "avg_return_1m_pct": round(float(one_month.mean() * 100.0), 2) if not one_month.empty else None,
+        "dispersion_20d_pct": round(float(xs_dispersion.mean() * 100.0), 2) if not xs_dispersion.empty else None,
+        "avg_realized_vol_pct": round(float(realised_vol.mean() * math.sqrt(annualization_factor) * 100.0), 2) if not realised_vol.empty else None,
+        "breadth_score": round(float(breadth_score), 3),
+    }
+
+
+def _serialize_correlation_block(
+    close_df: pd.DataFrame,
+    *,
+    asset_class: str,
+    annualization_factor: float,
+    requested_symbols: list[str],
+    focus_symbol: str | None = None,
+) -> dict[str, Any]:
+    if close_df is None or close_df.empty:
+        return {
+            "generated_at_utc": utc_now_iso(),
+            "asset_class": asset_class,
+            "requested_symbol_count": len(requested_symbols),
+            "symbol_count": 0,
+            "coverage_pct": 0.0,
+            "symbols": [],
+            "corr": [],
+            "vols": {},
+            "peer_map": {},
+            "leaders": {"positive": [], "negative": []},
+            "stats": {},
+            "focus_symbol": focus_symbol,
+        }
+
+    closes = close_df.sort_index().ffill().dropna(axis=1, how="all")
+    returns = closes.pct_change().replace([np.inf, -np.inf], np.nan).dropna(how="all")
+    min_obs = max(2, min(20, len(returns)))
+    returns = returns.dropna(axis=1, thresh=min_obs)
+    if returns.empty:
+        return {
+            "generated_at_utc": utc_now_iso(),
+            "asset_class": asset_class,
+            "requested_symbol_count": len(requested_symbols),
+            "symbol_count": 0,
+            "coverage_pct": 0.0,
+            "symbols": [],
+            "corr": [],
+            "vols": {},
+            "peer_map": {},
+            "leaders": {"positive": [], "negative": []},
+            "stats": {},
+            "focus_symbol": focus_symbol,
+        }
+
+    corr_df = returns.corr(min_periods=min_obs).fillna(0.0).copy()
+    for idx in range(len(corr_df.index)):
+        corr_df.iat[idx, idx] = 1.0
+    ordered_symbols = _cluster_correlation_symbols(corr_df)
+    corr_df = corr_df.reindex(index=ordered_symbols, columns=ordered_symbols)
+    vols = (returns[ordered_symbols].std() * math.sqrt(annualization_factor) * 100.0).round(2)
+    stats = _correlation_stats(corr_df, returns[ordered_symbols])
+    peer_map = _peer_map_from_corr(corr_df, limit=10)
+    leaders = _pair_extremes_from_corr(corr_df, limit=15)
+    closes = closes[ordered_symbols]
+    breadth = _breadth_from_closes(closes, annualization_factor)
+    leaders_by_return = _leaders_from_closes(closes)
+
+    resolved_focus = focus_symbol if focus_symbol in ordered_symbols else (ordered_symbols[0] if ordered_symbols else None)
+    return {
+        "generated_at_utc": utc_now_iso(),
+        "asset_class": asset_class,
+        "requested_symbol_count": len(requested_symbols),
+        "symbol_count": len(ordered_symbols),
+        "coverage_pct": round((len(ordered_symbols) / max(len(requested_symbols), 1)) * 100.0, 2),
+        "symbols": ordered_symbols,
+        "corr": corr_df.round(3).values.tolist(),
+        "vols": {symbol: float(vols.get(symbol, 0.0)) for symbol in ordered_symbols},
+        "peer_map": peer_map,
+        "leaders": leaders,
+        "leaders_by_return": leaders_by_return,
+        "breadth": breadth,
+        "stats": stats,
+        "focus_symbol": resolved_focus,
+    }
+
+
+def _build_stock_correlation_block() -> dict[str, Any]:
+    symbols = sp500_universe_symbols()
+    close_df = download_close_matrix(symbols, period=STOCK_CORRELATION_PERIOD, auto_adjust=True, progress=False)
+    close_df = close_df.tail(252)
+    block = _serialize_correlation_block(
+        close_df,
+        asset_class="stocks",
+        annualization_factor=252.0,
+        requested_symbols=symbols,
+        focus_symbol="AAPL",
+    )
+    block["period"] = STOCK_CORRELATION_PERIOD
+    return block
+
+
+def _build_crypto_correlation_block() -> dict[str, Any]:
+    from backtester.data_loader import load_multi
+
+    symbols = list(dict.fromkeys(cfg.crypto_symbols))
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=CRYPTO_CORRELATION_LOOKBACK_DAYS)
+    raw = load_multi(symbols, "4h", start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+    frames = []
+    for symbol, df in raw.items():
+        if df is None or df.empty or "close" not in df.columns:
+            continue
+        series = df["close"].astype(float).rename(symbol)
+        frames.append(series)
+    close_df = pd.concat(frames, axis=1).sort_index().ffill() if frames else pd.DataFrame()
+    block = _serialize_correlation_block(
+        close_df,
+        asset_class="crypto",
+        annualization_factor=365.0 * 6.0,
+        requested_symbols=symbols,
+        focus_symbol="BTCUSDT",
+    )
+    block["lookback_days"] = CRYPTO_CORRELATION_LOOKBACK_DAYS
+    block["interval"] = "4h"
+    return block
+
+
+def build_correlation_payload(force: bool = False) -> dict[str, Any]:
+    cached = read_json(CORRELATION_CACHE_PATH, {})
+    payload: dict[str, Any] = dict(cached) if isinstance(cached, dict) else {}
+
+    stocks_block = payload.get("stocks") if isinstance(payload.get("stocks"), dict) else None
+    crypto_block = payload.get("crypto") if isinstance(payload.get("crypto"), dict) else None
+
+    if force or not _is_cache_block_fresh(stocks_block, STOCK_CORRELATION_CACHE_TTL_SECONDS):
+        try:
+            stocks_block = _build_stock_correlation_block()
+        except Exception as exc:
+            stocks_block = dict(stocks_block or {})
+            stocks_block["note"] = f"stock_correlation_refresh_failed: {exc}"
+
+    if force or not _is_cache_block_fresh(crypto_block, CRYPTO_CORRELATION_CACHE_TTL_SECONDS):
+        try:
+            crypto_block = _build_crypto_correlation_block()
+        except Exception as exc:
+            crypto_block = dict(crypto_block or {})
+            crypto_block["note"] = f"crypto_correlation_refresh_failed: {exc}"
+
+    risk_snapshot = read_json(RISK_SNAPSHOT_PATH, {})
+    guard_snapshot = read_json(PORTFOLIO_GUARD_PATH, {})
+    risk_engine = guard_snapshot.get("portfolio_risk_engine") or risk_snapshot.get("portfolio_risk_engine") or {}
+
+    payload = {
+        "generated_at_utc": utc_now_iso(),
+        "stocks": stocks_block or {},
+        "crypto": crypto_block or {},
+        "options_greeks": {
+            "portfolio_delta": safe_float(risk_snapshot.get("portfolio_delta")),
+            "portfolio_theta": safe_float(risk_snapshot.get("portfolio_theta")),
+            "portfolio_vega": safe_float(risk_snapshot.get("portfolio_vega")),
+            "portfolio_gamma": safe_float(risk_snapshot.get("portfolio_gamma")),
+            "target_delta": safe_float(risk_snapshot.get("target_delta")),
+            "target_theta": safe_float(risk_snapshot.get("target_theta")),
+            "target_vega": safe_float(risk_snapshot.get("target_vega")),
+            "var_pct_equity": safe_float(risk_engine.get("var_pct_equity")),
+            "cvar_pct_equity": safe_float(risk_engine.get("cvar_pct_equity")),
+            "stress_pct_equity": safe_float(risk_engine.get("stress_pct_equity")),
+            "gross_exposure": safe_float(risk_engine.get("gross_exposure_pct_equity")),
+            "net_delta_exposure": safe_float(risk_engine.get("net_delta_exposure")),
+            "risk_score": safe_float(risk_engine.get("risk_score")),
+            "kill_switch": bool(risk_engine.get("kill_switch_active")),
+            "breaches": list(risk_engine.get("breaches") or []),
+            "top_underlyings": _normalize_top_underlyings(risk_engine.get("top_underlyings")),
+            "macro_regime": risk_snapshot.get("macro_regime"),
+            "vix": safe_float(risk_snapshot.get("vix")),
+            "movement_bias": risk_snapshot.get("movement_bias"),
+            "allowed_symbols": safe_int(risk_snapshot.get("allowed_symbols")),
+            "correlation_concentration": safe_float(risk_engine.get("correlation_concentration")),
+        },
+        "stress_scenarios": risk_engine.get("stress_losses", {}) or {},
+    }
+
+    try:
+        CORRELATION_CACHE_PATH.write_text(json.dumps(payload), encoding="utf-8")
+    except Exception:
+        pass
+    return payload
+
+
+def _strategy_enabled(name: str) -> bool:
+    attr_name = f"enable_{name}"
+    if hasattr(cfg, attr_name):
+        return bool(getattr(cfg, attr_name))
+    if name == "options_vol":
+        return bool(cfg.enable_options_vol and cfg.enable_options)
+    return True
+
+
+def _build_strategy_catalog() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for strategy, meta in STRATEGY_RESEARCH_LIBRARY.items():
+        rows.append(
+            {
+                "strategy": strategy,
+                "label": meta.get("label") or strategy.replace("_", " ").title(),
+                "paper_family": meta.get("paper_family"),
+                "category": meta.get("category"),
+                "asset_class": meta.get("asset_class"),
+                "thesis": meta.get("thesis"),
+                "enabled": _strategy_enabled(strategy),
+                "implemented": strategy in STRATEGY_CLASS_MAP or strategy in {"options_vol", "pairs_arb", "momentum", "mean_reversion"},
+            }
+        )
+    rows.sort(key=lambda row: (not row["enabled"], row["paper_family"] or "", row["label"]))
+    return rows
+
+
+def _build_paper_playbooks(strategy_catalog: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[str]] = {}
+    for row in strategy_catalog:
+        family = str(row.get("paper_family") or "Unmapped")
+        grouped.setdefault(family, []).append(str(row.get("label") or row.get("strategy")))
+    summaries = {
+        "Kakushadze & Serur 2018": "Broad strategy encyclopedia spanning factors, stat-arb, carry, options, and ML playbooks.",
+        "Cartea et al. 2024": "Microstructure playbook built around direction, price, volume, and trading-behaviour prediction.",
+        "Bloch 2023 Futuretesting": "Robust pattern, channel, pullback, and futuretesting workflow under scenario uncertainty.",
+        "Bloch 2025 RMA": "Adaptive disequilibrium framework using relative moving-average structure and robust risk control.",
+    }
+    papers: list[dict[str, Any]] = []
+    for family, strategies in grouped.items():
+        papers.append(
+            {
+                "paper_family": family,
+                "implemented_strategies": len(strategies),
+                "strategies": strategies[:8],
+                "summary": summaries.get(family, "Mapped into the dashboard strategy library."),
+            }
+        )
+    papers.sort(key=lambda row: row["paper_family"])
+    return papers
+
+
+def _build_microstructure_board() -> list[dict[str, Any]]:
+    from backtester.data_loader import load_multi
+
+    symbols = list(cfg.model_symbols)
+    if not symbols:
+        return []
+
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=14)
+    frames = load_multi(symbols, "1h", start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+    rows: list[dict[str, Any]] = []
+
+    for symbol, df in frames.items():
+        if df is None or df.empty or len(df) < 40:
+            continue
+        frame = df.copy()
+        close = frame["close"].astype(float)
+        high = frame["high"].astype(float)
+        low = frame["low"].astype(float)
+        open_ = frame["open"].astype(float)
+        volume = frame["volume"].astype(float).clip(lower=1e-9)
+
+        typical = (high + low + close) / 3.0
+        vwap = (typical * volume).rolling(16).sum() / volume.rolling(16).sum().clip(lower=1e-9)
+        vwap_gap = (float(close.iloc[-1]) - float(vwap.iloc[-1])) / max(abs(float(vwap.iloc[-1])), 1e-9)
+        volume_shock = float(volume.iloc[-1] / max(float(volume.tail(24).mean()), 1e-9))
+        ret_1d = float(close.pct_change(min(24, len(close) - 1)).iloc[-1] or 0.0)
+        rv_20 = float(close.pct_change().tail(20).std() * math.sqrt(24 * 365) * 100.0)
+
+        if "taker_buy_base" in frame.columns and not frame["taker_buy_base"].isna().all():
+            taker = frame["taker_buy_base"].astype(float).clip(lower=0.0)
+            flow_series = ((2.0 * taker / volume) - 1.0).clip(-1.5, 1.5).fillna(0.0)
+        else:
+            candle_range = (high - low).replace(0.0, np.nan)
+            close_location = (((close - low) - (high - close)) / candle_range).clip(-1.0, 1.0).fillna(0.0)
+            flow_series = close_location
+        flow_imbalance = float(flow_series.tail(12).mean())
+
+        trend_term = np.tanh(float(close.pct_change(min(6, len(close) - 1)).iloc[-1] or 0.0) * 18.0)
+        pressure = float(
+            0.40 * flow_imbalance
+            + 0.25 * np.tanh(vwap_gap * 80.0)
+            + 0.20 * np.tanh((volume_shock - 1.0) * 1.4)
+            + 0.15 * trend_term
+        )
+        archetype = "market_making"
+        if abs(flow_imbalance) > 0.22 and abs(ret_1d) > 0.012:
+            archetype = "directional"
+        elif volume_shock > 1.4 and abs(vwap_gap) > 0.004:
+            archetype = "opportunistic"
+
+        rows.append(
+            {
+                "symbol": symbol,
+                "asset_class": "crypto" if cfg.is_crypto_symbol(symbol) else "stock",
+                "pressure": round(pressure, 3),
+                "direction": "BUY_PRESSURE" if pressure > 0.15 else ("SELL_PRESSURE" if pressure < -0.15 else "BALANCED"),
+                "flow_imbalance": round(flow_imbalance, 3),
+                "vwap_gap_pct": round(vwap_gap * 100.0, 2),
+                "volume_shock": round(volume_shock, 2),
+                "return_1d_pct": round(ret_1d * 100.0, 2),
+                "realized_vol_pct": round(rv_20, 2),
+                "archetype": archetype,
+            }
+        )
+
+    rows.sort(key=lambda row: abs(float(row.get("pressure") or 0.0)), reverse=True)
+    return rows[:12]
+
+
+def build_research_desk(force: bool = False) -> dict[str, Any]:
+    cached = read_json(RESEARCH_DESK_CACHE_PATH, {})
+    if not force and _is_cache_block_fresh(cached, RESEARCH_DESK_CACHE_TTL_SECONDS):
+        return cached
+
+    corr = build_correlation_payload(force=force)
+    strategy_catalog = _build_strategy_catalog()
+    stock_block = corr.get("stocks") or {}
+    crypto_block = corr.get("crypto") or {}
+    try:
+        microstructure_board = _build_microstructure_board()
+    except Exception as exc:
+        microstructure_board = [{"symbol": "UNAVAILABLE", "direction": "BALANCED", "pressure": 0.0, "archetype": f"error: {exc}"}]
+
+    payload = {
+        "generated_at_utc": utc_now_iso(),
+        "stock_breadth": stock_block.get("breadth") or {},
+        "crypto_breadth": crypto_block.get("breadth") or {},
+        "stock_leaders": stock_block.get("leaders_by_return") or {},
+        "crypto_leaders": crypto_block.get("leaders_by_return") or {},
+        "stock_corr_stats": stock_block.get("stats") or {},
+        "crypto_corr_stats": crypto_block.get("stats") or {},
+        "strategy_catalog": strategy_catalog,
+        "papers": _build_paper_playbooks(strategy_catalog),
+        "microstructure_board": microstructure_board,
+    }
+    try:
+        RESEARCH_DESK_CACHE_PATH.write_text(json.dumps(payload), encoding="utf-8")
+    except Exception:
+        pass
+    return payload
 
 
 def parse_json_dict(value: Any) -> dict[str, Any]:
@@ -105,6 +799,33 @@ def normalize_side(value: Any) -> str:
 
 def side_sign(side: str) -> float:
     return -1.0 if str(side).upper() == "SHORT" else 1.0
+
+
+def _broker_asset_class_label(value: Any) -> str:
+    raw = str(getattr(value, "value", value) or "").strip().lower()
+    if "option" in raw:
+        return "options"
+    if "crypto" in raw:
+        return "crypto"
+    if "equity" in raw or "stock" in raw:
+        return "stock"
+    return raw or "unknown"
+
+
+def _normalize_broker_symbol(symbol: Any, asset_class: Any) -> str:
+    raw = str(symbol or "").strip().upper()
+    if not raw:
+        return ""
+    if "/" in raw:
+        base, quote = raw.split("/", 1)
+        if quote in {"USD", "USDT", "BUSD"}:
+            return f"{base}USDT"
+        return raw.replace("/", "")
+
+    asset_label = _broker_asset_class_label(asset_class)
+    if asset_label == "crypto" and raw.endswith("USD") and not raw.endswith("USDT"):
+        return f"{raw[:-3]}USDT"
+    return raw
 
 
 def option_meta(symbol: str) -> dict[str, Any]:
@@ -303,6 +1024,213 @@ def live_option_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
         return [], {"available": False, "reason": f"alpaca_fetch_failed: {exc}"}
 
 
+def live_broker_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if _cache_payload_fresh(_BROKER_POSITION_CACHE, BROKER_LIVE_CACHE_TTL_SECONDS):
+        rows, meta = _BROKER_POSITION_CACHE.get("payload") or ([], {})
+        return [dict(row) for row in rows], dict(meta)
+
+    if not cfg.is_alpaca or not cfg.alpaca_api_key or not cfg.alpaca_api_secret:
+        return [], {"available": False, "reason": "alpaca_broker_unavailable"}
+
+    try:
+        from core.broker_client import BrokerClient
+    except Exception as exc:
+        return [], {"available": False, "reason": f"broker_client_import_failed: {exc}"}
+
+    try:
+        client = BrokerClient(cfg.alpaca_api_key, cfg.alpaca_api_secret, paper=cfg.alpaca_paper)
+        account = client.trade_client.get_account()
+        portfolio_value = safe_float(getattr(account, "portfolio_value", None)) or safe_float(getattr(account, "equity", None))
+        positions = client.get_positions() or []
+        rows: list[dict[str, Any]] = []
+        asset_mix: dict[str, int] = {}
+        total_unrealized = 0.0
+        gross_market_value = 0.0
+
+        for pos in positions:
+            raw_symbol = str(getattr(pos, "symbol", "") or "").upper()
+            asset_class = _broker_asset_class_label(getattr(pos, "asset_class", None))
+            symbol = _normalize_broker_symbol(raw_symbol, asset_class)
+            qty = abs(safe_float(getattr(pos, "qty", 0.0)) or 0.0)
+            side = normalize_side(getattr(pos, "side", None))
+            market_value = safe_float(getattr(pos, "market_value", None))
+            unrealized_pnl = safe_float(getattr(pos, "unrealized_pl", None))
+            unrealized_pnl_pct = safe_float(getattr(pos, "unrealized_plpc", None))
+            weight_pct = (market_value / portfolio_value * 100.0) if market_value is not None and portfolio_value else None
+            meta = option_meta(raw_symbol) if asset_class == "options" else {
+                "underlying": symbol,
+                "option_type": None,
+                "strike": None,
+                "expiry": None,
+                "dte": None,
+            }
+
+            row = {
+                "symbol": symbol or raw_symbol,
+                "broker_symbol": raw_symbol,
+                "asset_class": asset_class,
+                "market": asset_class,
+                "underlying": meta.get("underlying") or symbol or raw_symbol,
+                "option_type": meta.get("option_type"),
+                "strike": meta.get("strike"),
+                "expiry": meta.get("expiry"),
+                "dte": meta.get("dte"),
+                "side": side,
+                "quantity": qty,
+                "entry_price": safe_float(getattr(pos, "avg_entry_price", None)),
+                "current_price": safe_float(getattr(pos, "current_price", None)),
+                "market_value": market_value,
+                "unrealized_pnl": unrealized_pnl,
+                "unrealized_pnl_pct": None if unrealized_pnl_pct is None else unrealized_pnl_pct * 100.0,
+                "weight_pct": weight_pct,
+                "exchange": str(getattr(getattr(pos, "exchange", None), "value", getattr(pos, "exchange", "")) or "").upper() or None,
+                "strategy": "broker_live",
+                "source": "alpaca_live",
+                "opened_at": None,
+            }
+            rows.append(row)
+            asset_mix[asset_class] = asset_mix.get(asset_class, 0) + 1
+            total_unrealized += unrealized_pnl or 0.0
+            gross_market_value += abs(market_value or 0.0)
+
+        rows.sort(key=lambda row: abs(row.get("market_value") or 0.0), reverse=True)
+        payload = (rows, {
+            "available": True,
+            "source": "alpaca_live",
+            "count": len(rows),
+            "asset_mix": asset_mix,
+            "gross_market_value": round(float(gross_market_value), 2),
+            "net_unrealized_pnl": round(float(total_unrealized), 2),
+            "portfolio_value": portfolio_value,
+        })
+        _BROKER_POSITION_CACHE["generated_at"] = utc_now_iso()
+        _BROKER_POSITION_CACHE["payload"] = payload
+        return [dict(row) for row in rows], dict(payload[1])
+    except Exception as exc:
+        return [], {"available": False, "reason": f"alpaca_fetch_failed: {exc}"}
+
+
+def live_broker_snapshot() -> dict[str, Any]:
+    if _cache_payload_fresh(_BROKER_SNAPSHOT_CACHE, BROKER_LIVE_CACHE_TTL_SECONDS):
+        return dict(_BROKER_SNAPSHOT_CACHE.get("payload") or {})
+
+    if not cfg.is_alpaca or not cfg.alpaca_api_key or not cfg.alpaca_api_secret:
+        return {"available": False, "reason": "alpaca_broker_unavailable"}
+
+    try:
+        from core.broker_client import BrokerClient
+        from alpaca.trading.requests import GetPortfolioHistoryRequest
+    except Exception as exc:
+        return {"available": False, "reason": f"broker_client_import_failed: {exc}"}
+
+    try:
+        client = BrokerClient(cfg.alpaca_api_key, cfg.alpaca_api_secret, paper=cfg.alpaca_paper)
+        account = client.trade_client.get_account()
+        positions = client.get_positions() or []
+
+        total_equity = safe_float(getattr(account, "portfolio_value", None)) or safe_float(getattr(account, "equity", None))
+        cash = safe_float(getattr(account, "cash", None))
+        buying_power = safe_float(getattr(account, "buying_power", None))
+        long_market_value = safe_float(getattr(account, "long_market_value", None))
+        short_market_value = safe_float(getattr(account, "short_market_value", None))
+        last_equity = safe_float(getattr(account, "last_equity", None))
+        daytrade_count = safe_int(getattr(account, "daytrade_count", None))
+        account_status = str(getattr(getattr(account, "status", None), "value", getattr(account, "status", "")) or "").upper() or None
+
+        day_pnl_dollars = (total_equity - last_equity) if total_equity is not None and last_equity else None
+        day_pnl_pct = ((day_pnl_dollars / last_equity) * 100.0) if day_pnl_dollars is not None and last_equity else None
+
+        tape_timestamps: list[str] = []
+        tape_equity: list[float] = []
+        try:
+            history = client.trade_client.get_portfolio_history(
+                GetPortfolioHistoryRequest(period="1D", timeframe="1Min", intraday_reporting="continuous")
+            )
+            raw_ts = list(getattr(history, "timestamp", []) or [])
+            raw_eq = list(getattr(history, "equity", []) or [])
+            for ts, eq in zip(raw_ts, raw_eq):
+                eq_value = safe_float(eq)
+                if eq_value is None or eq_value <= 0:
+                    continue
+                tape_timestamps.append(datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat())
+                tape_equity.append(eq_value)
+        except Exception:
+            tape_timestamps = []
+            tape_equity = []
+
+        inception_equity = None
+        all_time_high_equity = None
+        try:
+            full_history = client.trade_client.get_portfolio_history(
+                GetPortfolioHistoryRequest(period="all", timeframe="1D", intraday_reporting="continuous")
+            )
+            full_equity = [safe_float(value) for value in list(getattr(full_history, "equity", []) or [])]
+            full_equity = [value for value in full_equity if value is not None and value > 0]
+            if full_equity:
+                inception_equity = full_equity[0]
+                all_time_high_equity = max(full_equity)
+        except Exception:
+            inception_equity = None
+            all_time_high_equity = None
+
+        first_equity = tape_equity[0] if tape_equity else total_equity
+        session_high = max(tape_equity) if tape_equity else total_equity
+        session_low = min(tape_equity) if tape_equity else total_equity
+        if total_equity is not None:
+            if session_high is None:
+                session_high = total_equity
+            else:
+                session_high = max(session_high, total_equity)
+            if session_low is None:
+                session_low = total_equity
+            else:
+                session_low = min(session_low, total_equity)
+            if all_time_high_equity is None:
+                all_time_high_equity = session_high
+            else:
+                all_time_high_equity = max(all_time_high_equity, session_high, total_equity)
+        latest_equity_ts = tape_timestamps[-1] if tape_timestamps else utc_now_iso()
+        position_market_value = sum(abs(safe_float(getattr(pos, "market_value", None)) or 0.0) for pos in positions)
+        unrealized_pnl = sum(safe_float(getattr(pos, "unrealized_pl", None)) or 0.0 for pos in positions)
+        total_return_pct = (
+            ((total_equity / inception_equity) - 1.0) * 100.0
+            if total_equity is not None and inception_equity not in (None, 0.0)
+            else None
+        )
+
+        payload = {
+            "available": True,
+            "source": "alpaca_account",
+            "total_equity": total_equity,
+            "cash": cash,
+            "buying_power": buying_power,
+            "long_market_value": long_market_value,
+            "short_market_value": short_market_value,
+            "position_market_value": round(float(position_market_value), 2),
+            "net_unrealized_pnl": round(float(unrealized_pnl), 2),
+            "last_equity": last_equity,
+            "day_pnl_dollars": day_pnl_dollars,
+            "day_pnl_pct": day_pnl_pct,
+            "positions_count": len(positions),
+            "daytrade_count": daytrade_count,
+            "account_status": account_status,
+            "latest_equity_ts": latest_equity_ts,
+            "session_start_equity": first_equity,
+            "session_high_equity": session_high,
+            "session_low_equity": session_low,
+            "inception_equity": inception_equity,
+            "all_time_high_equity": all_time_high_equity,
+            "total_return_pct": total_return_pct,
+            "tape_timestamps": tape_timestamps,
+            "tape_equity": tape_equity,
+        }
+        _BROKER_SNAPSHOT_CACHE["generated_at"] = utc_now_iso()
+        _BROKER_SNAPSHOT_CACHE["payload"] = payload
+        return dict(payload)
+    except Exception as exc:
+        return {"available": False, "reason": f"alpaca_fetch_failed: {exc}"}
+
+
 def _sum_field(rows: list[dict[str, Any]], field: str) -> float:
     return float(sum(safe_float(row.get(field)) or 0.0 for row in rows))
 
@@ -315,14 +1243,17 @@ def _avg_field(rows: list[dict[str, Any]], field: str) -> float | None:
     return float(sum(vals) / len(vals))
 
 
-def _preferred_pairs_lookup(backtest_report: dict[str, Any]) -> tuple[str | None, list[dict[str, Any]], dict[str, Any]]:
+def _preferred_pairs_lookup(backtest_report: dict[str, Any]) -> tuple[str | None, list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     pairs_payload = backtest_report.get("pairs_suite") or {}
     lookbacks = pairs_payload.get("results_by_lookback") or {}
     preferred_lookback = "5y" if "5y" in lookbacks else ("10y" if "10y" in lookbacks else next(iter(lookbacks.keys()), None))
+    pair_results: list[dict[str, Any]] = []
     top_pairs: list[dict[str, Any]] = []
     if preferred_lookback:
-        top_pairs = (((lookbacks.get(preferred_lookback) or {}).get("summary") or {}).get("top_pairs") or [])
-    return preferred_lookback, top_pairs, pairs_payload.get("summary") or {}
+        selected_payload = lookbacks.get(preferred_lookback) or {}
+        pair_results = list(selected_payload.get("pair_results") or [])
+        top_pairs = (((selected_payload.get("summary") or {}).get("top_pairs")) or pair_results[:8])
+    return preferred_lookback, pair_results, top_pairs, pairs_payload.get("summary") or {}
 
 
 def _normalize_top_underlyings(items: Any) -> list[dict[str, Any]]:
@@ -372,6 +1303,186 @@ def _best_option_model(option_models: dict[str, Any]) -> dict[str, Any] | None:
         "avg_signals_per_symbol": safe_float(stats.get("avg_signals_per_symbol")),
         "avg_long_pnl": safe_float(stats.get("avg_long_pnl")),
     }
+
+
+def _snapshot_age_hours(payload: dict[str, Any] | None) -> float | None:
+    if not isinstance(payload, dict):
+        return None
+    ts = _parse_iso_ts(payload.get("generated_at_utc"))
+    if ts is None:
+        return None
+    return max(0.0, (datetime.now(timezone.utc) - ts).total_seconds() / 3600.0)
+
+
+def _snapshot_is_fresh(payload: dict[str, Any] | None, *, max_age_hours: float) -> bool:
+    age = _snapshot_age_hours(payload)
+    return age is not None and age <= max_age_hours
+
+
+def _latest_equity_curve_point() -> dict[str, Any]:
+    if not BOT_STATE_DB_PATH.exists():
+        return {}
+    try:
+        with sqlite3.connect(BOT_STATE_DB_PATH, check_same_thread=False) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT ts, equity, drawdown FROM equity_curve ORDER BY ts DESC LIMIT 1"
+            ).fetchone()
+    except Exception:
+        return {}
+    if not row:
+        return {}
+    return {
+        "ts": row["ts"],
+        "equity": safe_float(row["equity"]),
+        "drawdown": safe_float(row["drawdown"]),
+    }
+
+
+def _greek_alignment_component(actual: float | None, target: float | None) -> float | None:
+    if actual is None or target is None:
+        return None
+    scale = max(abs(target), 1.0)
+    score = 1.0 - min(1.0, abs(actual - target) / scale)
+    return max(0.0, min(1.0, float(score)))
+
+
+def _system_readiness_score(system_snapshot: dict[str, Any]) -> float:
+    status = system_snapshot.get("status") or {}
+    host = system_snapshot.get("host_metrics") or {}
+    memory = host.get("memory") or {}
+    disk = host.get("disk") or {}
+    pressure_map = {"normal": 0.95, "elevated": 0.72, "high": 0.45}
+    pressure_score = pressure_map.get(str(status.get("pressure") or "").lower(), 0.65)
+    cpu_score = 1.0 - min(1.0, max(0.0, float(safe_float(host.get("normalized_cpu_load_pct")) or 0.0) / 100.0))
+    mem_score = 1.0 - min(1.0, max(0.0, float(safe_float(memory.get("usage_pct")) or 0.0) / 100.0))
+    disk_score = 1.0 - min(1.0, max(0.0, float(safe_float(disk.get("usage_pct")) or 0.0) / 100.0))
+    return round(float(max(0.0, min(1.0, safe_mean([pressure_score, cpu_score, mem_score, disk_score])))), 6)
+
+
+def _execution_readiness_score(exec_summary: dict[str, Any]) -> float:
+    quality = safe_float(exec_summary.get("avg_execution_quality_score"))
+    fill_rate = safe_float(exec_summary.get("fill_rate"))
+    coverage = safe_float(exec_summary.get("broker_fill_price_coverage"))
+    records = safe_int(exec_summary.get("records")) or 0
+    degraded = safe_int(exec_summary.get("degraded_execution_count")) or 0
+    degradation_score = 1.0 - min(1.0, degraded / max(records, 1))
+    return round(
+        float(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    0.45 * float(quality if quality is not None else 0.60)
+                    + 0.25 * float(fill_rate if fill_rate is not None else 0.60)
+                    + 0.20 * float(coverage if coverage is not None else 0.60)
+                    + 0.10 * degradation_score,
+                ),
+            )
+        ),
+        6,
+    )
+
+
+def _risk_readiness_score(risk_engine: dict[str, Any]) -> float:
+    pressure = max(0.0, min(1.0, float(safe_float(risk_engine.get("risk_score")) or 0.0)))
+    kill_switch = bool(risk_engine.get("kill_switch_active"))
+    breaches = list(risk_engine.get("breaches") or [])
+    underlying_count = safe_int(risk_engine.get("underlying_count")) or 0
+    gross = safe_float(risk_engine.get("gross_exposure_pct_equity")) or 0.0
+
+    base = 0.90 if underlying_count == 0 and gross == 0.0 else 1.0 - pressure
+    if breaches:
+        base -= min(0.25, 0.05 * len(breaches))
+    if kill_switch:
+        base = min(base, 0.15)
+    return round(float(max(0.0, min(1.0, base))), 6)
+
+
+def _paper_edge_profile(backtest_report: dict[str, Any]) -> dict[str, Any]:
+    strategy_catalog = _build_strategy_catalog()
+    enabled_rows = [row for row in strategy_catalog if row.get("enabled") and row.get("implemented")]
+    family_targets = {
+        "Kakushadze & Serur 2018": 5,
+        "Cartea et al. 2024": 3,
+        "Bloch 2023 Futuretesting": 3,
+        "Bloch 2025 RMA": 1,
+    }
+    family_breakdown: list[dict[str, Any]] = []
+    family_scores: list[float] = []
+    for family, target in family_targets.items():
+        strategies = [row for row in enabled_rows if row.get("paper_family") == family]
+        coverage = min(1.0, len(strategies) / max(target, 1))
+        family_scores.append(coverage)
+        family_breakdown.append(
+            {
+                "paper_family": family,
+                "enabled_count": len(strategies),
+                "target_count": target,
+                "coverage_score": round(float(coverage), 3),
+            }
+        )
+
+    categories = {str(row.get("category") or "").strip() for row in enabled_rows if row.get("category")}
+    all_categories = {
+        str(meta.get("category") or "").strip()
+        for meta in STRATEGY_RESEARCH_LIBRARY.values()
+        if meta.get("category")
+    }
+    category_diversity = len(categories) / max(len(all_categories), 1)
+
+    asset_tokens = set()
+    for row in enabled_rows:
+        for token in str(row.get("asset_class") or "").replace("+", " ").replace("-", " ").split():
+            cleaned = token.strip().lower()
+            if cleaned:
+                asset_tokens.add(cleaned)
+    has_stock = any(token.startswith("stock") for token in asset_tokens)
+    has_crypto = any(token.startswith("crypto") for token in asset_tokens)
+    has_options = any("option" in token for token in asset_tokens)
+    asset_diversity = safe_mean(
+        [
+            1.0 if has_stock else 0.0,
+            1.0 if has_crypto else 0.0,
+            1.0 if has_options else (0.75 if (backtest_report.get("option_model_suite") or {}).get("summary") else 0.0),
+        ]
+    )
+
+    microstructure_names = {"order_flow", "vpin_flow", "microstructure_pressure", "liquidation_cascade"}
+    microstructure_enabled = sum(1 for row in enabled_rows if row.get("strategy") in microstructure_names)
+    microstructure_depth = min(1.0, microstructure_enabled / 3.0)
+
+    score = round(
+        float(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    0.55 * safe_mean(family_scores)
+                    + 0.20 * category_diversity
+                    + 0.15 * asset_diversity
+                    + 0.10 * microstructure_depth,
+                ),
+            )
+        ),
+        6,
+    )
+    return {
+        "score": score,
+        "enabled_strategies": len(enabled_rows),
+        "family_breakdown": family_breakdown,
+        "category_diversity": round(float(category_diversity), 3),
+        "asset_diversity": round(float(asset_diversity), 3),
+        "microstructure_depth": round(float(microstructure_depth), 3),
+    }
+
+
+def _deployment_tier_from_score(score: float) -> str:
+    if score >= 0.75:
+        return "institutional_candidate"
+    if score >= 0.62:
+        return "paper_candidate"
+    return "research_only"
 
 
 def build_options_overview() -> dict[str, Any]:
@@ -443,6 +1554,9 @@ def build_elite_overview() -> dict[str, Any]:
     backtest_report = read_json(LATEST_BACKTEST_REPORT, {})
     stocks_overview = build_stocks_overview()
     runtime_trades = load_runtime_trades()
+    live_pnl_snapshot = bot_state.get_daily_pnl_snapshot()
+    broker_snapshot = live_broker_snapshot()
+    broker_positions, broker_position_meta = live_broker_positions()
 
     movement_summary = ((backtest_report.get("movement_suite") or {}).get("summary") or {})
     ml_summary = ((backtest_report.get("ml_alpha_suite") or {}).get("summary") or {})
@@ -451,12 +1565,15 @@ def build_elite_overview() -> dict[str, Any]:
     option_models = (((backtest_report.get("option_model_suite") or {}).get("summary") or {}).get("models") or {})
     massive_overview = backtest_report.get("massive_overview") or {}
     institutional = backtest_report.get("institutional_robustness") or {}
+    paper_edge = _paper_edge_profile(backtest_report)
 
-    preferred_pairs_lookback, _, pairs_summary = _preferred_pairs_lookup(backtest_report)
+    preferred_pairs_lookback, _, _, pairs_summary = _preferred_pairs_lookup(backtest_report)
     risk_engine = (guard_snapshot.get("portfolio_risk_engine") or risk_snapshot.get("portfolio_risk_engine") or {})
     host_metrics = system_snapshot.get("host_metrics") or {}
     memory = host_metrics.get("memory") or {}
     disk = host_metrics.get("disk") or {}
+    latest_equity = _latest_equity_curve_point()
+    latest_trade_at_utc = runtime_trades[0].get("ts") if runtime_trades else None
 
     open_trade_count = sum(1 for row in runtime_trades if str(row.get("status") or "").lower() == "open")
     closed_trade_count = sum(1 for row in runtime_trades if str(row.get("status") or "").lower() == "closed")
@@ -464,29 +1581,169 @@ def build_elite_overview() -> dict[str, Any]:
     open_positions = safe_int(risk_snapshot.get("open_positions"))
     if open_positions is None:
         open_positions = open_trade_count
+    if broker_snapshot.get("available") and broker_snapshot.get("positions_count") is not None:
+        open_positions = safe_int(broker_snapshot.get("positions_count"))
+
+    risk_snapshot_fresh = _snapshot_is_fresh(risk_snapshot, max_age_hours=6)
+    latest_equity_ts = _parse_iso_ts(latest_equity.get("ts"))
+    risk_snapshot_ts = _parse_iso_ts(risk_snapshot.get("generated_at_utc"))
+    broker_equity = safe_float(broker_snapshot.get("total_equity")) if broker_snapshot.get("available") else None
+    headline_equity = broker_equity if broker_equity is not None else safe_float(live_pnl_snapshot.get("current_equity"))
+    if headline_equity is None:
+        headline_equity = safe_float(risk_snapshot.get("total_equity"))
+        if latest_equity.get("equity") is not None and (risk_snapshot_ts is None or (latest_equity_ts and latest_equity_ts > risk_snapshot_ts)):
+            headline_equity = safe_float(latest_equity.get("equity"))
+
+    predictive_score = float(safe_float(massive_overview.get("predictive_score")) or 0.0)
+    backtest_institutional_score = float(
+        safe_float(institutional.get("institutional_score"))
+        or safe_float(massive_overview.get("institutional_score"))
+        or predictive_score
+    )
+    execution_readiness = _execution_readiness_score(exec_summary)
+    risk_readiness = _risk_readiness_score(risk_engine)
+    system_readiness = _system_readiness_score(system_snapshot)
+    live_operations_score = round(float(safe_mean([execution_readiness, risk_readiness, system_readiness])), 6)
+    live_institutional_score = round(
+        float(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    0.50 * backtest_institutional_score
+                    + 0.18 * paper_edge["score"]
+                    + 0.12 * system_readiness
+                    + 0.10 * execution_readiness
+                    + 0.10 * risk_readiness,
+                ),
+            )
+        ),
+        6,
+    )
+    deployment_tier = _deployment_tier_from_score(live_institutional_score)
+    daily_pnl_dollars = safe_float(broker_snapshot.get("day_pnl_dollars")) if broker_snapshot.get("available") else safe_float(live_pnl_snapshot.get("daily_pnl"))
+    daily_pnl_pct = safe_float(broker_snapshot.get("day_pnl_pct")) if broker_snapshot.get("available") else safe_float(live_pnl_snapshot.get("daily_pnl_pct"))
+    if daily_pnl_dollars is None and risk_snapshot_fresh:
+        daily_pnl_dollars = safe_float(risk_snapshot.get("daily_pnl_dollars"))
+    if daily_pnl_pct is None and risk_snapshot_fresh:
+        daily_pnl_pct = safe_float(risk_snapshot.get("daily_pnl_pct"))
+
+    portfolio_delta = safe_float(risk_snapshot.get("portfolio_delta")) if risk_snapshot_fresh else None
+    portfolio_theta = safe_float(risk_snapshot.get("portfolio_theta")) if risk_snapshot_fresh else None
+    portfolio_vega = safe_float(risk_snapshot.get("portfolio_vega")) if risk_snapshot_fresh else None
+    target_delta = safe_float(risk_snapshot.get("target_delta")) if risk_snapshot_fresh else None
+    target_theta = safe_float(risk_snapshot.get("target_theta")) if risk_snapshot_fresh else None
+    target_vega = safe_float(risk_snapshot.get("target_vega")) if risk_snapshot_fresh else None
+    alignment_components = [
+        _greek_alignment_component(portfolio_delta, target_delta),
+        _greek_alignment_component(portfolio_theta, target_theta),
+        _greek_alignment_component(portfolio_vega, target_vega),
+    ]
+    greek_alignment_score = (
+        round(float(safe_mean(alignment_components)), 6)
+        if any(value is not None for value in alignment_components)
+        else None
+    )
+    current_live_equity = broker_equity if broker_equity is not None else safe_float(live_pnl_snapshot.get("current_equity"))
+
+    risk_snapshot_age_hours = _snapshot_age_hours(risk_snapshot)
+    execution_snapshot_age_hours = _snapshot_age_hours(exec_summary)
+    system_snapshot_age_hours = _snapshot_age_hours(system_snapshot)
+    latest_equity_mark_ts = _parse_iso_ts(broker_snapshot.get("latest_equity_ts") or live_pnl_snapshot.get("latest_equity_ts"))
+    equity_snapshot_age_seconds = (
+        max(0.0, (datetime.now(timezone.utc) - latest_equity_mark_ts).total_seconds())
+        if latest_equity_mark_ts
+        else safe_float(live_pnl_snapshot.get("equity_freshness_seconds"))
+    )
+    broker_tape_timestamps = list(broker_snapshot.get("tape_timestamps") or [])
+    kill_switch_active = bool(risk_engine.get("kill_switch_active"))
+    if kill_switch_active:
+        trading_status = "HALTED"
+        trading_reason = ", ".join(list(risk_engine.get("hard_kill_reasons") or []) or ["Kill switch active"])
+    elif not risk_snapshot_fresh:
+        trading_status = "LIVE / RISK STALE"
+        trading_reason = "Broker account is live but the runtime risk snapshot is stale."
+    elif broker_snapshot.get("available"):
+        trading_status = "LIVE"
+        trading_reason = f"Broker account status {broker_snapshot.get('account_status') or 'ACTIVE'}"
+    else:
+        trading_status = "MONITORING"
+        trading_reason = "Runtime feed only"
+    peak_equity = max(
+        value
+        for value in [
+            safe_float(live_pnl_snapshot.get("peak_equity")),
+            safe_float(broker_snapshot.get("session_high_equity")),
+            safe_float(broker_snapshot.get("all_time_high_equity")),
+            current_live_equity,
+        ]
+        if value is not None
+    ) if any(value is not None for value in [safe_float(live_pnl_snapshot.get("peak_equity")), safe_float(broker_snapshot.get("session_high_equity")), safe_float(broker_snapshot.get("all_time_high_equity")), current_live_equity]) else None
+    distance_to_peak_pct = (
+        ((current_live_equity / peak_equity) - 1.0) * 100.0
+        if current_live_equity is not None and peak_equity not in (None, 0.0)
+        else safe_float(live_pnl_snapshot.get("distance_to_peak_pct"))
+    )
 
     return {
         "generated_at_utc": utc_now_iso(),
+        "status": {
+            "trading_status": trading_status,
+            "trading_reason": trading_reason,
+            "kill_switch_active": kill_switch_active,
+        },
         "headline": {
-            "total_equity": safe_float(risk_snapshot.get("total_equity")),
-            "daily_pnl_pct": safe_float(risk_snapshot.get("daily_pnl_pct")),
-            "daily_pnl_dollars": safe_float(risk_snapshot.get("daily_pnl_dollars")),
-            "buying_power_budget": safe_float(risk_snapshot.get("buying_power_budget")),
-            "vix": safe_float(risk_snapshot.get("vix")),
-            "macro_regime": risk_snapshot.get("macro_regime"),
-            "macro_confidence": safe_float(risk_snapshot.get("macro_confidence")),
-            "movement_bias": risk_snapshot.get("movement_bias"),
-            "runtime_profile": risk_snapshot.get("runtime_profile"),
-            "runtime_policy_mode": risk_snapshot.get("runtime_policy_mode"),
-            "runtime_market_state": risk_snapshot.get("runtime_market_state"),
-            "allowed_symbols": safe_int(risk_snapshot.get("allowed_symbols")),
+            "total_equity": headline_equity,
+            "daily_pnl_pct": daily_pnl_pct,
+            "daily_pnl_dollars": daily_pnl_dollars,
+            "buying_power_budget": safe_float(broker_snapshot.get("buying_power")) if broker_snapshot.get("available") else safe_float(risk_snapshot.get("buying_power_budget")),
+            "vix": safe_float(risk_snapshot.get("vix")) if risk_snapshot_fresh else None,
+            "macro_regime": risk_snapshot.get("macro_regime") if risk_snapshot_fresh else None,
+            "macro_confidence": safe_float(risk_snapshot.get("macro_confidence")) if risk_snapshot_fresh else None,
+            "movement_bias": risk_snapshot.get("movement_bias") if risk_snapshot_fresh else None,
+            "runtime_profile": risk_snapshot.get("runtime_profile") if risk_snapshot_fresh else None,
+            "runtime_policy_mode": risk_snapshot.get("runtime_policy_mode") if risk_snapshot_fresh else None,
+            "runtime_market_state": risk_snapshot.get("runtime_market_state") if risk_snapshot_fresh else None,
+            "allowed_symbols": safe_int(risk_snapshot.get("allowed_symbols")) if risk_snapshot_fresh else None,
             "open_positions": open_positions,
-            "portfolio_delta": safe_float(risk_snapshot.get("portfolio_delta")),
-            "portfolio_theta": safe_float(risk_snapshot.get("portfolio_theta")),
-            "portfolio_vega": safe_float(risk_snapshot.get("portfolio_vega")),
-            "target_delta": safe_float(risk_snapshot.get("target_delta")),
-            "target_theta": safe_float(risk_snapshot.get("target_theta")),
-            "target_vega": safe_float(risk_snapshot.get("target_vega")),
+            "portfolio_delta": portfolio_delta,
+            "portfolio_theta": portfolio_theta,
+            "portfolio_vega": portfolio_vega,
+            "target_delta": target_delta,
+            "target_theta": target_theta,
+            "target_vega": target_vega,
+            "risk_snapshot_fresh": risk_snapshot_fresh,
+        },
+        "performance": {
+            "source": broker_snapshot.get("source") if broker_snapshot.get("available") else live_pnl_snapshot.get("source"),
+            "current_equity": current_live_equity if current_live_equity is not None else headline_equity,
+            "session_start_equity": safe_float(broker_snapshot.get("session_start_equity")) if broker_snapshot.get("available") else safe_float(live_pnl_snapshot.get("session_start_equity")),
+            "session_start_ts": (broker_tape_timestamps[0] if broker_tape_timestamps else None) if broker_snapshot.get("available") else live_pnl_snapshot.get("session_start_ts"),
+            "daily_pnl": daily_pnl_dollars,
+            "daily_pnl_pct": daily_pnl_pct,
+            "intraday_low_equity": safe_float(broker_snapshot.get("session_low_equity")) if broker_snapshot.get("available") else safe_float(live_pnl_snapshot.get("intraday_low_equity")),
+            "intraday_high_equity": safe_float(broker_snapshot.get("session_high_equity")) if broker_snapshot.get("available") else safe_float(live_pnl_snapshot.get("intraday_high_equity")),
+            "intraday_range_pct": (
+                ((safe_float(broker_snapshot.get("session_high_equity")) - safe_float(broker_snapshot.get("session_low_equity"))) / safe_float(broker_snapshot.get("session_start_equity")) * 100.0)
+                if broker_snapshot.get("available")
+                and safe_float(broker_snapshot.get("session_high_equity")) is not None
+                and safe_float(broker_snapshot.get("session_low_equity")) is not None
+                and safe_float(broker_snapshot.get("session_start_equity"))
+                else safe_float(live_pnl_snapshot.get("intraday_range_pct"))
+            ),
+            "peak_equity": peak_equity,
+            "distance_to_peak_pct": distance_to_peak_pct,
+            "latest_equity_ts": broker_snapshot.get("latest_equity_ts") if broker_snapshot.get("available") else (live_pnl_snapshot.get("latest_equity_ts") or latest_equity.get("ts")),
+            "equity_samples_today": len(list(broker_snapshot.get("tape_equity") or [])) if broker_snapshot.get("available") else safe_int(live_pnl_snapshot.get("equity_samples_today")),
+            "closed_trade_pnl_today": safe_float(live_pnl_snapshot.get("closed_trade_pnl_today")),
+            "closed_trade_count_today": safe_int(live_pnl_snapshot.get("closed_trade_count_today")),
+            "cash": safe_float(broker_snapshot.get("cash")) if broker_snapshot.get("available") else None,
+            "position_market_value": safe_float(broker_snapshot.get("position_market_value")) if broker_snapshot.get("available") else None,
+            "long_market_value": safe_float(broker_snapshot.get("long_market_value")) if broker_snapshot.get("available") else None,
+            "short_market_value": safe_float(broker_snapshot.get("short_market_value")) if broker_snapshot.get("available") else None,
+            "net_unrealized_pnl": safe_float(broker_snapshot.get("net_unrealized_pnl")) if broker_snapshot.get("available") else safe_float(broker_position_meta.get("net_unrealized_pnl")),
+            "account_status": broker_snapshot.get("account_status"),
+            "total_return_pct": safe_float(broker_snapshot.get("total_return_pct")) if broker_snapshot.get("available") else None,
         },
         "risk": {
             "risk_score": safe_float(risk_engine.get("risk_score")),
@@ -500,6 +1757,7 @@ def build_elite_overview() -> dict[str, Any]:
             "value_volatility": safe_float(risk_engine.get("value_volatility")),
             "simulation_paths": safe_int(risk_engine.get("simulation_paths")),
             "confidence": safe_float(risk_engine.get("confidence")),
+            "greek_alignment_score": greek_alignment_score,
             "kill_switch_active": bool(risk_engine.get("kill_switch_active")),
             "underlying_count": safe_int(risk_engine.get("underlying_count")),
             "breaches": list(risk_engine.get("breaches") or []),
@@ -521,9 +1779,11 @@ def build_elite_overview() -> dict[str, Any]:
             "tier_counts": exec_summary.get("tier_counts") or {},
         },
         "research": {
-            "predictive_score": safe_float(massive_overview.get("predictive_score")),
-            "institutional_score": safe_float(institutional.get("institutional_score")),
-            "deployment_tier": institutional.get("deployment_tier") or massive_overview.get("deployment_tier"),
+            "predictive_score": predictive_score,
+            "institutional_score": live_institutional_score,
+            "backtest_institutional_score": backtest_institutional_score,
+            "deployment_tier": deployment_tier,
+            "backtest_deployment_tier": institutional.get("deployment_tier") or massive_overview.get("deployment_tier"),
             "consensus_profile": strategy_profile_summary.get("consensus_profile"),
             "consensus_state": strategy_profile_summary.get("consensus_state"),
             "movement_avg_accuracy": safe_float(movement_summary.get("avg_accuracy")),
@@ -538,6 +1798,25 @@ def build_elite_overview() -> dict[str, Any]:
             "best_option_model": _best_option_model(option_models),
             "top_pairs": (stocks_overview.get("pairs", {}) or {}).get("top_pairs", [])[:8],
             "research_leaders": stocks_overview.get("research_leaders", [])[:8],
+            "paper_edge_score": paper_edge["score"],
+            "paper_edge_profile": paper_edge,
+            "live_operations_score": live_operations_score,
+            "execution_readiness_score": execution_readiness,
+            "risk_readiness_score": risk_readiness,
+            "system_readiness_score": system_readiness,
+        },
+        "freshness": {
+            "equity_snapshot_age_seconds": round(float(equity_snapshot_age_seconds), 2) if equity_snapshot_age_seconds is not None else None,
+            "risk_snapshot_age_hours": round(float(risk_snapshot_age_hours), 2) if risk_snapshot_age_hours is not None else None,
+            "execution_snapshot_age_hours": round(float(execution_snapshot_age_hours), 2) if execution_snapshot_age_hours is not None else None,
+            "system_snapshot_age_hours": round(float(system_snapshot_age_hours), 2) if system_snapshot_age_hours is not None else None,
+            "equity_last_update_utc": broker_snapshot.get("latest_equity_ts") if broker_snapshot.get("available") else (live_pnl_snapshot.get("latest_equity_ts") or latest_equity.get("ts")),
+            "broker_account_live": bool(broker_snapshot.get("available")),
+            "risk_generated_at_utc": risk_snapshot.get("generated_at_utc"),
+            "execution_generated_at_utc": exec_summary.get("generated_at_utc"),
+            "system_generated_at_utc": system_snapshot.get("generated_at_utc"),
+            "equity_snapshot_fresh": equity_snapshot_age_seconds is not None and equity_snapshot_age_seconds <= 300.0,
+            "risk_snapshot_fresh": risk_snapshot_fresh,
         },
         "infrastructure": {
             "pressure": (system_snapshot.get("status") or {}).get("pressure"),
@@ -559,6 +1838,9 @@ def build_elite_overview() -> dict[str, Any]:
             "db_trades": len(runtime_trades),
             "open_trades": open_trade_count,
             "closed_trades": closed_trade_count,
+            "latest_trade_at_utc": latest_trade_at_utc,
+            "broker_positions": len(broker_positions),
+            "broker_asset_mix": broker_position_meta.get("asset_mix") or {},
         },
     }
 
@@ -719,17 +2001,60 @@ def build_stocks_overview() -> dict[str, Any]:
     ml_summary = ((backtest_report.get("ml_alpha_suite") or {}).get("summary") or {})
 
     research_rows = _aggregate_stock_research(movement_results)
-    preferred_lookback, top_pairs, pairs_summary = _preferred_pairs_lookup(backtest_report)
+    preferred_lookback, pair_results, top_pairs, pairs_summary = _preferred_pairs_lookup(backtest_report)
+    universe_symbols = [str(symbol).upper() for symbol in (universe_report.get("valid_symbols") or []) if symbol]
+    universe_size = safe_int(universe_report.get("symbols_valid")) or len(universe_symbols)
+    research_by_symbol = {str(row.get("symbol")).upper(): row for row in research_rows if row.get("symbol")}
+    researched_symbols = 0
+    positive_alpha_symbols = 0
+    universe_rows: list[dict[str, Any]] = []
+    for rank, symbol in enumerate(universe_symbols, start=1):
+        base = research_by_symbol.get(symbol) or {}
+        has_research = bool(base)
+        if has_research:
+            researched_symbols += 1
+            if (safe_float(base.get("alpha_daily")) or 0.0) > 0:
+                positive_alpha_symbols += 1
+        universe_rows.append(
+            {
+                "rank": rank,
+                "symbol": symbol,
+                "has_research": has_research,
+                "lookback": base.get("lookback"),
+                "accuracy": safe_float(base.get("accuracy")),
+                "hit_ratio": safe_float(base.get("hit_ratio")),
+                "alpha_daily": safe_float(base.get("alpha_daily")),
+                "strategy_return": safe_float(base.get("strategy_return")),
+                "buy_hold_return": safe_float(base.get("buy_hold_return")),
+                "meets_targets": bool(base.get("meets_targets")) if has_research else False,
+            }
+        )
+
+    pair_symbols: set[str] = set()
+    for row in pair_results:
+        pair = str(row.get("pair") or "")
+        if "/" not in pair:
+            continue
+        left, right = pair.split("/", 1)
+        pair_symbols.add(left.upper())
+        pair_symbols.add(right.upper())
 
     return {
         "generated_at_utc": utc_now_iso(),
-        "universe_size": safe_int(universe_report.get("symbols_valid")) or len(universe_report.get("valid_symbols") or []),
-        "universe_sample": (universe_report.get("valid_symbols") or [])[:18],
-        "research_leaders": research_rows[:60],
+        "universe_size": universe_size,
+        "universe_sample": universe_symbols[:18],
+        "universe_symbols": universe_symbols,
+        "research_leaders": research_rows,
+        "universe_rows": universe_rows,
+        "research_coverage_pct": round((researched_symbols / max(universe_size, 1)) * 100.0, 2),
+        "researched_symbols": researched_symbols,
+        "positive_alpha_symbols": positive_alpha_symbols,
         "pairs": {
             "lookback": preferred_lookback,
             "summary": pairs_summary,
-            "top_pairs": top_pairs[:20],
+            "top_pairs": top_pairs,
+            "all_pairs": pair_results,
+            "pair_symbol_count": len(pair_symbols),
         },
         "ml_alpha": ml_summary,
     }

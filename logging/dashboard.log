@@ -1,0 +1,400 @@
+INFO:     Started server process [55931]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     10.1.1.60:60788 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55176 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55192 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55194 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60790 - "GET /api/trades/analysis HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60790 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60792 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60795 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+INFO:     Started server process [56638]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     10.1.1.60:60800 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60803 - "WebSocket /ws/live" [accepted]
+INFO:     10.1.1.60:60804 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     10.1.1.60:60806 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60805 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47144 - "GET /api/risk/correlations?refresh=1 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/options/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60805 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/trades/odds HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/training/scripts HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/ml/alpha HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/trades/analysis HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/options/chain?contract_type=all&min_dte=7&max_dte=45&limit=84 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/training/jobs HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/execution/quality HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/system/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60805 - "GET /api/risk/events?limit=100 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     10.1.1.60:60805 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60801 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60800 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60805 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60812 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     10.1.1.60:60801 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60807 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60806 - "GET /api/options/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60804 - "GET /api/options/chain?contract_type=all&min_dte=7&max_dte=45&limit=84 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60813 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60814 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60815 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60817 - "GET /api/trades/odds HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60818 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60818 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60818 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60819 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60818 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60819 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60820 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60822 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60824 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60825 - "GET /api/risk/correlations?refresh=1 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60824 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60827 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60829 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60824 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60827 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/training/scripts HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60829 - "GET /api/ml/alpha HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60824 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60829 - "GET /api/execution/quality HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60827 - "GET /api/training/jobs HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/system/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60824 - "GET /api/risk/events?limit=100 HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     10.1.1.60:60829 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60827 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60829 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60827 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60834 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60833 - "WebSocket /ws/live" [accepted]
+INFO:     10.1.1.60:60835 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     10.1.1.60:60827 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60829 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/ml/alpha HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60834 - "GET /api/execution/quality HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60835 - "GET /api/system/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60826 - "GET /api/risk/events?limit=100 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/trades/analysis HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/training/scripts HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60828 - "GET /api/training/jobs HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60837 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60838 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60837 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60839 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60840 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60841 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60842 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60843 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60844 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60844 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60845 - "GET /api/risk/correlations?refresh=1 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60844 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60846 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60847 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60848 - "GET /api/risk/correlations?refresh=1 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60844 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60846 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60847 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60849 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38088 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39288 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60850 - "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:60851 - "GET /apple-touch-icon.png HTTP/1.1" 404 Not Found
+INFO:     connection closed
+INFO:     10.1.1.60:60852 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42986 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42992 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43008 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60854 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45042 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45050 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45066 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45078 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60854 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60854 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60854 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60862 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60863 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60861 - "WebSocket /ws/live" [accepted]
+INFO:     10.1.1.60:60865 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     10.1.1.60:60866 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60864 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60854 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60862 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60867 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40162 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40168 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40180 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60868 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60869 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60870 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60871 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60872 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60873 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60869 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60870 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60871 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55256 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55260 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60874 - "GET /api/options/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60874 - "GET /api/options/chain?contract_type=all&min_dte=7&max_dte=45&limit=84 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60876 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60875 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60874 - "GET /api/trades/odds HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60875 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60874 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60875 - "GET /api/strategies/defaults HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60874 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60875 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60877 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60878 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60879 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60879 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60880 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/training/scripts HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/training/jobs HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/ml/alpha HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/execution/quality HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/system/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/risk/events?limit=100 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60881 - "GET /api/trades/analysis HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60882 - "GET /api/trades/analysis HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60882 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60884 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60885 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+INFO:     Started server process [60318]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     10.1.1.60:60891 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:57854 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:57870 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57880 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57886 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57888 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60892 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60893 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60894 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60894 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60894 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60894 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60894 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     10.1.1.60:60898 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60900 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60901 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60899 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60902 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60903 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     10.1.1.60:60894 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60898 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60904 - "GET /api/options/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60904 - "GET /api/options/chain?contract_type=all&min_dte=7&max_dte=45&limit=84 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60904 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60904 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60905 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60907 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/trades/odds HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/training/scripts HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "POST /api/training/run HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60908 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/ml/alpha HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/execution/quality HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/system/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/risk/events?limit=100 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60909 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:60910 - "GET /api/training/jobs/f5ae9677 HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     10.1.1.60:50648 - "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50650 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50649 - "GET /apple-touch-icon.png HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50646 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50677 - "GET / HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50676 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50677 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50677 - "GET /api/benchmark?symbol=SPY&window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50681 - "GET /api/trades?limit=25 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50679 - "GET /api/daily_pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50680 - "GET /api/positions HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50684 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     10.1.1.60:50678 - "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50682 - "GET /api/elite/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50676 - "GET /api/equity?window=1w HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50691 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50690 - "GET /apple-touch-icon.png HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50677 - "GET /api/strategies/pnl HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50681 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50722 - "GET /api/options/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50726 - "GET /api/stocks/overview HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50722 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50727 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50730 - "GET /api/trades/odds HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50731 - "GET /api/backtest/list HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     10.1.1.60:50730 - "GET /api/risk/var_surface HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50732 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50731 - "GET /api/options/simulations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50757 - "WebSocket /ws/live" [accepted]
+INFO:     10.1.1.60:50732 - "GET /api/strategies/params HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50730 - "GET /api/permutations/strategies HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50762 - "GET /api/risk/engine HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     10.1.1.60:50763 - "GET /api/risk/correlations HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50731 - "GET /api/options/chain?contract_type=all&min_dte=7&max_dte=45&limit=84 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50762 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50732 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50730 - "GET /api/risk/snapshot HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50730 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50767 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50768 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50774 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50779 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50780 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50781 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50785 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50785 - "POST /api/forwardtest/run HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50785 - "GET /api/forwardtest/jobs/2b70f77a HTTP/1.1" 200 OK
+11:43:11  INFO     backtester.data_loader — Downloading stock SPY 1h  2023-01-01 → 2026-05-10 …
+11:43:11  ERROR    yfinance — $SPY: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:11  ERROR    yfinance — 
+1 Failed download:
+11:43:11  ERROR    yfinance — ['SPY']: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:11  WARNING  backtester.data_loader — No stock data returned for SPY 1h
+11:43:11  ERROR    dashboard.server — Forward test job 2b70f77a failed: No data for SPY [2023-01-01→2026-05-10]
+Traceback (most recent call last):
+  File "/home/dash/options-spread/dashboard/server.py", line 911, in _run
+    raise ValueError(f"No data for {symbol} [{cal_start}→{cal_end}]")
+ValueError: No data for SPY [2023-01-01→2026-05-10]
+
+INFO:     10.1.1.60:50785 - "GET /api/forwardtest/jobs/2b70f77a HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50785 - "POST /api/forwardtest/run HTTP/1.1" 200 OK
+11:43:17  INFO     backtester.data_loader — Downloading stock SPY 1h  2023-01-01 → 2026-05-10 …
+11:43:17  ERROR    yfinance — $SPY: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:17  ERROR    yfinance — 
+1 Failed download:
+11:43:17  ERROR    yfinance — ['SPY']: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:17  WARNING  backtester.data_loader — No stock data returned for SPY 1h
+11:43:17  ERROR    dashboard.server — Forward test job 9f63679e failed: No data for SPY [2023-01-01→2026-05-10]
+Traceback (most recent call last):
+  File "/home/dash/options-spread/dashboard/server.py", line 911, in _run
+    raise ValueError(f"No data for {symbol} [{cal_start}→{cal_end}]")
+ValueError: No data for SPY [2023-01-01→2026-05-10]
+
+INFO:     10.1.1.60:50785 - "GET /api/forwardtest/jobs/9f63679e HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50785 - "POST /api/forwardtest/run HTTP/1.1" 200 OK
+11:43:21  INFO     backtester.data_loader — Downloading stock SPY 1h  2023-01-01 → 2026-05-10 …
+11:43:21  ERROR    yfinance — $SPY: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:21  ERROR    yfinance — 
+1 Failed download:
+11:43:21  ERROR    yfinance — ['SPY']: possibly delisted; no price data found  (60m 2023-01-01 00:00:00+00:00 -> 2026-05-10 00:00:00+00:00) (Yahoo error = "1h data not available for startTime=1672531200 and endTime=1778371200. The requested range must be within the last 730 days.")
+11:43:21  WARNING  backtester.data_loader — No stock data returned for SPY 1h
+11:43:21  ERROR    dashboard.server — Forward test job dbe619a3 failed: No data for SPY [2023-01-01→2026-05-10]
+Traceback (most recent call last):
+  File "/home/dash/options-spread/dashboard/server.py", line 911, in _run
+    raise ValueError(f"No data for {symbol} [{cal_start}→{cal_end}]")
+ValueError: No data for SPY [2023-01-01→2026-05-10]
+
+INFO:     10.1.1.60:50785 - "GET /api/forwardtest/jobs/dbe619a3 HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50787 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50788 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50789 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50790 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50791 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50792 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50794 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50795 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50796 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50797 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45544 - "GET /api/research/desk HTTP/1.1" 404 Not Found
+INFO:     10.1.1.60:50798 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+INFO:     Started server process [901463]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     10.1.1.60:50805 - "WebSocket /ws/live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:54412 - "GET /api/research/desk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54398 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53536 - "GET /api/research/desk HTTP/1.1" 200 OK
+INFO:     10.1.1.60:50806 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55644 - "GET /api/research/desk?refresh=1 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)

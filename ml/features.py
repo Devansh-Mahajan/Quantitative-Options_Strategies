@@ -9,6 +9,25 @@ import pandas as pd
 log = logging.getLogger("ml.features")
 
 
+FEATURE_NAMES = [
+    "ret_1", "ret_5", "ret_20", "log_ret_1", "log_ret_5",
+    "vol_5", "vol_20", "vol_60",
+    "ema_9", "ema_21", "ema_55", "ema_200",
+    "ema_cross_9_21", "ema_cross_21_55", "price_vs_ema200",
+    "rsi_14", "rsi_7",
+    "macd", "macd_hist",
+    "bb_upper", "bb_lower", "bb_pct", "bb_width",
+    "atr_14", "atr_7",
+    "vol_ratio", "vol_delta", "buy_sell_ratio",
+    "body", "wick_up", "wick_dn",
+    "mom_10", "mom_20",
+    "stoch_k", "stoch_d",
+    "donchian_high_20", "donchian_low_20",
+    "funding_rate", "oi_value",
+    "vol_of_vol",
+]
+
+
 def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest: float = 0.0) -> pd.DataFrame:
     """
     Input df must have columns: open, high, low, close, volume.
@@ -74,8 +93,8 @@ def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest:
     f["vol_ratio"] = v / (vol_ma + 1e-10)
     f["vol_delta"] = (v - v.shift(1)) / (vol_ma + 1e-10)
     taker_vol = df.get("taker_buy_base", pd.Series(np.nan, index=df.index)).astype(float)
-    if not taker_vol.isna().all():
-        f["buy_sell_ratio"] = taker_vol / (v + 1e-10)
+    buy_sell_ratio = (taker_vol / (v + 1e-10)).replace([np.inf, -np.inf], np.nan)
+    f["buy_sell_ratio"] = buy_sell_ratio.fillna(0.5)
 
     # --- Candle body features ---
     f["body"] = (c - o).abs() / (h - l + 1e-10)
@@ -104,7 +123,10 @@ def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest:
     f["vol_of_vol"] = f["vol_20"].rolling(10).std()
 
     f.replace([np.inf, -np.inf], np.nan, inplace=True)
-    return f.dropna()
+    for feature_name in FEATURE_NAMES:
+        if feature_name not in f.columns:
+            f[feature_name] = 0.0
+    return f.loc[:, FEATURE_NAMES].dropna()
 
 
 def compute_feature_matrix(df: pd.DataFrame, funding_rate: float = 0.0, open_interest: float = 0.0) -> np.ndarray:
@@ -133,22 +155,3 @@ def _rsi(series: pd.Series, period: int) -> pd.Series:
     roll_down = down.ewm(alpha=1 / period, adjust=False).mean()
     rs = roll_up / (roll_down + 1e-10)
     return 100 - 100 / (1 + rs)
-
-
-FEATURE_NAMES = [
-    "ret_1", "ret_5", "ret_20", "log_ret_1", "log_ret_5",
-    "vol_5", "vol_20", "vol_60",
-    "ema_9", "ema_21", "ema_55", "ema_200",
-    "ema_cross_9_21", "ema_cross_21_55", "price_vs_ema200",
-    "rsi_14", "rsi_7",
-    "macd", "macd_hist",
-    "bb_upper", "bb_lower", "bb_pct", "bb_width",
-    "atr_14", "atr_7",
-    "vol_ratio", "vol_delta",
-    "body", "wick_up", "wick_dn",
-    "mom_10", "mom_20",
-    "stoch_k", "stoch_d",
-    "donchian_high_20", "donchian_low_20",
-    "funding_rate", "oi_value",
-    "vol_of_vol",
-]

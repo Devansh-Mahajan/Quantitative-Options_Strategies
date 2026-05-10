@@ -13,6 +13,7 @@ import csv
 import io
 import json
 import logging
+import math
 import sqlite3
 import sys
 import threading
@@ -36,13 +37,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from bot.config import cfg
 from bot import state
 from dashboard.analytics import (
+    build_correlation_payload,
     build_elite_overview,
     build_options_chain,
     build_options_overview,
+    build_research_desk,
     build_simulation_payload,
     build_stocks_overview,
     build_trade_odds,
     instantiate_strategy,
+    live_broker_positions,
+    live_broker_snapshot,
     permutation_grid,
     supported_strategy_params,
     RUNTIME_DIR,
@@ -84,6 +89,8 @@ STRATEGY_DEFAULTS: dict[str, dict] = {
     "carry_portfolio":   {"lookback": 48, "rebal_bars": 8, "long_n": 3, "short_n": 2},
     "momentum_carry_combo": {"rebal_bars": 8, "cov_window": 60, "entry_score": 0.20},
     "order_flow":        {"imbalance_threshold": 0.65, "vwap_threshold": 0.003},
+    "microstructure_pressure": {"flow_window": 12, "volume_window": 24, "vwap_window": 16, "pressure_threshold": 0.48, "spread_ceiling_bps": 30.0},
+    "pullback_confluence": {"fast_window": 20, "slow_window": 55, "breakout_lookback": 20, "pullback_atr": 1.0, "trend_floor": 0.003},
 }
 
 # Engine parameter defaults
@@ -101,6 +108,7 @@ _backtest_jobs: dict[str, dict] = {}
 _ft_jobs:       dict[str, dict] = {}
 _perm_jobs:     dict[str, dict] = {}
 _train_jobs:    dict[str, dict] = {}
+_JOB_UNSET = object()
 
 TRAINING_SCRIPTS: dict[str, dict] = {
     "weekend_training":        {"label": "Weekend Pipeline",       "module": "scripts.weekend_training",             "est_min": 60,  "desc": "Full retrain — data download, all models, validation, deploy"},
@@ -121,6 +129,75 @@ def _db_conn() -> sqlite3.Connection:
     c = sqlite3.connect(state._DB_PATH, check_same_thread=False)
     c.row_factory = sqlite3.Row
     return c
+
+
+def _parse_dashboard_ts(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _metric_resample_rule(index: pd.DatetimeIndex) -> str | None:
+    if len(index) < 3:
+        return None
+    span_seconds = max((index[-1] - index[0]).total_seconds(), 0.0)
+    diffs = index.to_series().diff().dropna()
+    median_seconds = float(diffs.dt.total_seconds().median()) if not diffs.empty else span_seconds
+
+    if span_seconds <= 3 * 24 * 3600 or median_seconds < 10 * 60:
+        return "15min"
+    if span_seconds <= 31 * 24 * 3600 or median_seconds < 2 * 3600:
+        return "1h"
+    if span_seconds <= 180 * 24 * 3600:
+        return "4h"
+    return "1d"
+
+
+def _prepare_metric_equity_curve(
+    equity: list[float],
+    timestamps: list[str],
+) -> tuple[pd.Series, dict[str, Any]]:
+    series = pd.Series(dtype=float)
+    meta = {
+        "sample_points": 0,
+        "effective_points": 0,
+        "span_hours": 0.0,
+        "resample_rule": None,
+        "sufficient_history": False,
+    }
+    if len(equity) < 2 or len(timestamps) < 2:
+        return series, meta
+
+    parsed_ts = [_parse_dashboard_ts(ts) for ts in timestamps]
+    rows = [
+        (ts, float(value))
+        for ts, value in zip(parsed_ts, equity)
+        if ts is not None and value is not None
+    ]
+    if len(rows) < 2:
+        return series, meta
+
+    idx = pd.DatetimeIndex([row[0] for row in rows], tz="UTC")
+    series = pd.Series([row[1] for row in rows], index=idx).sort_index()
+    series = series[series > 0].groupby(level=0).last()
+    meta["sample_points"] = int(len(series))
+    if len(series) < 2:
+        return series, meta
+
+    rule = _metric_resample_rule(series.index)
+    if rule:
+        series = series.resample(rule).last().dropna()
+    span_hours = max((series.index[-1] - series.index[0]).total_seconds() / 3600.0, 0.0) if len(series) > 1 else 0.0
+    meta["effective_points"] = int(len(series))
+    meta["span_hours"] = round(float(span_hours), 2)
+    meta["resample_rule"] = rule
+    meta["sufficient_history"] = bool(len(series) >= 20 and span_hours >= 24 * 5)
+    return series, meta
 
 
 def _equity_series(limit: int = 2000) -> tuple[list[str], list[float], list[float]]:
@@ -154,42 +231,223 @@ def _equity_window(window: str) -> str:
     return (now - delta).isoformat()
 
 
+def _rounded(value: Any, digits: int = 4) -> float | None:
+    num = safe_float(value)
+    return round(num, digits) if num is not None else None
+
+
 def _compute_metrics(equity: list[float], timestamps: list[str]) -> dict:
     """Compute portfolio performance metrics from equity curve."""
-    if len(equity) < 2:
-        return {}
-    arr = np.array(equity, dtype=float)
-    rets = np.diff(arr) / (arr[:-1] + 1e-10)
+    series, meta = _prepare_metric_equity_curve(equity, timestamps)
+    if len(series) < 2:
+        return {"metrics_meta": meta} if meta["sample_points"] else {}
 
-    # Annualise assuming 1h bars (8760 per year)
-    ann = 8760
-    total_ret = (arr[-1] / arr[0]) - 1
-    vol       = float(rets.std() * np.sqrt(ann))
-    sharpe    = float((rets.mean() * ann) / (rets.std() * np.sqrt(ann) + 1e-10))
+    arr = series.to_numpy(dtype=float)
+    total_ret = (arr[-1] / arr[0]) - 1.0
+    running_peak = np.maximum.accumulate(arr)
+    dd = (arr - running_peak) / (running_peak + 1e-10)
+    max_dd = float(dd.min()) if dd.size else 0.0
 
-    # Drawdown
-    peak = np.maximum.accumulate(arr)
-    dd   = (arr - peak) / (peak + 1e-10)
-    max_dd = float(dd.min())
-
-    # Sortino (downside deviation)
-    neg = rets[rets < 0]
-    down_vol = float(neg.std() * np.sqrt(ann)) if len(neg) > 1 else 1e-10
-    sortino  = float((rets.mean() * ann) / (down_vol + 1e-10))
-
-    # Calmar
-    calmar = float((total_ret / abs(max_dd + 1e-10)) if max_dd < 0 else 0)
-
-    return {
-        "total_return_pct": round(total_ret * 100, 2),
-        "annualised_return_pct": round((((arr[-1] / arr[0]) ** (ann / max(len(arr)-1, 1))) - 1) * 100, 2),
-        "sharpe": round(sharpe, 3),
-        "sortino": round(sortino, 3),
-        "calmar": round(calmar, 3),
-        "max_drawdown_pct": round(max_dd * 100, 2),
-        "volatility_pct": round(vol * 100, 2),
+    result: dict[str, Any] = {
+        "total_return_pct": round(total_ret * 100.0, 2),
+        "annualised_return_pct": None,
+        "sharpe": None,
+        "sortino": None,
+        "calmar": None,
+        "max_drawdown_pct": round(max_dd * 100.0, 2),
+        "volatility_pct": None,
         "current_equity": round(float(arr[-1]), 2),
         "peak_equity": round(float(arr.max()), 2),
+        "metrics_meta": meta,
+    }
+
+    if len(series) < 3:
+        return result
+
+    rets = series.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
+    if rets.empty:
+        return result
+
+    time_diffs = series.index.to_series().diff().dropna()
+    if time_diffs.empty:
+        return result
+    median_seconds = float(time_diffs.dt.total_seconds().median())
+    if median_seconds <= 0:
+        return result
+
+    periods_per_year = (365.25 * 24.0 * 3600.0) / median_seconds
+    span_seconds = max((series.index[-1] - series.index[0]).total_seconds(), 0.0)
+    span_days = span_seconds / 86400.0
+
+    if span_days >= 30 and arr[0] > 0:
+        years = max(span_seconds / (365.25 * 24.0 * 3600.0), 1e-9)
+        annualised_return = (arr[-1] / arr[0]) ** (1.0 / years) - 1.0
+        result["annualised_return_pct"] = round(float(annualised_return) * 100.0, 2)
+    else:
+        annualised_return = None
+
+    if meta["sufficient_history"]:
+        vol = float(rets.std() * math.sqrt(periods_per_year))
+        if math.isfinite(vol):
+            result["volatility_pct"] = round(vol * 100.0, 2)
+
+        ret_std = float(rets.std())
+        if ret_std > 1e-10:
+            sharpe = float((rets.mean() * periods_per_year) / (ret_std * math.sqrt(periods_per_year)))
+            result["sharpe"] = round(sharpe, 3)
+
+        neg = rets[rets < 0]
+        if len(neg) >= 3:
+            neg_std = float(neg.std())
+            if neg_std > 1e-10:
+                sortino = float((rets.mean() * periods_per_year) / (neg_std * math.sqrt(periods_per_year)))
+                result["sortino"] = round(sortino, 3)
+
+        if annualised_return is not None and max_dd < -1e-9:
+            calmar = float(annualised_return / abs(max_dd))
+            result["calmar"] = round(calmar, 3)
+
+    return result
+
+
+def _live_tape_change(series: pd.Series, delta: timedelta) -> float | None:
+    if len(series) < 2:
+        return None
+    end_ts = series.index[-1]
+    cutoff = end_ts - delta
+    eligible = series[series.index <= cutoff]
+    if eligible.empty:
+        return None
+    base = float(eligible.iloc[-1])
+    current = float(series.iloc[-1])
+    if abs(base) < 1e-9:
+        return None
+    return ((current / base) - 1.0) * 100.0
+
+
+def _build_live_tape_payload(timestamps: list[str], equity: list[float], *, source: str) -> dict[str, Any]:
+    if len(timestamps) < 2 or len(equity) < 2:
+        return {
+            "source": source,
+            "timestamps": timestamps,
+            "equity": equity,
+            "summary": {},
+        }
+
+    rows = [
+        (ts, float(value))
+        for ts, value in zip((_parse_dashboard_ts(ts) for ts in timestamps), equity)
+        if ts is not None and value is not None
+    ]
+    if len(rows) < 2:
+        return {"source": source, "timestamps": timestamps, "equity": equity, "summary": {}}
+
+    idx = pd.DatetimeIndex([row[0] for row in rows], tz="UTC")
+    series = pd.Series([row[1] for row in rows], index=idx).sort_index()
+    series = series.groupby(level=0).last()
+    current = float(series.iloc[-1])
+    session_open = float(series.iloc[0])
+    session_high = float(series.max())
+    session_low = float(series.min())
+    session_return_pct = ((current / session_open) - 1.0) * 100.0 if abs(session_open) > 1e-9 else None
+    change_1m = _live_tape_change(series, timedelta(minutes=1))
+    change_5m = _live_tape_change(series, timedelta(minutes=5))
+    change_15m = _live_tape_change(series, timedelta(minutes=15))
+    change_60m = _live_tape_change(series, timedelta(hours=1))
+
+    return {
+        "source": source,
+        "timestamps": [ts.isoformat() for ts in series.index.to_pydatetime()],
+        "equity": [round(float(val), 4) for val in series.to_numpy(dtype=float)],
+        "summary": {
+            "current_equity": round(current, 2),
+            "session_open": round(session_open, 2),
+            "session_high": round(session_high, 2),
+            "session_low": round(session_low, 2),
+            "session_return_pct": round(session_return_pct, 2) if session_return_pct is not None else None,
+            "change_1m_pct": round(change_1m, 3) if change_1m is not None else None,
+            "change_5m_pct": round(change_5m, 3) if change_5m is not None else None,
+            "change_15m_pct": round(change_15m, 3) if change_15m is not None else None,
+            "change_60m_pct": round(change_60m, 3) if change_60m is not None else None,
+            "samples": int(len(series)),
+        },
+    }
+
+
+def _histogram(values: list[float] | np.ndarray, bins: int = 20) -> dict[str, list[float] | list[int]]:
+    arr = np.asarray(values, dtype=float)
+    if arr.size == 0:
+        return {"bins": [], "counts": []}
+    counts, edges = np.histogram(arr, bins=bins)
+    bin_centers = ((edges[:-1] + edges[1:]) / 2).tolist()
+    return {"bins": bin_centers, "counts": counts.tolist()}
+
+
+def _update_ft_job(
+    job_id: str,
+    *,
+    status: str | None = None,
+    stage: str | None = None,
+    progress: float | int | None = None,
+    detail: str | None = None,
+    result: Any = _JOB_UNSET,
+    error: Any = _JOB_UNSET,
+) -> None:
+    job = _ft_jobs.get(job_id)
+    if not job:
+        return
+    if status is not None:
+        job["status"] = status
+    if stage is not None:
+        job["stage"] = stage
+    if progress is not None:
+        job["progress"] = round(float(progress), 1)
+    if detail is not None:
+        job["detail"] = detail
+    if result is not _JOB_UNSET:
+        job["result"] = result
+    if error is not _JOB_UNSET:
+        job["error"] = error
+    job["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def _summarize_forwardtest_result(ft_result: Any) -> dict[str, Any]:
+    returns_frac = np.asarray(getattr(ft_result, "return_dist", []), dtype=float)
+    returns = returns_frac * 100
+    sharpes = np.asarray(getattr(ft_result, "sharpe_dist", []), dtype=float)
+    maxdds = np.asarray(getattr(ft_result, "max_dd_dist", []), dtype=float) * 100
+    win_rates = np.asarray(getattr(ft_result, "win_rate_dist", []), dtype=float) * 100
+
+    def _maybe_stat(values: np.ndarray, reducer, digits: int) -> float | None:
+        if values.size == 0:
+            return None
+        return round(float(reducer(values)), digits)
+
+    profitable_pct = round(float(np.mean(returns_frac > 0)) * 100, 1) if returns_frac.size else None
+
+    return {
+        "n_paths":           ft_result.n_paths,
+        "failed_paths":      ft_result.failed_paths,
+        "acceptance_rate":   round(ft_result.acceptance_rate * 100, 1),
+        "median_return_pct": _maybe_stat(returns, np.median, 3),
+        "mean_return_pct":   _maybe_stat(returns, np.mean, 3),
+        "p5_return_pct":     _maybe_stat(returns, lambda arr: np.percentile(arr, 5), 3),
+        "p10_return_pct":    _maybe_stat(returns, lambda arr: np.percentile(arr, 10), 3),
+        "p25_return_pct":    _maybe_stat(returns, lambda arr: np.percentile(arr, 25), 3),
+        "p75_return_pct":    _maybe_stat(returns, lambda arr: np.percentile(arr, 75), 3),
+        "p90_return_pct":    _maybe_stat(returns, lambda arr: np.percentile(arr, 90), 3),
+        "p95_return_pct":    _maybe_stat(returns, lambda arr: np.percentile(arr, 95), 3),
+        "median_sharpe":     _maybe_stat(sharpes, np.median, 4),
+        "p10_sharpe":        _maybe_stat(sharpes, lambda arr: np.percentile(arr, 10), 4),
+        "p90_sharpe":        _maybe_stat(sharpes, lambda arr: np.percentile(arr, 90), 4),
+        "median_maxdd_pct":  _maybe_stat(maxdds, np.median, 3),
+        "p95_maxdd_pct":     _maybe_stat(maxdds, lambda arr: np.percentile(arr, 95), 3),
+        "median_win_rate":   _maybe_stat(win_rates, np.median, 1),
+        "profitable_pct":    profitable_pct,
+        "return_hist":       _histogram(returns),
+        "sharpe_hist":       _histogram(sharpes),
+        "maxdd_hist":        _histogram(maxdds),
+        "winrate_hist":      _histogram(win_rates),
     }
 
 
@@ -214,14 +472,32 @@ async def _poll_exchange_loop() -> None:
                 await client.start()
 
             bal = await client.get_futures_balance()
-            equity = float(bal.get("USDT", 0) or bal.get("USD", 0) or 0)
+            account_snapshot = await client.get_account_snapshot() if hasattr(client, "get_account_snapshot") else {}
+            equity = float(
+                account_snapshot.get("equity", 0)
+                or bal.get("USDT", 0)
+                or bal.get("USD", 0)
+                or 0
+            )
 
             if equity > 0:
-                state.record_equity(equity, 0)
-                daily_pnl = state.get_daily_pnl()
-                await _broadcast({"type": "equity_tick", "equity": equity,
-                                   "daily_pnl": daily_pnl,
-                                   "ts": datetime.now(timezone.utc).isoformat()})
+                peak_equity = state.get_peak_equity()
+                drawdown = ((equity / peak_equity) - 1.0) if peak_equity and peak_equity > 0 else 0.0
+                drawdown = min(0.0, drawdown)
+                state.record_equity(equity, drawdown)
+                pnl_snapshot = state.get_daily_pnl_snapshot()
+                daily_pnl = account_snapshot.get("day_pnl")
+                daily_pnl_pct = account_snapshot.get("day_pnl_pct")
+                await _broadcast(
+                    {
+                        "type": "equity_tick",
+                        "equity": equity,
+                        "daily_pnl": _rounded(daily_pnl if daily_pnl is not None else pnl_snapshot.get("daily_pnl"), 4),
+                        "daily_pnl_pct": _rounded(daily_pnl_pct if daily_pnl_pct is not None else pnl_snapshot.get("daily_pnl_pct"), 2),
+                        "daily_pnl_source": "alpaca_account" if daily_pnl is not None else pnl_snapshot.get("source"),
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
         except Exception as exc:
             log.debug("Exchange poll error: %s", exc)
             client = None
@@ -253,7 +529,14 @@ app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
 @app.get("/")
 async def root():
-    return FileResponse(str(STATIC / "index.html"))
+    return FileResponse(
+        str(STATIC / "index.html"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.get("/api/health")
@@ -279,6 +562,13 @@ async def get_config():
         "max_drawdown":    cfg.max_drawdown,
         "daily_loss_limit":cfg.daily_loss_limit,
         "futures_symbols": cfg.futures_symbols,
+        "spot_symbols":    cfg.spot_symbols,
+        "stock_symbols":   cfg.stock_symbols,
+        "mixed_symbols":   cfg.runtime_symbols,
+        "model_symbols":   cfg.model_symbols,
+        "risk_symbols":    cfg.risk_symbols,
+        "benchmark_symbols": cfg.benchmark_symbols,
+        "default_benchmark_symbol": cfg.default_benchmark_symbol,
         "engine_defaults": ENGINE_DEFAULTS,
     }
 
@@ -311,17 +601,18 @@ async def get_equity(window: str = Query("1w")):
 
 
 @app.get("/api/benchmark")
-async def get_benchmark(symbol: str = Query("BTCUSDT"), window: str = Query("1w")):
+async def get_benchmark(symbol: str | None = Query(None), window: str = Query("1w")):
     """Return benchmark close prices via backtester data loader."""
     try:
         from backtester.data_loader import load_multi
+        benchmark_symbol = symbol or cfg.default_benchmark_symbol
         end   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         delta = {
             "1d": 2, "1w": 8, "1m": 32, "3m": 95, "1y": 366, "max": 1000
         }.get(window, 8)
         start = (datetime.now(timezone.utc) - timedelta(days=delta)).strftime("%Y-%m-%d")
-        data  = load_multi([symbol], "1h", start, end)
-        df    = data.get(symbol, pd.DataFrame())
+        data  = load_multi([benchmark_symbol], "1h", start, end)
+        df    = data.get(benchmark_symbol, pd.DataFrame())
         if df.empty:
             return {"timestamps": [], "prices": []}
         df = df.reset_index()
@@ -338,18 +629,93 @@ async def get_benchmark(symbol: str = Query("BTCUSDT"), window: str = Query("1w"
 
 @app.get("/api/positions")
 async def get_positions():
+    broker_positions, broker_meta = live_broker_positions()
     trades = state.get_open_trades()
-    positions = []
+    db_positions = []
     for t in trades:
         side = t.get("side", "")
-        positions.append({
+        db_positions.append({
             **t,
+            "asset_class":    t.get("market") or "runtime_db",
             "entry_price":    t.get("price"),
             "opened_at":      t.get("ts"),
             "side":           "LONG" if side in ("BUY", "LONG") else "SHORT" if side in ("SELL", "SHORT") else side,
             "unrealized_pnl": t.get("pnl", 0),
+            "source":         "runtime_db",
         })
-    return {"positions": positions, "count": len(positions)}
+
+    if broker_positions:
+        seen = {
+            (
+                str(pos.get("broker_symbol") or pos.get("symbol") or "").upper(),
+                str(pos.get("asset_class") or "").lower(),
+            )
+            for pos in broker_positions
+        }
+        for pos in db_positions:
+            key = (
+                str(pos.get("broker_symbol") or pos.get("symbol") or "").upper(),
+                str(pos.get("asset_class") or pos.get("market") or "").lower(),
+            )
+            if key not in seen:
+                broker_positions.append(pos)
+        broker_positions.sort(key=lambda row: abs(safe_float(row.get("market_value")) or safe_float(row.get("unrealized_pnl")) or 0.0), reverse=True)
+        return {
+            "positions": broker_positions,
+            "count": len(broker_positions),
+            "source": broker_meta.get("source"),
+            "summary": broker_meta,
+        }
+
+    return {
+        "positions": db_positions,
+        "count": len(db_positions),
+        "source": "runtime_db",
+        "summary": {"available": False, "reason": broker_meta.get("reason", "runtime_db_only")},
+    }
+
+
+@app.get("/api/live/tape")
+async def live_tape(limit: int = Query(360, ge=30, le=2000)):
+    broker_snapshot = live_broker_snapshot()
+    if broker_snapshot.get("available"):
+        timestamps = list(broker_snapshot.get("tape_timestamps") or [])
+        equity = [float(v) for v in list(broker_snapshot.get("tape_equity") or [])]
+        latest_equity_ts = broker_snapshot.get("latest_equity_ts")
+        latest_equity = safe_float(broker_snapshot.get("total_equity"))
+        if latest_equity_ts and latest_equity is not None:
+            if timestamps and timestamps[-1] == latest_equity_ts:
+                equity[-1] = latest_equity
+            else:
+                timestamps.append(str(latest_equity_ts))
+                equity.append(float(latest_equity))
+        timestamps = timestamps[-limit:]
+        equity = equity[-limit:]
+        payload = _build_live_tape_payload(timestamps, equity, source=str(broker_snapshot.get("source") or "alpaca_account"))
+        payload["account"] = {
+            "total_equity": _rounded(broker_snapshot.get("total_equity"), 2),
+            "cash": _rounded(broker_snapshot.get("cash"), 2),
+            "buying_power": _rounded(broker_snapshot.get("buying_power"), 2),
+            "day_pnl_dollars": _rounded(broker_snapshot.get("day_pnl_dollars"), 2),
+            "day_pnl_pct": _rounded(broker_snapshot.get("day_pnl_pct"), 2),
+            "total_return_pct": _rounded(broker_snapshot.get("total_return_pct"), 2),
+            "all_time_high_equity": _rounded(broker_snapshot.get("all_time_high_equity"), 2),
+            "positions_count": broker_snapshot.get("positions_count"),
+            "account_status": broker_snapshot.get("account_status"),
+        }
+        return payload
+
+    with _db_conn() as c:
+        rows = c.execute(
+            "SELECT ts, equity FROM equity_curve ORDER BY ts DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    rows = list(reversed(rows))
+    ts = [str(row["ts"]) for row in rows]
+    eq = [float(row["equity"]) for row in rows]
+    payload = _build_live_tape_payload(ts, eq, source="runtime_equity_curve")
+    payload["account"] = {}
+    return payload
 
 
 @app.get("/api/trades")
@@ -389,9 +755,52 @@ async def get_trades(
 
 @app.get("/api/daily_pnl")
 async def get_daily_pnl():
-    pnl = state.get_daily_pnl()
-    peak = state.get_peak_equity()
-    return {"daily_pnl": round(pnl, 4), "peak_equity": round(peak, 2)}
+    snapshot = state.get_daily_pnl_snapshot()
+    broker_snapshot = live_broker_snapshot()
+    if broker_snapshot.get("available"):
+        snapshot = {
+            **snapshot,
+            "source": broker_snapshot.get("source"),
+            "daily_pnl": broker_snapshot.get("day_pnl_dollars"),
+            "daily_pnl_pct": broker_snapshot.get("day_pnl_pct"),
+            "session_start_equity": broker_snapshot.get("last_equity") or broker_snapshot.get("session_start_equity"),
+            "current_equity": broker_snapshot.get("total_equity"),
+            "latest_equity_ts": broker_snapshot.get("latest_equity_ts"),
+            "intraday_low_equity": broker_snapshot.get("session_low_equity"),
+            "intraday_high_equity": broker_snapshot.get("session_high_equity"),
+            "intraday_range_pct": (
+                ((safe_float(broker_snapshot.get("session_high_equity")) - safe_float(broker_snapshot.get("session_low_equity"))) / safe_float(broker_snapshot.get("session_start_equity")) * 100.0)
+                if safe_float(broker_snapshot.get("session_high_equity")) is not None
+                and safe_float(broker_snapshot.get("session_low_equity")) is not None
+                and safe_float(broker_snapshot.get("session_start_equity"))
+                else snapshot.get("intraday_range_pct")
+            ),
+            "equity_freshness_seconds": (
+                max(
+                    0.0,
+                    (datetime.now(timezone.utc) - _parse_dashboard_ts(broker_snapshot.get("latest_equity_ts"))).total_seconds(),
+                )
+                if _parse_dashboard_ts(broker_snapshot.get("latest_equity_ts"))
+                else snapshot.get("equity_freshness_seconds")
+            ),
+        }
+    peak = snapshot.get("peak_equity")
+    if peak is None:
+        peak = state.get_peak_equity()
+    return {
+        **snapshot,
+        "daily_pnl": _rounded(snapshot.get("daily_pnl"), 4) or 0.0,
+        "daily_pnl_pct": _rounded(snapshot.get("daily_pnl_pct"), 2),
+        "session_start_equity": _rounded(snapshot.get("session_start_equity"), 2),
+        "current_equity": _rounded(snapshot.get("current_equity"), 2),
+        "intraday_low_equity": _rounded(snapshot.get("intraday_low_equity"), 2),
+        "intraday_high_equity": _rounded(snapshot.get("intraday_high_equity"), 2),
+        "intraday_range_pct": _rounded(snapshot.get("intraday_range_pct"), 2),
+        "peak_equity": _rounded(peak, 2),
+        "distance_to_peak_pct": _rounded(snapshot.get("distance_to_peak_pct"), 2),
+        "equity_freshness_seconds": _rounded(snapshot.get("equity_freshness_seconds"), 2),
+        "closed_trade_pnl_today": _rounded(snapshot.get("closed_trade_pnl_today"), 4),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -443,86 +852,24 @@ async def risk_snapshot():
 
 @app.get("/api/risk/heatmap")
 async def risk_heatmap():
-    """
-    Multi-asset correlation matrix: futures + spot symbols.
-    Also returns options Greeks from the live risk snapshot.
-    """
-    try:
-        from backtester.data_loader import load_multi
-        end   = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y-%m-%d")
+    payload = build_correlation_payload(force=False)
+    crypto = payload.get("crypto") or {}
+    return {
+        "symbols": crypto.get("symbols") or [],
+        "corr": crypto.get("corr") or [],
+        "vols": crypto.get("vols") or {},
+        "peer_map": crypto.get("peer_map") or {},
+        "leaders": crypto.get("leaders") or {"positive": [], "negative": []},
+        "stats": crypto.get("stats") or {},
+        "universe_symbols": crypto.get("symbols") or [],
+        "options_greeks": payload.get("options_greeks") or {},
+        "stress_scenarios": payload.get("stress_scenarios") or {},
+    }
 
-        # Combine futures + spot for broader cross-asset view (cap at 12 total)
-        fut_syms  = list(cfg.futures_symbols[:6])
-        spot_syms = [s for s in getattr(cfg, "spot_symbols", []) if s not in fut_syms][:4]
-        symbols   = fut_syms + spot_syms
 
-        data = load_multi(symbols, "1h", start, end)
-
-        rets_dict: dict[str, np.ndarray] = {}
-        vols:      dict[str, float]      = {}
-        for sym, df in data.items():
-            if df is None or df.empty:
-                continue
-            c  = df["close"].astype(float).values
-            if len(c) < 20:
-                continue
-            lr = np.diff(np.log(c + 1e-12))
-            rets_dict[sym] = lr
-            vols[sym] = round(float(lr.std() * np.sqrt(8760) * 100), 2)
-
-        syms    = list(rets_dict.keys())
-        min_len = min((len(v) for v in rets_dict.values()), default=0)
-        corr: list = []
-        if min_len >= 10 and len(syms) >= 2:
-            mat  = np.column_stack([rets_dict[s][-min_len:] for s in syms])
-            corr = np.corrcoef(mat.T).round(3).tolist()
-
-        # Pull options Greeks from live risk snapshot
-        risk_snap  = read_json(RISK_SNAPSHOT_PATH, {})
-        guard_snap = read_json(PORTFOLIO_GUARD_PATH, {})
-        eng = guard_snap.get("portfolio_risk_engine") or risk_snap.get("portfolio_risk_engine") or {}
-        top_underlyings = eng.get("top_underlyings", [])
-
-        options_greeks = {
-            "portfolio_delta":   safe_float(risk_snap.get("portfolio_delta")),
-            "portfolio_theta":   safe_float(risk_snap.get("portfolio_theta")),
-            "portfolio_vega":    safe_float(risk_snap.get("portfolio_vega")),
-            "portfolio_gamma":   safe_float(risk_snap.get("portfolio_gamma")),
-            "target_delta":      safe_float(risk_snap.get("target_delta")),
-            "target_theta":      safe_float(risk_snap.get("target_theta")),
-            "target_vega":       safe_float(risk_snap.get("target_vega")),
-            "var_pct_equity":    safe_float(eng.get("var_pct_equity")),
-            "cvar_pct_equity":   safe_float(eng.get("cvar_pct_equity")),
-            "stress_pct_equity": safe_float(eng.get("stress_pct_equity")),
-            "gross_exposure":    safe_float(eng.get("gross_exposure_pct_equity")),
-            "net_delta_exposure":safe_float(eng.get("net_delta_exposure")),
-            "risk_score":        safe_float(eng.get("risk_score")),
-            "kill_switch":       bool(eng.get("kill_switch_active")),
-            "breaches":          list(eng.get("breaches") or []),
-            "top_underlyings":   top_underlyings,
-            "macro_regime":      risk_snap.get("macro_regime"),
-            "vix":               safe_float(risk_snap.get("vix")),
-            "movement_bias":     risk_snap.get("movement_bias"),
-            "allowed_symbols":   safe_int(risk_snap.get("allowed_symbols")),
-        }
-
-        # Stress scenarios from guard
-        stress_losses = eng.get("stress_losses", {})
-
-        return {
-            "symbols":        syms,
-            "corr":           corr,
-            "vols":           vols,
-            "futures_syms":   fut_syms,
-            "spot_syms":      spot_syms,
-            "options_greeks": options_greeks,
-            "stress_scenarios": stress_losses,
-        }
-
-    except Exception as exc:
-        log.warning("Heatmap error: %s", exc)
-        return {"symbols": [], "corr": [], "vols": {}, "options_greeks": {}, "stress_scenarios": {}}
+@app.get("/api/risk/correlations")
+async def risk_correlations(refresh: bool = Query(False)):
+    return build_correlation_payload(force=bool(refresh))
 
 
 @app.get("/api/risk/var_surface")
@@ -578,6 +925,14 @@ async def risk_engine_snapshot():
     risk_snap  = read_json(RISK_SNAPSHOT_PATH, {})
     guard_snap = read_json(PORTFOLIO_GUARD_PATH, {})
     eng = (guard_snap.get("portfolio_risk_engine") or risk_snap.get("portfolio_risk_engine") or {})
+    risk_generated_at = _parse_dashboard_ts(risk_snap.get("generated_at_utc"))
+    risk_age_hours = (
+        max(0.0, (datetime.now(timezone.utc) - risk_generated_at).total_seconds() / 3600.0)
+        if risk_generated_at
+        else None
+    )
+    risk_snapshot_fresh = risk_age_hours is not None and risk_age_hours <= 6.0
+    trading_status = "HALTED" if bool(eng.get("kill_switch_active")) else ("LIVE" if risk_snapshot_fresh else "RISK STALE")
     return {
         "generated_at_utc":            datetime.now(timezone.utc).isoformat(),
         "portfolio_delta":             safe_float(risk_snap.get("portfolio_delta")),
@@ -611,6 +966,9 @@ async def risk_engine_snapshot():
         "total_equity":                safe_float(risk_snap.get("total_equity")),
         "daily_pnl_pct":               safe_float(risk_snap.get("daily_pnl_pct")),
         "allowed_symbols":             safe_int(risk_snap.get("allowed_symbols")),
+        "risk_snapshot_age_hours":     round(float(risk_age_hours), 2) if risk_age_hours is not None else None,
+        "risk_snapshot_fresh":         risk_snapshot_fresh,
+        "trading_status":              trading_status,
     }
 
 
@@ -703,6 +1061,11 @@ async def trade_odds():
     return build_trade_odds()
 
 
+@app.get("/api/research/desk")
+async def research_desk(refresh: bool = Query(False)):
+    return build_research_desk(force=bool(refresh))
+
+
 @app.get("/api/permutations/strategies")
 async def permutation_strategies():
     payload = []
@@ -769,7 +1132,7 @@ async def run_backtest(body: dict):
             from backtester.engine import BacktestEngine
             from backtester.report import save_report
 
-            symbols    = body.get("symbols", cfg.futures_symbols[:4])
+            symbols    = body.get("symbols", cfg.model_symbols[:4])
             interval   = body.get("interval", "1h")
             start      = body.get("start", "2024-01-01")
             end        = body.get("end")
@@ -882,17 +1245,32 @@ async def run_forwardtest(body: dict):
     Body: { symbol, model, cal_start, cal_end, n_paths, horizon, strategy, interval }
     """
     job_id = str(uuid.uuid4())[:8]
-    _ft_jobs[job_id] = {"status": "PENDING", "result": None, "error": None}
+    _ft_jobs[job_id] = {
+        "status": "PENDING",
+        "stage": "QUEUED",
+        "progress": 0.0,
+        "detail": "Waiting to start",
+        "result": None,
+        "error": None,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     def _run():
         try:
-            _ft_jobs[job_id]["status"] = "RUNNING"
+            _update_ft_job(
+                job_id,
+                status="RUNNING",
+                stage="PREPARING",
+                progress=2.0,
+                detail="Preparing forward-test inputs",
+                error=None,
+            )
             from backtester.data_loader import load_multi
             from backtester.futuretesting import FuturetestEngine
             from backtester.engine import BacktestEngine
             from scripts.run_backtest import _build_strategies
 
-            symbol    = body.get("symbol", "BTCUSDT")
+            symbol    = body.get("symbol", cfg.default_benchmark_symbol)
             model     = body.get("model", "gbm")
             cal_start = body.get("cal_start", "2023-01-01")
             cal_end   = body.get("cal_end") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -901,11 +1279,61 @@ async def run_forwardtest(body: dict):
             strategy  = body.get("strategy", "momentum")
             interval  = body.get("interval", "1h")
 
+            def _loader_progress(event: dict[str, Any]) -> None:
+                overall_progress = float(event.get("overall_progress", event.get("progress", 0.0)))
+                mapped_progress = 5.0 + (overall_progress * 0.35)
+                detail = event.get("message") or f"Loading {symbol} {interval} history"
+                _update_ft_job(
+                    job_id,
+                    status="RUNNING",
+                    stage="DOWNLOADING_DATA",
+                    progress=mapped_progress,
+                    detail=detail,
+                )
+
             # Load historical data for calibration
-            data = load_multi([symbol], interval, cal_start, cal_end)
+            _update_ft_job(
+                job_id,
+                status="RUNNING",
+                stage="DOWNLOADING_DATA",
+                progress=5.0,
+                detail=f"Preparing {symbol} {interval} history",
+            )
+            data = load_multi(
+                [symbol],
+                interval,
+                cal_start,
+                cal_end,
+                progress_callback=_loader_progress,
+            )
             hist_df = data.get(symbol, None)
             if hist_df is None or hist_df.empty:
+                _update_ft_job(
+                    job_id,
+                    status="RUNNING",
+                    stage="DOWNLOADING_DATA",
+                    progress=12.0,
+                    detail=f"Retrying fresh download for {symbol} {interval}",
+                )
+                data = load_multi(
+                    [symbol],
+                    interval,
+                    cal_start,
+                    cal_end,
+                    force_download=True,
+                    progress_callback=_loader_progress,
+                )
+                hist_df = data.get(symbol, None)
+            if hist_df is None or hist_df.empty:
                 raise ValueError(f"No data for {symbol} [{cal_start}→{cal_end}]")
+
+            _update_ft_job(
+                job_id,
+                status="RUNNING",
+                stage="CALIBRATING",
+                progress=45.0,
+                detail=f"Calibrating {model.upper()} model on {len(hist_df)} bars",
+            )
 
             strat_list = _build_strategies([strategy])
 
@@ -927,57 +1355,64 @@ async def run_forwardtest(body: dict):
                 n_paths=n_paths,
                 horizon_bars=horizon,
             )
-            ft_result = ft.run(engine_factory, lambda: strat_list)
+            _update_ft_job(
+                job_id,
+                status="RUNNING",
+                stage="RUNNING_PATHS",
+                progress=55.0,
+                detail=f"Running {n_paths} synthetic path(s) for {strategy}",
+            )
 
-            # Build histogram helper
-            def histogram(values, bins=20):
-                arr = np.array(values)
-                counts, edges = np.histogram(arr, bins=bins)
-                bin_centers = ((edges[:-1] + edges[1:]) / 2).tolist()
-                return {"bins": bin_centers, "counts": counts.tolist()}
+            def _path_progress(event: dict[str, Any]) -> None:
+                path_progress = float(event.get("progress", 0.0))
+                mapped_progress = 55.0 + (path_progress * 0.4)
+                detail = event.get("message") or f"Running synthetic paths for {symbol}"
+                _update_ft_job(
+                    job_id,
+                    status="RUNNING",
+                    stage="RUNNING_PATHS",
+                    progress=mapped_progress,
+                    detail=detail,
+                )
 
-            # FuturetestResult stores distributions as numpy arrays (fractions, not pct)
-            returns = (ft_result.return_dist * 100).tolist()
-            sharpes = ft_result.sharpe_dist.tolist()
-            maxdds  = (ft_result.max_dd_dist * 100).tolist()
-            win_rates = (ft_result.win_rate_dist * 100).tolist()
+            ft_result = ft.run(
+                engine_factory,
+                lambda: strat_list,
+                symbol=symbol,
+                verbose=False,
+                progress_callback=_path_progress,
+            )
 
-            profitable_pct = float(np.mean(ft_result.return_dist > 0)) * 100
-
-            _ft_jobs[job_id]["status"] = "DONE"
-            _ft_jobs[job_id]["result"] = {
-                "n_paths":           ft_result.n_paths,
-                "failed_paths":      ft_result.failed_paths,
-                "acceptance_rate":   round(ft_result.acceptance_rate * 100, 1),
-                "median_return_pct": round(float(np.median(returns)), 3) if returns else None,
-                "mean_return_pct":   round(float(np.mean(returns)), 3)   if returns else None,
-                "p5_return_pct":     round(float(np.percentile(returns, 5)), 3)  if returns else None,
-                "p10_return_pct":    round(float(np.percentile(returns, 10)), 3) if returns else None,
-                "p25_return_pct":    round(float(np.percentile(returns, 25)), 3) if returns else None,
-                "p75_return_pct":    round(float(np.percentile(returns, 75)), 3) if returns else None,
-                "p90_return_pct":    round(float(np.percentile(returns, 90)), 3) if returns else None,
-                "p95_return_pct":    round(float(np.percentile(returns, 95)), 3) if returns else None,
-                "median_sharpe":     round(float(np.median(sharpes)), 4) if sharpes else None,
-                "p10_sharpe":        round(float(np.percentile(sharpes, 10)), 4) if sharpes else None,
-                "p90_sharpe":        round(float(np.percentile(sharpes, 90)), 4) if sharpes else None,
-                "median_maxdd_pct":  round(float(np.median(maxdds)), 3)  if maxdds else None,
-                "p95_maxdd_pct":     round(float(np.percentile(maxdds, 95)), 3) if maxdds else None,
-                "median_win_rate":   round(float(np.median(win_rates)), 1) if win_rates else None,
-                "profitable_pct":    round(profitable_pct, 1),
-                "return_hist":       histogram(returns),
-                "sharpe_hist":       histogram(sharpes),
-                "maxdd_hist":        histogram(maxdds),
-                "winrate_hist":      histogram(win_rates),
-            }
+            _update_ft_job(
+                job_id,
+                status="RUNNING",
+                stage="SUMMARISING",
+                progress=97.0,
+                detail="Summarising synthetic-path results",
+            )
+            _update_ft_job(
+                job_id,
+                status="DONE",
+                stage="DONE",
+                progress=100.0,
+                detail=f"Forward test complete for {symbol}",
+                result=_summarize_forwardtest_result(ft_result),
+                error=None,
+            )
 
         except Exception as exc:
             import traceback
-            _ft_jobs[job_id]["status"] = "ERROR"
-            _ft_jobs[job_id]["error"]  = str(exc)
+            _update_ft_job(
+                job_id,
+                status="ERROR",
+                stage="ERROR",
+                detail=str(exc),
+                error=str(exc),
+            )
             log.error("Forward test job %s failed: %s\n%s", job_id, exc, traceback.format_exc())
 
     threading.Thread(target=_run, daemon=True).start()
-    return {"job_id": job_id, "status": "PENDING"}
+    return {"job_id": job_id, "status": "PENDING", "stage": "QUEUED", "progress": 0.0}
 
 
 @app.get("/api/forwardtest/jobs/{job_id}")
@@ -1033,7 +1468,7 @@ async def run_permutations(body: dict):
                 selected_params = sweepable_params[:3]
             variants = permutation_grid(current_params, selected_params, max_variants=81)
 
-            symbols = body.get("symbols", cfg.futures_symbols[:4])
+            symbols = body.get("symbols", cfg.model_symbols[:4])
             interval = str(body.get("interval") or "1h")
             start = str(body.get("start") or "2024-01-01")
             end = body.get("end")
@@ -1216,11 +1651,20 @@ async def ws_live(ws: WebSocket):
                 "SELECT ts, equity FROM equity_curve ORDER BY ts DESC LIMIT 1"
             ).fetchall()
         if rows:
+            pnl_snapshot = state.get_daily_pnl_snapshot()
+            broker_snapshot = live_broker_snapshot()
+            current_equity = (
+                safe_float(broker_snapshot.get("total_equity"))
+                if broker_snapshot.get("available")
+                else float(rows[0]["equity"])
+            )
             await ws.send_json({
                 "type": "equity_tick",
-                "equity": float(rows[0]["equity"]),
-                "daily_pnl": state.get_daily_pnl(),
-                "ts": rows[0]["ts"],
+                "equity": current_equity,
+                "daily_pnl": _rounded(broker_snapshot.get("day_pnl_dollars") if broker_snapshot.get("available") else pnl_snapshot.get("daily_pnl"), 4),
+                "daily_pnl_pct": _rounded(broker_snapshot.get("day_pnl_pct") if broker_snapshot.get("available") else pnl_snapshot.get("daily_pnl_pct"), 2),
+                "daily_pnl_source": broker_snapshot.get("source") if broker_snapshot.get("available") else pnl_snapshot.get("source"),
+                "ts": broker_snapshot.get("latest_equity_ts") if broker_snapshot.get("available") else rows[0]["ts"],
             })
         while True:
             await asyncio.sleep(30)

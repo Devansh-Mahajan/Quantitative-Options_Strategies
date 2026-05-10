@@ -80,19 +80,36 @@ html{font-family:var(--sans);background:var(--bg0);color:var(--t0);min-height:10
 .ctitle{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
 
 /* ── METRIC CARDS ──────────────────────────────────────────────────── */
-.mcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:14px}
+.mcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px}
 .mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
-  padding:13px 14px 12px;position:relative;overflow:hidden;min-height:70px}
+  padding:14px 15px 13px;position:relative;overflow:hidden;min-height:94px;
+  display:flex;flex-direction:column;justify-content:flex-start;gap:4px}
 .mc::after{content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(255,255,255,.02) 0%,transparent 55%);pointer-events:none}
 .mc-bar{position:absolute;top:0;left:0;right:0;height:2px}
 .mc-lbl{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--t2);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mc-val{font-family:var(--mono);font-size:clamp(12px,1.4vw,17px);font-weight:700;
-  color:var(--t0);line-height:1.1;word-break:break-all;overflow-wrap:anywhere}
+  color:var(--t2);margin-bottom:2px;line-height:1.35;white-space:normal}
+.mc-val{font-family:var(--mono);font-size:clamp(14px,1.55vw,20px);font-weight:700;
+  color:var(--t0);line-height:1.15;word-break:normal;overflow-wrap:anywhere;min-height:24px}
 .mc-sub{font-size:8.5px;color:var(--t2);margin-top:4px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  white-space:normal;line-height:1.4;margin-top:auto}
 .pos{color:var(--green)!important}.neg{color:var(--red)!important}
+@media(max-width:760px){.mcs{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}}
+
+.score-stack{display:flex;flex-direction:column;gap:10px}
+.score-row{display:flex;flex-direction:column;gap:5px}
+.score-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.score-name{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t2)}
+.score-val{font-family:var(--mono);font-size:10px;color:var(--t0)}
+.score-track{height:8px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.score-fill{height:100%;border-radius:999px}
+.badge-strip{display:flex;flex-wrap:wrap;gap:6px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.detail-tile{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px;min-width:0}
+.detail-key{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin-bottom:6px;line-height:1.4}
+.detail-val{font-family:var(--mono);font-size:15px;color:var(--t0);line-height:1.2;overflow-wrap:anywhere}
+.detail-sub{font-size:8px;color:var(--t2);margin-top:4px;line-height:1.45}
+.tape-meta{margin-top:12px}
 
 /* ── CHART CONTAINERS ──────────────────────────────────────────────── */
 .cw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
@@ -180,13 +197,19 @@ td.tlong{color:var(--green);font-weight:700}td.tshort{color:var(--red);font-weig
 .togbtn.on{background:var(--accent-a);border-color:var(--accent);color:var(--accent)}
 
 /* ── HEATMAP ───────────────────────────────────────────────────────── */
-.hmwrap{overflow-x:auto}
+.hmwrap{overflow:auto;max-width:100%;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg1);padding:8px}
 .hmtbl{border-collapse:collapse;font-family:var(--mono)}
 .hmtbl th{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);
   font-size:8px;color:var(--t2);padding:4px 2px;background:transparent;
   border-bottom:none;letter-spacing:.04em}
 .hmtbl td{width:44px;height:36px;text-align:center;font-size:9px;font-weight:600}
 .hmrl{padding:3px 8px 3px 0!important;font-size:9px;color:var(--t2);text-align:right;white-space:nowrap;width:auto}
+.corr-canvas{display:block}
+.peer-search{min-width:180px;max-width:240px}
+.peer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.peer-list{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px}
+.peer-title{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin-bottom:8px}
+@media(max-width:980px){.peer-grid{grid-template-columns:1fr}}
 
 /* ── BADGES ────────────────────────────────────────────────────────── */
 .bdg{font-size:8px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:3px;text-transform:uppercase}
@@ -210,7 +233,7 @@ td.tlong{color:var(--green);font-weight:700}td.tshort{color:var(--red);font-weig
 hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .stitle{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
   color:var(--t2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.irow{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.irow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .toast{position:fixed;top:62px;right:18px;z-index:9999;
   padding:9px 15px;border-radius:var(--rs);font-size:11px;font-weight:700;
   animation:slideIn .2s ease;box-shadow:0 8px 32px rgba(0,0,0,.6)}
@@ -305,7 +328,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="hdr-r">
     <div class="hticker">
       Equity:&nbsp;<strong id="hEq">—</strong>&nbsp;&nbsp;
-      P&L:&nbsp;<span id="hPnl" style="font-family:var(--mono);font-size:12px;color:var(--t1)">—</span>
+      Day P&L:&nbsp;<span id="hPnl" style="font-family:var(--mono);font-size:12px;color:var(--t1)">—</span>
     </div>
     <div class="hticker" id="hGreeks" style="display:none">
       Δ&nbsp;<span id="hDelta" style="font-family:var(--mono);font-size:11px;color:var(--cyan)">—</span>&nbsp;
@@ -368,12 +391,12 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       <span class="cttl">Portfolio vs Benchmark — Normalised %</span>
       <div class="cctrls">
         <select class="bench-sel" id="benchSel">
+          <option value="SPY">SPY</option>
           <option value="BTCUSDT">BTC / USD</option>
+          <option value="QQQ">QQQ</option>
           <option value="ETHUSDT">ETH / USD</option>
-          <option value="SOLUSDT">SOL / USD</option>
-          <option value="BNBUSDT">BNB / USD</option>
-          <option value="XRPUSDT">XRP / USD</option>
-          <option value="ADAUSDT">ADA / USD</option>
+          <option value="AAPL">AAPL</option>
+          <option value="MSFT">MSFT</option>
         </select>
         <button class="wbtn" data-w="1d">1D</button>
         <button class="wbtn active" data-w="1w">1W</button>
@@ -393,7 +416,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
   <div class="mcs" id="eliteDeskMcs">
     <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
-      <div class="mc-lbl">Desk Regime</div><div class="mc-val" id="eo-regime">—</div><div class="mc-sub">Macro operating mode</div></div>
+      <div class="mc-lbl">Trading Status</div><div class="mc-val" id="eo-status">—</div><div class="mc-sub">Broker + risk state</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
       <div class="mc-lbl">Risk Score</div><div class="mc-val" id="eo-risk">—</div><div class="mc-sub">Portfolio engine</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
@@ -405,9 +428,20 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
       <div class="mc-lbl">Daily P&L</div><div class="mc-val" id="eo-daily">—</div><div class="mc-sub">Runtime snapshot</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
-      <div class="mc-lbl">Universe Access</div><div class="mc-val" id="eo-universe">—</div><div class="mc-sub">Allowed symbols</div></div>
+      <div class="mc-lbl">Open Positions</div><div class="mc-val" id="eo-open">—</div><div class="mc-sub">Broker live book</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
-      <div class="mc-lbl">VIX Proxy</div><div class="mc-val" id="eo-vix">—</div><div class="mc-sub">Risk temperature</div></div>
+      <div class="mc-lbl">Broker Cash</div><div class="mc-val" id="eo-cash">—</div><div class="mc-sub">Deployable cash buffer</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
+      <div class="mc-lbl">Buying Power</div><div class="mc-val" id="eo-buy">—</div><div class="mc-sub">Account buying power</div></div>
+  </div>
+
+  <div class="cw">
+    <div class="chdr">
+      <span class="cttl">Intraday Equity Tape</span>
+      <span id="tapeSource" class="bdg bdg-info">—</span>
+    </div>
+    <canvas id="tapeChart" height="170"></canvas>
+    <div id="tapeStats" class="loading tape-meta"><div class="spinner"></div>Loading broker tape…</div>
   </div>
 
   <div class="row">
@@ -441,16 +475,42 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 
   <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Session Telemetry</span>
+        <span id="elitePnlSourceBadge" class="bdg bdg-info">—</span>
+      </div>
+      <div id="eliteSessionMeta" class="loading"><div class="spinner"></div>Loading session telemetry…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Readiness Breakdown</span></div>
+      <div id="eliteScoreBars" class="loading"><div class="spinner"></div>Loading score stack…</div>
+      <hr class="dv">
+      <div class="ctitle" style="margin-bottom:8px">Paper Coverage</div>
+      <div id="elitePaperCoverage" class="badge-strip"><span class="empty" style="padding:0">Loading…</span></div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Data Provenance</span>
+        <span id="eliteFreshnessBadge" class="bdg bdg-info">—</span>
+      </div>
+      <div id="eliteFreshnessMeta" class="loading"><div class="spinner"></div>Loading freshness telemetry…</div>
+    </div>
+  </div>
+
+  <div class="row">
     <div class="col2 card">
       <div class="card-hdr">
         <span class="ctitle">Open Positions</span>
         <span id="posCount" class="bdg bdg-info">0</span>
       </div>
+      <div id="posSummary" class="loading"><div class="spinner"></div>Loading position blotter…</div>
+      <hr class="dv">
       <div class="tw">
         <table>
-          <thead><tr><th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th>
-            <th>Mark</th><th>Unr. PnL</th><th>Strategy</th><th>Opened</th></tr></thead>
-          <tbody id="posBody"><tr><td colspan="8" class="empty">No open positions</td></tr></tbody>
+          <thead><tr><th>Symbol</th><th>Asset</th><th>Side</th><th>Size</th><th>Entry</th>
+            <th>Mark</th><th>Market Value</th><th>Unr. PnL</th><th>Weight</th><th>Source</th></tr></thead>
+          <tbody id="posBody"><tr><td colspan="10" class="empty">No open positions</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -640,30 +700,61 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
       <div class="mc-lbl">Universe Size</div><div class="mc-val" id="stk-universe">—</div><div class="mc-sub">Validated equities</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
-      <div class="mc-lbl">Pairs Win Rate</div><div class="mc-val" id="stk-pairs-win">—</div><div class="mc-sub">Research suite</div></div>
+      <div class="mc-lbl">Research Coverage</div><div class="mc-val" id="stk-coverage">—</div><div class="mc-sub">Stocks with movement research</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
-      <div class="mc-lbl">Avg Pair Return</div><div class="mc-val" id="stk-pairs-ret">—</div><div class="mc-sub">Per trade</div></div>
+      <div class="mc-lbl">Positive Alpha Names</div><div class="mc-val" id="stk-alpha-pos">—</div><div class="mc-sub">Alpha/day above zero</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
       <div class="mc-lbl">Alpha Long-Only</div><div class="mc-val" id="stk-alpha-ret">—</div><div class="mc-sub">Annualised</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
       <div class="mc-lbl">Alpha Sharpe</div><div class="mc-val" id="stk-alpha-sh">—</div><div class="mc-sub">Long-only sleeve</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
-      <div class="mc-lbl">Pairs Lookback</div><div class="mc-val" id="stk-lookback">—</div><div class="mc-sub">Active research window</div></div>
+      <div class="mc-lbl">Pairs Evaluated</div><div class="mc-val" id="stk-pairs-eval">—</div><div class="mc-sub">Backtested pairs ledger</div></div>
+    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
+      <div class="mc-lbl">Pair Symbol Reach</div><div class="mc-val" id="stk-pair-symbols">—</div><div class="mc-sub">Names inside pair research</div></div>
   </div>
 
   <div class="row">
     <div class="col2 card">
-      <div class="card-hdr"><span class="ctitle">S&P 500 Research Leaders</span></div>
-      <div class="tw">
+      <div class="card-hdr">
+        <span class="ctitle">S&P 500 Universe Explorer</span>
+        <div class="cctrls"><input type="text" class="fi peer-search" id="stockTableSearch" placeholder="Filter symbols or research status"></div>
+      </div>
+      <div class="tw" style="max-height:620px;overflow-y:auto">
         <table>
-          <thead><tr><th>Symbol</th><th>Lookback</th><th>Accuracy</th><th>Hit Ratio</th><th>Alpha / Day</th><th>Strategy Return</th><th>Buy/Hold</th><th>Targets</th></tr></thead>
-          <tbody id="stockBody"><tr><td colspan="8" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+          <thead><tr><th>#</th><th>Symbol</th><th>Research</th><th>Lookback</th><th>Accuracy</th><th>Hit Ratio</th><th>Alpha / Day</th><th>Strategy Return</th><th>Buy/Hold</th><th>Targets</th></tr></thead>
+          <tbody id="stockBody"><tr><td colspan="10" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
     <div class="col card">
-      <div class="card-hdr"><span class="ctitle">Pairs Trade Correlations</span></div>
-      <div class="tw">
+      <div class="card-hdr">
+        <span class="ctitle">S&P 500 Peer Explorer</span>
+        <div class="cctrls"><input type="text" class="fi peer-search" id="stockPeerSearch" list="stockPeerList" placeholder="Select stock, e.g. MSFT"></div>
+      </div>
+      <datalist id="stockPeerList"></datalist>
+      <div id="stockUniverseMeta" class="empty" style="padding:0 0 10px;text-align:left">Loading full-universe peer map…</div>
+      <div class="peer-grid" style="margin-bottom:12px">
+        <div class="peer-list">
+          <div class="peer-title">Top Correlated</div>
+          <div class="tw" style="max-height:220px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Peer</th><th>Corr</th></tr></thead>
+              <tbody id="stockPeerPosBodyTab"><tr><td colspan="2" class="empty">No peer data</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="peer-list">
+          <div class="peer-title">Most Diversifying</div>
+          <div class="tw" style="max-height:220px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Peer</th><th>Corr</th></tr></thead>
+              <tbody id="stockPeerNegBodyTab"><tr><td colspan="2" class="empty">No peer data</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card-hdr" style="margin-top:4px"><span class="ctitle">Pairs Research Ledger</span></div>
+      <div class="tw" style="max-height:280px;overflow-y:auto">
         <table>
           <thead><tr><th>Pair</th><th>Corr</th><th>Signals</th><th>Win Rate</th><th>Avg Trade Return</th></tr></thead>
           <tbody id="pairBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
@@ -714,6 +805,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           <option value="hp_trend">HP Trend Filter</option>
           <option value="carry_portfolio">Carry Portfolio</option>
           <option value="momentum_carry_combo">Momentum+Carry Combo</option>
+          <option value="microstructure_pressure">Microstructure Pressure</option>
+          <option value="pullback_confluence">Pullback Confluence</option>
           <option value="order_flow">Order Flow</option>
           <option value="liquidation_cascade">Liquidation Cascade</option>
         </select>
@@ -728,7 +821,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
         <div class="fg"><label class="fl">Max Risk/Trade %</label><input type="number" class="fi" id="bt-rk" value="2" step="0.1"></div>
       </div>
       <div class="fg"><label class="fl">Symbols (blank = use config)</label>
-        <input type="text" class="fi" id="bt-sym" placeholder="BTCUSDT,ETHUSDT,SOLUSDT"></div>
+        <input type="text" class="fi" id="bt-sym" placeholder="SPY,BTCUSDT,QQQ,ETHUSDT"></div>
       <div id="btProg" style="display:none;margin-bottom:9px">
         <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
           <div class="spinner"></div><span id="btProgLbl">Submitting…</span>
@@ -832,16 +925,18 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 
   <div class="row">
-    <div class="col card">
+    <div class="col2 card">
       <div class="card-hdr">
-        <span class="ctitle">Multi-Asset Correlation Heatmap</span>
-        <span style="font-size:8px;color:var(--t2)">Futures + Spot</span>
-        <button class="btn btn-g btn-sm" id="refreshHm">↻ Refresh</button>
+        <span class="ctitle">S&P 500 Correlation Lattice</span>
+        <div class="cctrls">
+          <input type="text" class="fi peer-search" id="stockCorrSearch" list="stockCorrList" placeholder="Focus stock, e.g. NVDA">
+          <button class="btn btn-g btn-sm" id="refreshHm">↻ Refresh</button>
+        </div>
       </div>
-      <div class="hmwrap" id="hmCont"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-      <hr class="dv">
-      <div class="ctitle" style="margin-bottom:9px">Annualised Volatility by Asset</div>
-      <div id="volBars"></div>
+      <datalist id="stockCorrList"></datalist>
+      <div id="stockCorrSummary" class="alert alert-info">Loading full-universe stock correlation lattice…</div>
+      <div class="hmwrap"><canvas id="stockCorrCanvas" class="corr-canvas"></canvas></div>
+      <div id="stockCorrHover" class="empty" style="padding:10px 0 0;text-align:left">Hover the lattice to inspect a stock pair.</div>
     </div>
     <div class="col card">
       <div class="card-hdr">
@@ -849,6 +944,61 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
         <span style="font-size:9px;color:var(--t2)">Confidence × Horizon</span>
       </div>
       <div id="varSurf"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      <hr class="dv">
+      <div id="stockPeerMeta" class="empty" style="padding:0 0 10px;text-align:left">Stock peer decomposition will appear here.</div>
+      <div class="peer-grid">
+        <div class="peer-list">
+          <div class="peer-title">Top Correlated</div>
+          <div class="tw" style="max-height:240px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Peer</th><th>Corr</th></tr></thead>
+              <tbody id="stockPeerPositiveBody"><tr><td colspan="2" class="empty">No peer data</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="peer-list">
+          <div class="peer-title">Most Diversifying</div>
+          <div class="tw" style="max-height:240px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Peer</th><th>Corr</th></tr></thead>
+              <tbody id="stockPeerNegativeBody"><tr><td colspan="2" class="empty">No peer data</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Crypto Pair Correlation Matrix</span>
+        <span style="font-size:8px;color:var(--t2)">Cross-exchange crypto complex</span>
+      </div>
+      <div id="cryptoCorrSummary" class="alert alert-info">Loading crypto pair correlations…</div>
+      <div class="hmwrap" id="cryptoHmCont"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Correlation Intelligence</span>
+        <span style="font-size:8px;color:var(--t2)">Crowding, dispersion, and peers</span>
+      </div>
+      <div id="corrDeskMeta" class="empty" style="padding:0 0 10px;text-align:left">Loading correlation desk metrics…</div>
+      <div class="peer-grid">
+        <div class="peer-list">
+          <div class="peer-title">Crypto Correlation Leaders</div>
+          <div class="tw" style="max-height:240px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Pair</th><th>Corr</th><th>Bucket</th></tr></thead>
+              <tbody id="cryptoPairBody"><tr><td colspan="3" class="empty">No pair data</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="peer-list">
+          <div class="peer-title">Annualised Volatility</div>
+          <div id="cryptoVolBars"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -946,7 +1096,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           </select></div>
         <div class="fg"><label class="fl">Initial Capital ($)</label><input type="number" class="fi" id="perm-cap" value="10000"></div>
       </div>
-      <div class="fg"><label class="fl">Symbols (blank = config)</label><input type="text" class="fi" id="perm-sym" placeholder="BTCUSDT,ETHUSDT,SOLUSDT"></div>
+      <div class="fg"><label class="fl">Symbols (blank = config)</label><input type="text" class="fi" id="perm-sym" placeholder="SPY,BTCUSDT,QQQ,ETHUSDT"></div>
       <div id="permProg" style="display:none;margin-bottom:9px">
         <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
           <div class="spinner"></div><span id="permProgLbl">Submitting sweep…</span>
@@ -992,10 +1142,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
       <div class="fg"><label class="fl">Symbol (calibration source)</label>
         <select class="fs" id="ft-sym">
-          <option value="BTCUSDT" selected>BTCUSDT</option>
+          <option value="SPY" selected>SPY</option>
+          <option value="BTCUSDT">BTCUSDT</option>
+          <option value="QQQ">QQQ</option>
           <option value="ETHUSDT">ETHUSDT</option>
-          <option value="SOLUSDT">SOLUSDT</option>
-          <option value="BNBUSDT">BNBUSDT</option>
         </select></div>
       <div class="fg2">
         <div class="fg"><label class="fl">Cal. Start</label><input type="date" class="fi" id="ft-cs" value="2023-01-01"></div>
@@ -1012,10 +1162,15 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           <option value="quant_factors">Quant Factors</option><option value="rma_strategy">RMA Strategy</option>
           <option value="knn_predictor">KNN Predictor</option><option value="vpin_flow">VPIN Flow</option>
           <option value="pivot_sr">Pivot S/R</option><option value="statistical_arb">Statistical Arb</option>
+          <option value="microstructure_pressure">Microstructure Pressure</option><option value="pullback_confluence">Pullback Confluence</option>
         </select></div>
       <div id="ftProg" style="display:none;margin-bottom:9px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2);margin-bottom:6px">
           <div class="spinner"></div><span id="ftProgLbl">Running forward test…</span>
+          <span id="ftProgPct" style="margin-left:auto;font-family:var(--mono);color:var(--t1)">0%</span>
+        </div>
+        <div class="sys-bar-trk" style="height:8px">
+          <div class="sys-bar-fill" id="ftProgBar" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--cyan))"></div>
         </div>
       </div>
       <button class="btn btn-p" id="runFt" style="width:100%">▶ Run Forward Test</button>
@@ -1193,6 +1348,61 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
   </div>
 
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Breadth & Dispersion</span><span id="breadthBadge" class="bdg bdg-info">—</span></div>
+      <div id="breadthDesk" class="empty">Loading breadth desk…</div>
+      <hr class="dv">
+      <div class="peer-grid">
+        <div class="peer-list">
+          <div class="peer-title">S&P 500 Leaders</div>
+          <div class="tw" style="max-height:220px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Symbol</th><th>1D</th><th>1M</th></tr></thead>
+              <tbody id="stockLeaderBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="peer-list">
+          <div class="peer-title">Crypto Leaders</div>
+          <div class="tw" style="max-height:220px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Symbol</th><th>1D</th><th>1M</th></tr></thead>
+              <tbody id="cryptoLeaderBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Strategy Research Map</span><span id="strategyMapBadge" class="bdg bdg-info">—</span></div>
+      <div id="paperDesk" class="empty" style="padding:0 0 10px;text-align:left">Loading paper coverage…</div>
+      <div class="tw" style="max-height:380px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Strategy</th><th>Paper</th><th>Category</th><th>Asset</th><th>Status</th></tr></thead>
+          <tbody id="strategyMapBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Microstructure Pressure Board</span>
+      <span id="microBadge" class="bdg bdg-info">—</span>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:10px">
+      Cartea-style desk view: flow imbalance, VWAP displacement, volume shock, realised vol, and behavioural archetypes.
+    </div>
+    <div class="tw" style="max-height:320px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Symbol</th><th>Asset</th><th>Pressure</th><th>Direction</th><th>Flow</th><th>VWAP Gap</th><th>Vol Shock</th><th>RV20</th><th>Archetype</th></tr></thead>
+        <tbody id="microBody"><tr><td colspan="9" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Risk Events -->
   <div class="card" style="margin-top:14px">
     <div class="card-hdr">
@@ -1275,7 +1485,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 const BASE = window.location.origin;
 const WSB  = BASE.replace(/^http/, 'ws');
 
-let W = '1w', BENCH = 'BTCUSDT';
+let W = '1w', BENCH = 'SPY';
 let CHARTS = {};
 let liveWs, traderWs, riskWs;
 let trSc = true, rkSc = true, trF = '', rkF = '';
@@ -1284,6 +1494,10 @@ let permStratParams = {};
 let activeFtModel = 'gbm';
 let optionChainBootstrapped = false;
 let tabDone = {};
+let DASH_CFG = null;
+let RISK_CORR_DATA = null;
+let STOCK_OVERVIEW = null;
+let STOCK_FOCUS_SYMBOL = 'SPY';
 
 Chart.defaults.color = '#4d6080';
 Chart.defaults.borderColor = '#1e2b42';
@@ -1306,6 +1520,76 @@ function fm(v) {
 }
 function csh(v) { return v>0?'var(--green)':v<0?'var(--red)':'var(--t1)'; }
 function cx(v)  { return v>0?'pos':v<0?'neg':''; }
+function ageLabelSeconds(v) {
+  if (v==null||isNaN(v)) return '—';
+  const n = Number(v);
+  if (n < 60) return `${Math.round(n)}s`;
+  if (n < 3600) return `${Math.round(n/60)}m`;
+  if (n < 86400) return `${Number(n/3600).toFixed(1)}h`;
+  return `${Number(n/86400).toFixed(1)}d`;
+}
+function ageLabelHours(v) {
+  if (v==null||isNaN(v)) return '—';
+  const n = Number(v);
+  if (n < 1) return `${Math.round(n*60)}m`;
+  if (n < 48) return `${n.toFixed(1)}h`;
+  return `${(n/24).toFixed(1)}d`;
+}
+function freshnessColorSeconds(v) {
+  if (v==null||isNaN(v)) return 'var(--t1)';
+  if (v <= 300) return 'var(--green)';
+  if (v <= 1800) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function freshnessColorHours(v) {
+  if (v==null||isNaN(v)) return 'var(--t1)';
+  if (v <= 1) return 'var(--green)';
+  if (v <= 6) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function liveSourceLabel(src) {
+  if (!src) return 'UNKNOWN';
+  return src === 'equity_curve_mark_to_market' ? 'MARK TO MARKET'
+    : src === 'closed_trades_only' ? 'CLOSED TRADES'
+    : String(src).replaceAll('_',' ').toUpperCase();
+}
+function badgeClassForRatio(v) {
+  if (v==null||isNaN(v)) return 'bdg-info';
+  if (v >= 0.8) return 'bdg-ok';
+  if (v >= 0.6) return 'bdg-run';
+  return 'bdg-warn';
+}
+function pnlText(dollars, pct) {
+  if (dollars == null && pct == null) return '—';
+  if (dollars != null && pct != null) return `${fm(dollars)} · ${fsp(pct,2)}`;
+  return dollars != null ? fm(dollars) : fsp(pct,2);
+}
+function renderHeaderPnl(snapshot={}) {
+  const hp = el('hPnl');
+  if (!hp) return;
+  hp.textContent = pnlText(snapshot.daily_pnl, snapshot.daily_pnl_pct);
+  hp.style.color = csh(snapshot.daily_pnl ?? snapshot.daily_pnl_pct ?? 0);
+  hp.title = snapshot.source ? `Source: ${liveSourceLabel(snapshot.source)}` : '';
+}
+function scoreBarMarkup(label, value, color='var(--accent)') {
+  const ratio = value==null || isNaN(value) ? null : Math.max(0, Math.min(1, Number(value)));
+  const width = ratio == null ? 0 : ratio * 100;
+  return `
+    <div class="score-row">
+      <div class="score-top">
+        <span class="score-name">${label}</span>
+        <span class="score-val">${ratio == null ? '—' : fp(width)}</span>
+      </div>
+      <div class="score-track"><div class="score-fill" style="width:${width}%;background:${color}"></div></div>
+    </div>`;
+}
+function tradingStatusTone(status='') {
+  const s = String(status || '').toUpperCase();
+  if (s.includes('HALT')) return 'var(--red)';
+  if (s.includes('STALE')) return 'var(--yellow)';
+  if (s.includes('LIVE')) return 'var(--green)';
+  return 'var(--t0)';
+}
 function norm(a) {
   if(!a.length) return a;
   const b=a[0]; return a.map(v=>((v-b)/Math.abs(b||1))*100);
@@ -1344,6 +1628,18 @@ function toast(msg, type='info') {
   setTimeout(() => t.remove(), 2800);
 }
 
+function unavailableMessage(msg='Endpoint unavailable - restart the dashboard server to activate.') {
+  return `<div class="empty" style="color:var(--orange)">${msg}</div>`;
+}
+
+function loadingMarkup(msg='Loading…') {
+  return `<div class="loading"><div class="spinner"></div>${msg}</div>`;
+}
+
+function unavailableTableRow(colspan, msg='Endpoint unavailable - restart the dashboard server to activate.') {
+  return `<tr><td colspan="${colspan}" class="empty" style="color:var(--orange)">${msg}</td></tr>`;
+}
+
 function infoRows(rows) {
   return rows.map(([label, value, color='var(--t0)']) => `
     <div class="irow">
@@ -1352,11 +1648,330 @@ function infoRows(rows) {
     </div>`).join('');
 }
 
+function detailGrid(rows) {
+  return rows.map(([label, value, color='var(--t0)', sub='']) => `
+    <div class="detail-tile">
+      <div class="detail-key">${label}</div>
+      <div class="detail-val" style="color:${color}">${value ?? '—'}</div>
+      ${sub ? `<div class="detail-sub">${sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderDetailGrid(id, rows) {
+  const node = el(id);
+  if (!node) return;
+  node.className = 'detail-grid' + (id === 'tapeStats' ? ' tape-meta' : '');
+  node.innerHTML = detailGrid(rows);
+}
+
 function initDates() {
   const now = new Date(), w7 = new Date(now-7*864e5);
   el('tradeE').valueAsDate = now; el('tradeS').valueAsDate = w7;
   el('bt-e').valueAsDate = now; el('ft-ce').valueAsDate = now;
   if (el('perm-end')) el('perm-end').valueAsDate = now;
+}
+
+function labelForSymbol(sym) {
+  if ((sym || '').endsWith('USDT')) return `${sym.replace('USDT', '')} / USD`;
+  return sym || '—';
+}
+
+function setSelectOptions(id, symbols, selectedValue) {
+  const node = el(id);
+  if (!node || !Array.isArray(symbols) || !symbols.length) return;
+  const selected = symbols.includes(selectedValue) ? selectedValue : symbols[0];
+  node.innerHTML = symbols.map(sym => `<option value="${sym}"${sym===selected?' selected':''}>${labelForSymbol(sym)}</option>`).join('');
+  node.value = selected;
+}
+
+async function loadDashboardConfig() {
+  const d = await api('/api/config');
+  if (!d) return;
+  DASH_CFG = d;
+
+  const benchSymbols = d.benchmark_symbols || d.mixed_symbols || [];
+  if (benchSymbols.length) {
+    BENCH = d.default_benchmark_symbol || benchSymbols[0];
+    setSelectOptions('benchSel', benchSymbols, BENCH);
+  }
+
+  const ftSymbols = d.model_symbols || d.mixed_symbols || [];
+  if (ftSymbols.length) {
+    setSelectOptions('ft-sym', ftSymbols, ftSymbols.includes(BENCH) ? BENCH : ftSymbols[0]);
+  }
+
+  const placeholder = (d.mixed_symbols || []).slice(0, 4).join(',');
+  if (placeholder) {
+    if (el('bt-sym')) el('bt-sym').placeholder = placeholder;
+    if (el('perm-sym')) el('perm-sym').placeholder = placeholder;
+  }
+}
+
+async function ensureCorrelationPayload(refresh=false) {
+  if (!refresh && RISK_CORR_DATA) return RISK_CORR_DATA;
+  const d = await api(`/api/risk/correlations${refresh ? '?refresh=1' : ''}`);
+  if (d) RISK_CORR_DATA = d;
+  return d;
+}
+
+function normalizeSymbolInput(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function fillDatalist(id, symbols) {
+  const node = el(id);
+  if (!node) return;
+  node.innerHTML = (symbols || []).map(sym => `<option value="${sym}"></option>`).join('');
+}
+
+function corrColor(value, diagonal=false) {
+  const v = Number(value || 0);
+  const a = Math.min(1, Math.abs(v));
+  if (diagonal) return 'rgba(79,142,247,.85)';
+  if (v >= 0) return `rgba(0,214,143,${0.10 + a * 0.82})`;
+  return `rgba(247,82,90,${0.10 + a * 0.82})`;
+}
+
+function renderCorrelationSummary(block, targetId, label) {
+  const node = el(targetId);
+  if (!node) return;
+  if (!block?.symbols?.length) {
+    node.className = 'alert alert-info';
+    node.textContent = `${label} unavailable right now.`;
+    return;
+  }
+  const stats = block.stats || {};
+  node.className = 'alert alert-ok';
+  node.innerHTML = `
+    <strong>${label}</strong> covers <strong>${block.symbol_count}/${block.requested_symbol_count}</strong> symbols
+    (${f(block.coverage_pct, 1)}%). Average pair correlation is <strong>${f(stats.avg_corr, 3)}</strong>,
+    average absolute correlation is <strong>${f(stats.avg_abs_corr, 3)}</strong>, and diversification score is
+    <strong>${f(stats.diversification_score, 3)}</strong>.`;
+}
+
+function drawCorrelationCanvas(block, canvasId, hoverId, focusSymbol) {
+  const canvas = el(canvasId);
+  const hover = el(hoverId);
+  if (!canvas) return;
+  const symbols = block?.symbols || [];
+  const corr = block?.corr || [];
+  if (!symbols.length || !corr.length) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (hover) hover.textContent = 'No correlation matrix available.';
+    return;
+  }
+
+  const n = symbols.length;
+  const cell = n > 350 ? 3 : n > 220 ? 4 : n > 120 ? 6 : 14;
+  const labelPad = n > 120 ? 76 : 96;
+  const labelStep = n > 350 ? 50 : n > 220 ? 30 : n > 120 ? 14 : 1;
+  const size = labelPad + n * cell + 8;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, size, size);
+
+  const focus = normalizeSymbolInput(focusSymbol);
+  const focusIndex = symbols.indexOf(focus);
+  if (focusIndex >= 0) {
+    ctx.fillStyle = 'rgba(245,197,24,.08)';
+    ctx.fillRect(labelPad, labelPad + focusIndex * cell, n * cell, cell);
+    ctx.fillRect(labelPad + focusIndex * cell, labelPad, cell, n * cell);
+  }
+
+  for (let ri = 0; ri < n; ri += 1) {
+    const row = corr[ri] || [];
+    for (let ci = 0; ci < n; ci += 1) {
+      ctx.fillStyle = corrColor(row[ci], ri === ci);
+      ctx.fillRect(labelPad + ci * cell, labelPad + ri * cell, cell, cell);
+    }
+  }
+
+  ctx.strokeStyle = '#1e2b42';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(labelPad - 0.5, labelPad - 0.5, n * cell + 1, n * cell + 1);
+
+  const labelIndices = new Set([0, n - 1]);
+  for (let idx = 0; idx < n; idx += labelStep) labelIndices.add(idx);
+  if (focusIndex >= 0) labelIndices.add(focusIndex);
+
+  ctx.fillStyle = '#8fa3bf';
+  ctx.font = `${n > 220 ? 8 : 9}px var(--mono)`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  [...labelIndices].sort((a, b) => a - b).forEach(idx => {
+    const y = labelPad + idx * cell + cell / 2;
+    ctx.fillStyle = idx === focusIndex ? '#f5c518' : '#8fa3bf';
+    ctx.fillText(symbols[idx], labelPad - 6, y);
+  });
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  [...labelIndices].sort((a, b) => a - b).forEach(idx => {
+    const x = labelPad + idx * cell + cell / 2;
+    ctx.save();
+    ctx.translate(x, labelPad - 8);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = idx === focusIndex ? '#f5c518' : '#8fa3bf';
+    ctx.fillText(symbols[idx], 0, 0);
+    ctx.restore();
+  });
+
+  canvas.onmousemove = ev => {
+    if (!hover) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const y = ev.clientY - rect.top;
+    const col = Math.floor((x - labelPad) / cell);
+    const row = Math.floor((y - labelPad) / cell);
+    if (row < 0 || col < 0 || row >= n || col >= n) {
+      hover.textContent = focusIndex >= 0 ? `Focused on ${symbols[focusIndex]}. Hover the lattice to inspect a pair.` : 'Hover the lattice to inspect a pair.';
+      return;
+    }
+    const left = symbols[row];
+    const right = symbols[col];
+    const value = Number((corr[row] || [])[col] || 0);
+    hover.innerHTML = `<strong>${left}</strong> vs <strong>${right}</strong> correlation: <strong>${f(value, 3)}</strong>`;
+  };
+  canvas.onmouseleave = () => {
+    if (hover) hover.textContent = focusIndex >= 0 ? `Focused on ${symbols[focusIndex]}. Hover the lattice to inspect a pair.` : 'Hover the lattice to inspect a pair.';
+  };
+  if (hover) hover.textContent = focusIndex >= 0 ? `Focused on ${symbols[focusIndex]}. Hover the lattice to inspect a pair.` : 'Hover the lattice to inspect a pair.';
+}
+
+function renderPeerRows(rows, bodyId) {
+  const body = el(bodyId);
+  if (!body) return;
+  body.innerHTML = rows?.length ? rows.map(row => `
+    <tr>
+      <td style="color:var(--t0)">${row.symbol}</td>
+      <td class="${cx(row.correlation)}">${f(row.correlation, 3)}</td>
+    </tr>`).join('') : '<tr><td colspan="2" class="empty">No peer data</td></tr>';
+}
+
+function renderPeerExplorer(block, symbol, metaId, positiveBodyId, negativeBodyId, label='Universe') {
+  const node = el(metaId);
+  if (!node || !block?.symbols?.length) return;
+  const focus = normalizeSymbolInput(symbol);
+  const peers = (block.peer_map || {})[focus];
+  if (!peers) {
+    node.textContent = `${label} peer decomposition is unavailable for ${focus || 'the selected symbol'}.`;
+    renderPeerRows([], positiveBodyId);
+    renderPeerRows([], negativeBodyId);
+    return;
+  }
+  const stats = block.stats || {};
+  node.innerHTML = `
+    <strong>${focus}</strong> inside the ${label} matrix.
+    Universe coverage is <strong>${block.symbol_count}/${block.requested_symbol_count}</strong>,
+    average absolute correlation is <strong>${f(stats.avg_abs_corr, 3)}</strong>,
+    and diversification score is <strong>${f(stats.diversification_score, 3)}</strong>.`;
+  renderPeerRows(peers.positive || [], positiveBodyId);
+  renderPeerRows(peers.negative || [], negativeBodyId);
+}
+
+function renderVolBars(targetId, vols) {
+  const node = el(targetId);
+  if (!node) return;
+  const entries = Object.entries(vols || {});
+  if (!entries.length) {
+    node.innerHTML = '<div class="empty">No volatility data</div>';
+    return;
+  }
+  const maxV = Math.max(...entries.map(([, value]) => Number(value || 0)), 1);
+  node.innerHTML = entries
+    .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0))
+    .map(([symbol, value]) => `
+      <div class="vbrow">
+        <span class="vbsym">${symbol.replace('USDT','')}</span>
+        <div class="vbtrk"><div class="vbfil" style="width:${(Number(value || 0) / maxV) * 100}%"></div></div>
+        <span class="vbval">${fp(value)}</span>
+      </div>`).join('');
+}
+
+function renderCryptoPairLeaders(block, bodyId) {
+  const body = el(bodyId);
+  if (!body) return;
+  const positive = (block?.leaders?.positive || []).slice(0, 6).map(row => ({...row, bucket: 'TIGHT'}));
+  const negative = (block?.leaders?.negative || []).slice(0, 6).map(row => ({...row, bucket: 'INVERSE'}));
+  const rows = [...positive, ...negative];
+  body.innerHTML = rows.length ? rows.map(row => `
+    <tr>
+      <td style="color:var(--t0)">${row.pair}</td>
+      <td class="${cx(row.correlation)}">${f(row.correlation, 3)}</td>
+      <td>${row.bucket}</td>
+    </tr>`).join('') : '<tr><td colspan="3" class="empty">No crypto pair leaders</td></tr>';
+}
+
+function renderCorrelationDeskMeta(stocksBlock, cryptoBlock) {
+  const node = el('corrDeskMeta');
+  if (!node) return;
+  const stockStats = stocksBlock?.stats || {};
+  const cryptoStats = cryptoBlock?.stats || {};
+  node.innerHTML = infoRows([
+    ['Stocks Coverage', stocksBlock?.symbol_count!=null ? `${stocksBlock.symbol_count}/${stocksBlock.requested_symbol_count}` : '—'],
+    ['Stocks Avg |Corr|', f(stockStats.avg_abs_corr, 3)],
+    ['Stocks Diversification', f(stockStats.diversification_score, 3)],
+    ['Crypto Coverage', cryptoBlock?.symbol_count!=null ? `${cryptoBlock.symbol_count}/${cryptoBlock.requested_symbol_count}` : '—'],
+    ['Crypto Avg |Corr|', f(cryptoStats.avg_abs_corr, 3)],
+    ['Crypto Diversification', f(cryptoStats.diversification_score, 3)],
+    ['Strongest Stock Pair', stockStats.strongest_pair ? `${stockStats.strongest_pair.pair} · ${f(stockStats.strongest_pair.correlation, 3)}` : '—'],
+    ['Most Inverse Stock Pair', stockStats.weakest_pair ? `${stockStats.weakest_pair.pair} · ${f(stockStats.weakest_pair.correlation, 3)}` : '—'],
+  ]);
+}
+
+function setStockFocusSymbol(symbol) {
+  const block = RISK_CORR_DATA?.stocks;
+  if (!block?.symbols?.length) return;
+  const normalized = normalizeSymbolInput(symbol);
+  const next = block.symbols.includes(normalized) ? normalized : (block.focus_symbol || block.symbols[0]);
+  STOCK_FOCUS_SYMBOL = next;
+  if (el('stockCorrSearch')) el('stockCorrSearch').value = next;
+  if (el('stockPeerSearch')) el('stockPeerSearch').value = next;
+  drawCorrelationCanvas(block, 'stockCorrCanvas', 'stockCorrHover', next);
+  renderPeerExplorer(block, next, 'stockPeerMeta', 'stockPeerPositiveBody', 'stockPeerNegativeBody', 'S&P 500');
+  renderPeerExplorer(block, next, 'stockUniverseMeta', 'stockPeerPosBodyTab', 'stockPeerNegBodyTab', 'S&P 500');
+}
+
+function renderStockUniverseTable(rows) {
+  const body = el('stockBody');
+  if (!body) return;
+  const query = String(el('stockTableSearch')?.value || '').trim().toLowerCase();
+  const filtered = (rows || []).filter(row => {
+    if (!query) return true;
+    const hay = [
+      row.symbol,
+      row.has_research ? 'researched' : 'unresearched',
+      row.meets_targets ? 'targets' : 'no-targets',
+    ].join(' ').toLowerCase();
+    return hay.includes(query);
+  });
+
+  body.innerHTML = filtered.length ? filtered.map(row => `
+    <tr data-symbol="${row.symbol}">
+      <td>${row.rank ?? '—'}</td>
+      <td style="color:var(--t0)">${row.symbol}</td>
+      <td>${row.has_research ? '<span class="bdg bdg-ok">YES</span>' : '<span class="bdg bdg-info">PENDING</span>'}</td>
+      <td>${row.lookback || '—'}</td>
+      <td>${row.accuracy!=null ? fp(row.accuracy * 100) : '—'}</td>
+      <td>${row.hit_ratio!=null ? fp(row.hit_ratio * 100) : '—'}</td>
+      <td class="${cx((row.alpha_daily||0) * 100)}">${row.alpha_daily!=null ? fsp(row.alpha_daily * 100, 3) : '—'}</td>
+      <td class="${cx((row.strategy_return||0) * 100)}">${row.strategy_return!=null ? fsp(row.strategy_return * 100, 1) : '—'}</td>
+      <td class="${cx((row.buy_hold_return||0) * 100)}">${row.buy_hold_return!=null ? fsp(row.buy_hold_return * 100, 1) : '—'}</td>
+      <td>${row.has_research ? (row.meets_targets ? '<span class="bdg bdg-ok">YES</span>' : '<span class="bdg bdg-warn">NO</span>') : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="10" class="empty">No stocks matched the current filter.</td></tr>';
+
+  body.querySelectorAll('tr[data-symbol]').forEach(row => {
+    row.addEventListener('click', () => setStockFocusSymbol(row.dataset.symbol));
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1611,42 +2226,113 @@ async function checkHealth() {
   b.textContent = (d.broker||'—').toUpperCase();
 }
 
+function renderLiveTape(d) {
+  if (!d) return;
+  const sourceBadge = el('tapeSource');
+  if (sourceBadge) {
+    sourceBadge.textContent = liveSourceLabel(d.source);
+    sourceBadge.className = 'bdg ' + (String(d.source || '').includes('alpaca') ? 'bdg-ok' : 'bdg-info');
+  }
+
+  const timestamps = d.timestamps || [];
+  const equity = d.equity || [];
+  if (timestamps.length && equity.length) {
+    lineChart('tapeChart', [{
+      label: 'Intraday Equity',
+      data: timestamps.map((t, i) => ({x:new Date(t), y:equity[i]})),
+      borderColor:'#22d3ee', borderWidth:2,
+      backgroundColor: grad('tapeChart','#22d3ee',0.18),
+      fill:true, pointRadius:0, tension:.18,
+    }], {legend:false});
+  }
+
+  const s = d.summary || {};
+  const acct = d.account || {};
+  renderDetailGrid('tapeStats', [
+    ['Current Equity', fm(acct.total_equity ?? s.current_equity), csh(acct.day_pnl_dollars ?? s.session_return_pct ?? 0)],
+    ['Day Change', pnlText(acct.day_pnl_dollars, acct.day_pnl_pct), csh(acct.day_pnl_dollars ?? acct.day_pnl_pct ?? 0)],
+    ['1m Move', s.change_1m_pct!=null ? fsp(s.change_1m_pct,3) : '—', csh(s.change_1m_pct || 0)],
+    ['5m Move', s.change_5m_pct!=null ? fsp(s.change_5m_pct,3) : '—', csh(s.change_5m_pct || 0)],
+    ['15m Move', s.change_15m_pct!=null ? fsp(s.change_15m_pct,3) : '—', csh(s.change_15m_pct || 0)],
+    ['1h Move', s.change_60m_pct!=null ? fsp(s.change_60m_pct,3) : '—', csh(s.change_60m_pct || 0)],
+    ['Session Open', fm(s.session_open)],
+    ['Session High', fm(s.session_high)],
+    ['Session Low', fm(s.session_low)],
+    ['Tape Samples', s.samples ?? '—'],
+  ]);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    TAB: LIVE
 ════════════════════════════════════════════════════════════════════ */
 function renderEliteOverview(d) {
+  const status = d.status || {};
   const h = d.headline || {};
+  const perf = d.performance || {};
   const risk = d.risk || {};
   const execution = d.execution || {};
   const research = d.research || {};
+  const freshness = d.freshness || {};
   const infra = d.infrastructure || {};
   const activity = d.activity || {};
   const bestModel = research.best_option_model || {};
+  const dailyPct = perf.daily_pnl_pct ?? h.daily_pnl_pct;
+  const dailyDollars = perf.daily_pnl ?? h.daily_pnl_dollars;
+  const tradingStatus = status.trading_status || (risk.kill_switch_active ? 'HALTED' : 'LIVE');
 
-  el('eo-regime').textContent = h.macro_regime || '—';
+  el('eo-status').textContent = tradingStatus;
+  el('eo-status').style.color = tradingStatusTone(tradingStatus);
   el('eo-risk').textContent = f(risk.risk_score, 3);
   el('eo-exec').textContent = f(execution.avg_execution_quality_score, 2);
   el('eo-inst').textContent = research.institutional_score!=null ? fp(research.institutional_score * 100) : '—';
   el('eo-predict').textContent = research.predictive_score!=null ? fp(research.predictive_score * 100) : '—';
   const daily = el('eo-daily');
-  daily.textContent = h.daily_pnl_pct!=null ? fsp(h.daily_pnl_pct * 100, 2) : '—';
-  daily.className = 'mc-val ' + cx((h.daily_pnl_pct||0) * 100);
-  el('eo-universe').textContent = h.allowed_symbols ?? '—';
-  el('eo-vix').textContent = f(h.vix, 2);
+  daily.textContent = dailyPct!=null ? fsp(dailyPct, 2) : (dailyDollars!=null ? fm(dailyDollars) : '—');
+  daily.className = 'mc-val ' + cx(dailyDollars ?? dailyPct ?? 0);
+  el('eo-open').textContent = h.open_positions ?? '—';
+  el('eo-cash').textContent = fm(perf.cash);
+  el('eo-buy').textContent = fm(h.buying_power_budget);
 
   const tier = el('eliteTier');
   tier.textContent = research.deployment_tier || '—';
   tier.className = `bdg ${String(research.deployment_tier||'').includes('research') ? 'bdg-warn' : 'bdg-info'}`;
 
-  el('eliteDeskMeta').innerHTML = infoRows([
+  if (h.total_equity != null) el('hEq').textContent = fm(h.total_equity);
+  renderHeaderPnl({
+    daily_pnl: dailyDollars,
+    daily_pnl_pct: dailyPct,
+    source: perf.source,
+  });
+  if (h.portfolio_delta != null || h.portfolio_theta != null || h.portfolio_vega != null) {
+    const hg = el('hGreeks');
+    if (hg) hg.style.display = '';
+    if (el('hDelta')) el('hDelta').textContent = f(h.portfolio_delta,3);
+    if (el('hTheta')) el('hTheta').textContent = f(h.portfolio_theta,3);
+    if (el('hVega')) el('hVega').textContent = f(h.portfolio_vega,3);
+  }
+  if (h.macro_regime || h.vix != null) {
+    const hr = el('hRegime');
+    if (hr) hr.style.display = '';
+    if (el('hRegimeTxt')) el('hRegimeTxt').textContent = h.macro_regime || '—';
+    if (el('hVix')) el('hVix').textContent = f(h.vix,2);
+  }
+
+  renderDetailGrid('eliteDeskMeta', [
+    ['Trading Status', tradingStatus, tradingStatusTone(tradingStatus), status.trading_reason || ''],
     ['Runtime Profile', h.runtime_profile || '—'],
     ['Policy Mode', h.runtime_policy_mode || '—'],
-    ['Movement Bias', h.movement_bias || '—'],
-    ['Macro Confidence', h.macro_confidence!=null ? fp(h.macro_confidence) : '—'],
+    ['Market State', h.runtime_market_state || '—'],
+    ['Account Status', perf.account_status || '—'],
     ['Open Positions', h.open_positions ?? '—'],
+    ['Cash Buffer', fm(perf.cash)],
     ['Buying Power', fm(h.buying_power_budget)],
+    ['Net Unrlzd P&L', fm(perf.net_unrealized_pnl), csh(perf.net_unrealized_pnl || 0)],
+    ['Position MV', fm(perf.position_market_value)],
     ['Theta vs Target', `${f(h.portfolio_theta,2)} / ${f(h.target_theta,2)}`],
     ['Delta vs Target', `${f(h.portfolio_delta,2)} / ${f(h.target_delta,2)}`],
+    ['Corr Concentration', risk.correlation_concentration!=null ? fp(risk.correlation_concentration * 100) : '—'],
+    ['Max Underlying', risk.max_underlying_weight!=null ? fp(risk.max_underlying_weight * 100) : '—'],
+    ['Greek Alignment', risk.greek_alignment_score!=null ? fp(risk.greek_alignment_score * 100) : '—'],
   ]);
 
   const underlyings = risk.top_underlyings || [];
@@ -1656,13 +2342,17 @@ function renderEliteOverview(d) {
     ? chipRows.map(row => `<span class="bdg bdg-info">${row.symbol}${row.weight!=null ? ` · ${fp(row.weight * 100)}` : ''}</span>`).join('')
     : '<span class="empty" style="padding:0">No concentrated underlyings flagged.</span>';
 
-  el('eliteResearchMeta').innerHTML = infoRows([
+  renderDetailGrid('eliteResearchMeta', [
     ['Consensus Profile', research.consensus_profile || '—'],
     ['Consensus State', research.consensus_state || '—'],
+    ['Live Ops Score', research.live_operations_score!=null ? fp(research.live_operations_score * 100) : '—'],
+    ['Backtest Institutional', research.backtest_institutional_score!=null ? fp(research.backtest_institutional_score * 100) : '—'],
+    ['Paper Edge Score', research.paper_edge_score!=null ? fp(research.paper_edge_score * 100) : '—'],
     ['Movement Accuracy', research.movement_avg_accuracy!=null ? fp(research.movement_avg_accuracy * 100) : '—'],
     ['Pairs Win Rate', research.pairs_win_rate!=null ? fp(research.pairs_win_rate * 100) : '—'],
     ['ML Long-Only', research.ml_long_only_return!=null ? fp(research.ml_long_only_return * 100) : '—'],
     ['ML Sharpe', f(research.ml_long_only_sharpe,3)],
+    ['ML IC', f(research.ml_information_coefficient,3)],
     ['Regime Accuracy', research.regime_accuracy!=null ? fp(research.regime_accuracy * 100) : '—'],
     ['Best Options Model', bestModel.model ? `${bestModel.model} · ${fp((bestModel.avg_edge_pct||0) * 100)}` : '—'],
   ]);
@@ -1676,18 +2366,21 @@ function renderEliteOverview(d) {
       <td class="${cx((p.avg_trade_return||0)*100)}">${fsp((p.avg_trade_return||0)*100,2)}</td>
     </tr>`).join('') : '<tr><td colspan="4" class="empty">No pair research summary available.</td></tr>';
 
-  el('eliteExecMeta').innerHTML = infoRows([
+  renderDetailGrid('eliteExecMeta', [
     ['Fill Rate', execution.fill_rate!=null ? fp(execution.fill_rate * 100) : '—'],
     ['Full Fill Rate', execution.full_fill_rate!=null ? fp(execution.full_fill_rate * 100) : '—'],
+    ['Fill Events', execution.fill_events ?? '—'],
     ['Broker Coverage', execution.broker_fill_price_coverage!=null ? fp(execution.broker_fill_price_coverage * 100) : '—'],
     ['Degraded Fills', execution.degraded_execution_count ?? '—'],
+    ['Tier Mix', Object.entries(execution.tier_counts || {}).map(([k,v]) => `${k}:${v}`).join(' · ') || '—'],
     ['Latest Fill', execution.latest_fill_at_utc ? new Date(execution.latest_fill_at_utc).toLocaleString() : '—'],
+    ['Broker Positions', activity.broker_positions ?? '—'],
     ['Runtime Trades', activity.db_trades ?? '—'],
     ['Closed Trades', activity.closed_trades ?? '—'],
     ['Breaches', (risk.breaches || []).length],
   ]);
 
-  el('eliteInfraMeta').innerHTML = infoRows([
+  renderDetailGrid('eliteInfraMeta', [
     ['Pressure', infra.pressure || '—', infra.pressure === 'normal' ? 'var(--green)' : 'var(--yellow)'],
     ['CPU Load', infra.cpu_load_pct!=null ? fp(infra.cpu_load_pct) : '—'],
     ['Memory Usage', infra.memory_usage_pct!=null ? fp(infra.memory_usage_pct) : '—'],
@@ -1695,7 +2388,66 @@ function renderEliteOverview(d) {
     ['Free Memory', infra.memory_available_gb!=null ? `${f(infra.memory_available_gb,2)} GB` : '—'],
     ['Free Disk', infra.disk_free_gb!=null ? `${f(infra.disk_free_gb,2)} GB` : '—'],
     ['Backtest Workers', infra.backtest_workers ?? '—'],
+    ['Research RF Jobs', infra.research_rf_jobs ?? '—'],
+    ['Model Parallelism', infra.model_parallelism ?? '—'],
     ['Strategy Interval', infra.strategy_interval_seconds!=null ? `${infra.strategy_interval_seconds}s` : '—'],
+  ]);
+
+  const pnlSourceBadge = el('elitePnlSourceBadge');
+  if (pnlSourceBadge) {
+    pnlSourceBadge.textContent = liveSourceLabel(perf.source);
+    pnlSourceBadge.className = `bdg ${String(perf.source||'').includes('mark') ? 'bdg-ok' : 'bdg-info'}`;
+  }
+
+  renderDetailGrid('eliteSessionMeta', [
+    ['Session Start', fm(perf.session_start_equity)],
+    ['Current Equity', fm(perf.current_equity)],
+    ['Day P&L $', fm(dailyDollars), csh(dailyDollars || 0)],
+    ['Day P&L %', dailyPct!=null ? fsp(dailyPct,2) : '—', csh(dailyPct || 0)],
+    ['Intraday High', fm(perf.intraday_high_equity)],
+    ['Intraday Low', fm(perf.intraday_low_equity)],
+    ['Intraday Range', perf.intraday_range_pct!=null ? fp(perf.intraday_range_pct) : '—'],
+    ['To Peak', perf.distance_to_peak_pct!=null ? fsp(perf.distance_to_peak_pct,2) : '—', csh(perf.distance_to_peak_pct || 0)],
+    ['Long MV', fm(perf.long_market_value)],
+    ['Short MV', fm(perf.short_market_value)],
+    ['Closed Trade P&L', fm(perf.closed_trade_pnl_today), csh(perf.closed_trade_pnl_today || 0)],
+    ['Closed Fills Today', perf.closed_trade_count_today ?? '—'],
+    ['Latest Mark', perf.latest_equity_ts ? new Date(perf.latest_equity_ts).toLocaleString() : '—'],
+  ]);
+
+  el('eliteScoreBars').className = 'score-stack';
+  el('eliteScoreBars').innerHTML = [
+    ['Institutional', research.institutional_score, 'var(--purple)'],
+    ['Live Operations', research.live_operations_score, 'var(--cyan)'],
+    ['Execution', research.execution_readiness_score, 'var(--green)'],
+    ['Risk', research.risk_readiness_score, 'var(--red)'],
+    ['System', research.system_readiness_score, 'var(--orange)'],
+    ['Paper Edge', research.paper_edge_score, 'var(--blue)'],
+    ['Backtest', research.backtest_institutional_score, 'var(--yellow)'],
+  ].map(([label, value, color]) => scoreBarMarkup(label, value, color)).join('');
+
+  const families = research.paper_edge_profile?.family_breakdown || [];
+  el('elitePaperCoverage').innerHTML = families.length
+    ? families.map(row => `<span class="bdg ${badgeClassForRatio(row.coverage_score)}">${row.paper_family} · ${fp((row.coverage_score || 0) * 100)}</span>`).join('')
+    : '<span class="empty" style="padding:0">No paper coverage map available.</span>';
+
+  const freshnessBadge = el('eliteFreshnessBadge');
+  if (freshnessBadge) {
+    freshnessBadge.textContent = freshness.equity_snapshot_fresh ? 'LIVE' : 'STALE';
+    freshnessBadge.className = `bdg ${freshness.equity_snapshot_fresh ? 'bdg-ok' : 'bdg-warn'}`;
+  }
+
+  renderDetailGrid('eliteFreshnessMeta', [
+    ['Equity Feed Age', ageLabelSeconds(freshness.equity_snapshot_age_seconds), freshnessColorSeconds(freshness.equity_snapshot_age_seconds)],
+    ['Risk Snapshot Age', ageLabelHours(freshness.risk_snapshot_age_hours), freshnessColorHours(freshness.risk_snapshot_age_hours)],
+    ['Execution Age', ageLabelHours(freshness.execution_snapshot_age_hours), freshnessColorHours(freshness.execution_snapshot_age_hours)],
+    ['System Age', ageLabelHours(freshness.system_snapshot_age_hours), freshnessColorHours(freshness.system_snapshot_age_hours)],
+    ['Risk Snapshot', freshness.risk_snapshot_fresh ? 'FRESH' : 'STALE', freshness.risk_snapshot_fresh ? 'var(--green)' : 'var(--red)'],
+    ['Broker Account', freshness.broker_account_live ? 'LIVE' : 'UNAVAILABLE', freshness.broker_account_live ? 'var(--green)' : 'var(--yellow)'],
+    ['Latest Trade', activity.latest_trade_at_utc ? new Date(activity.latest_trade_at_utc).toLocaleString() : '—'],
+    ['Latest Fill', execution.latest_fill_at_utc ? new Date(execution.latest_fill_at_utc).toLocaleString() : '—'],
+    ['Samples Today', perf.equity_samples_today ?? '—'],
+    ['Mark Source', liveSourceLabel(perf.source)],
   ]);
 }
 
@@ -1726,31 +2478,33 @@ async function loadLiveRiskGauges() {
   if (!d) return;
   const cont = el('liveRiskGauges');
   if (!cont) return;
-  const ok = d.kill_switch_active ? 'KILL ACTIVE' : 'SAFE';
-  const okC = d.kill_switch_active ? 'var(--red)' : 'var(--green)';
-  cont.innerHTML = infoRows([
-    ['Kill Switch',    ok,                                                        okC],
-    ['Risk Score',     f(d.risk_score, 3)],
-    ['Portfolio Δ',    f(d.portfolio_delta, 3),    csh(d.portfolio_delta)],
-    ['Portfolio Θ',    f(d.portfolio_theta, 3),    csh(d.portfolio_theta)],
-    ['Portfolio Vega', f(d.portfolio_vega, 3),     csh(d.portfolio_vega)],
+  cont.className = 'detail-grid';
+  cont.innerHTML = detailGrid([
+    ['Trading Status', d.trading_status || (d.kill_switch_active ? 'HALTED' : 'LIVE'), tradingStatusTone(d.trading_status || '')],
+    ['Risk Feed Age', ageLabelHours(d.risk_snapshot_age_hours), freshnessColorHours(d.risk_snapshot_age_hours)],
+    ['Kill Switch', d.kill_switch_active ? 'ACTIVE' : 'SAFE', d.kill_switch_active ? 'var(--red)' : 'var(--green)'],
+    ['Risk Score', f(d.risk_score, 3)],
+    ['Portfolio Δ', f(d.portfolio_delta, 3), csh(d.portfolio_delta)],
+    ['Portfolio Θ', f(d.portfolio_theta, 3), csh(d.portfolio_theta)],
+    ['Portfolio Vega', f(d.portfolio_vega, 3), csh(d.portfolio_vega)],
     ['Net Δ Exposure', f(d.net_delta_exposure, 2)],
     ['Gross Exposure', d.gross_exposure_pct_equity!=null?fp(d.gross_exposure_pct_equity*100):'—'],
-    ['VaR % Equity',   d.var_pct_equity!=null?fp(d.var_pct_equity*100):'—',     'var(--red)'],
-    ['Stress Test %',  d.stress_pct_equity!=null?fp(d.stress_pct_equity*100):'—','var(--orange)'],
-    ['Breaches',       (d.breaches||[]).length > 0 ? (d.breaches||[]).join(', ') : 'None', (d.breaches||[]).length>0?'var(--red)':'var(--green)'],
+    ['VaR % Equity', d.var_pct_equity!=null?fp(d.var_pct_equity*100):'—', 'var(--red)'],
+    ['Stress Test %', d.stress_pct_equity!=null?fp(d.stress_pct_equity*100):'—', 'var(--orange)'],
+    ['Breaches', (d.breaches||[]).length > 0 ? (d.breaches||[]).join(', ') : 'None', (d.breaches||[]).length>0?'var(--red)':'var(--green)'],
   ]);
   renderRiskEngine(d);
 }
 
 async function loadLive() {
-  const [eq, bm, pnl, pos, trades, elite] = await Promise.all([
+  const [eq, bm, pnl, pos, trades, elite, tape] = await Promise.all([
     api(`/api/equity?window=${W}`),
     api(`/api/benchmark?symbol=${BENCH}&window=${W}`),
     api('/api/daily_pnl'),
     api('/api/positions'),
     api('/api/trades?limit=25'),
     api('/api/elite/overview'),
+    api('/api/live/tape'),
   ]);
   loadStrategyPnl();
   loadLiveRiskGauges();
@@ -1775,10 +2529,24 @@ async function loadLive() {
   }
 
   if (pnl) {
-    const d = pnl.daily_pnl || 0;
-    const hp = el('hPnl');
-    hp.textContent = fm(d);
-    hp.style.color = d >= 0 ? 'var(--green)' : 'var(--red)';
+    renderHeaderPnl(pnl);
+  }
+
+  if (tape) {
+    renderLiveTape(tape);
+    if (tape.account?.total_equity != null) {
+      el('mv-eq').textContent = fm(tape.account.total_equity);
+      el('hEq').textContent = fm(tape.account.total_equity);
+    }
+    if (tape.account?.total_return_pct != null) {
+      const rv = el('mv-ret');
+      rv.textContent = fp(tape.account.total_return_pct);
+      rv.className = 'mc-val ' + cx(tape.account.total_return_pct);
+      el('mbar-ret').style.background = tape.account.total_return_pct >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (tape.account?.all_time_high_equity != null) {
+      el('mv-pk').textContent = fm(tape.account.all_time_high_equity);
+    }
   }
 
   if (eq?.equity?.length) {
@@ -1816,20 +2584,28 @@ async function loadLive() {
 
   if (pos?.positions) {
     el('posCount').textContent = pos.count;
+    renderDetailGrid('posSummary', [
+      ['Position Source', liveSourceLabel(pos.source || pos.summary?.source), 'var(--t0)', pos.summary?.available === false ? (pos.summary?.reason || '') : ''],
+      ['Gross MV', fm(pos.summary?.gross_market_value)],
+      ['Net Unrlzd P&L', fm(pos.summary?.net_unrealized_pnl), csh(pos.summary?.net_unrealized_pnl || 0)],
+      ['Asset Mix', Object.entries(pos.summary?.asset_mix || {}).map(([k,v]) => `${k}:${v}`).join(' · ') || '—'],
+    ]);
     const tb = el('posBody');
     tb.innerHTML = pos.positions.length ? pos.positions.map(p => {
       const pv = p.unrealized_pnl || p.pnl || 0;
       return `<tr>
         <td style="color:var(--t0)">${p.symbol||'—'}</td>
+        <td>${(p.asset_class || p.market || '—').toUpperCase()}</td>
         <td class="${['LONG','BUY'].includes(p.side)?'tlong':'tshort'}">${p.side||'—'}</td>
         <td>${f(p.quantity,4)}</td>
         <td>${fm(p.entry_price || p.price)}</td>
         <td>${fm(p.mark_price || p.current_price || p.price)}</td>
+        <td>${fm(p.market_value)}</td>
         <td class="${cx(pv)}">${fm(pv)}</td>
-        <td style="color:var(--t2)">${p.strategy||'—'}</td>
-        <td style="font-size:9px;color:var(--t2)">${(p.opened_at||p.ts)?new Date(p.opened_at||p.ts).toLocaleString():'—'}</td>
+        <td>${p.weight_pct!=null ? fp(p.weight_pct,2) : '—'}</td>
+        <td style="color:var(--t2)">${liveSourceLabel(p.source || pos.source)}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="empty">No open positions</td></tr>';
+    }).join('') : '<tr><td colspan="10" class="empty">No open positions</td></tr>';
   }
 
   if (trades?.trades) {
@@ -1873,10 +2649,12 @@ function connectLiveWs() {
       if (d.type === 'equity_tick') {
         el('hEq').textContent = fm(d.equity);
         el('mv-eq').textContent = fm(d.equity);
-        if (d.daily_pnl != null) {
-          const hp = el('hPnl');
-          hp.textContent = fm(d.daily_pnl);
-          hp.style.color = d.daily_pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        if (d.daily_pnl != null || d.daily_pnl_pct != null) {
+          renderHeaderPnl({
+            daily_pnl: d.daily_pnl,
+            daily_pnl_pct: d.daily_pnl_pct,
+            source: d.daily_pnl_source,
+          });
         }
       }
     } catch{}
@@ -2051,39 +2829,53 @@ async function loadOptions() {
    TAB: STOCKS + PAIRS
 ════════════════════════════════════════════════════════════════════ */
 async function loadStocks() {
-  const d = await api('/api/stocks/overview');
+  const [d, corrPayload] = await Promise.all([
+    api('/api/stocks/overview'),
+    ensureCorrelationPayload(),
+  ]);
   if (!d) return;
+  STOCK_OVERVIEW = d;
+
   el('stk-universe').textContent = d.universe_size ?? '—';
-  el('stk-pairs-win').textContent = fp(((d.pairs?.summary?.win_rate)||0)*100);
-  el('stk-pairs-ret').textContent = fp(((d.pairs?.summary?.avg_trade_return)||0)*100);
+  el('stk-coverage').textContent = d.research_coverage_pct!=null ? fp(d.research_coverage_pct) : '—';
+  el('stk-alpha-pos').textContent = d.positive_alpha_symbols ?? '—';
   el('stk-alpha-ret').textContent = fp(((d.ml_alpha?.long_only?.annualized_return)||0)*100);
   el('stk-alpha-sh').textContent = f(d.ml_alpha?.long_only?.sharpe_ratio, 3);
-  el('stk-lookback').textContent = d.pairs?.lookback || '—';
+  el('stk-pairs-eval').textContent = d.pairs?.summary?.pairs_evaluated ?? (d.pairs?.all_pairs || []).length ?? '—';
+  el('stk-pair-symbols').textContent = d.pairs?.pair_symbol_count ?? '—';
 
-  const leaders = d.research_leaders || [];
-  el('stockBody').innerHTML = leaders.length ? leaders.slice(0,40).map(r => `
-    <tr>
-      <td style="color:var(--t0)">${r.symbol}</td>
-      <td>${r.lookback||'—'}</td>
-      <td>${fp((r.accuracy||0)*100)}</td>
-      <td>${fp((r.hit_ratio||0)*100)}</td>
-      <td class="${cx((r.alpha_daily||0)*100)}">${fsp((r.alpha_daily||0)*100,3)}</td>
-      <td class="${cx((r.strategy_return||0)*100)}">${fsp((r.strategy_return||0)*100,1)}</td>
-      <td class="${cx((r.buy_hold_return||0)*100)}">${fsp((r.buy_hold_return||0)*100,1)}</td>
-      <td>${r.meets_targets?'<span class="bdg bdg-ok">YES</span>':'<span class="bdg bdg-warn">NO</span>'}</td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty">No stock research results found.</td></tr>';
+  renderStockUniverseTable(d.universe_rows || []);
 
-  const pairs = d.pairs?.top_pairs || [];
+  const pairs = d.pairs?.all_pairs || [];
   el('pairBody').innerHTML = pairs.length ? pairs.map(p => `
     <tr>
       <td style="color:var(--t0)">${p.pair}</td>
-      <td>${f(p.correlation,3)}</td>
+      <td class="${cx(p.correlation)}">${f(p.correlation,3)}</td>
       <td>${p.signals??'—'}</td>
       <td>${fp((p.win_rate||0)*100)}</td>
       <td class="${cx((p.avg_trade_return||0)*100)}">${fsp((p.avg_trade_return||0)*100,2)}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="empty">No pairs summary available.</td></tr>';
 
   el('stockSample').innerHTML = (d.universe_sample || []).map(s => `<span class="bdg bdg-info">${s}</span>`).join('');
+
+  if (!el('stockTableSearch')?.dataset.bound) {
+    el('stockTableSearch').dataset.bound = '1';
+    el('stockTableSearch').addEventListener('input', () => renderStockUniverseTable(STOCK_OVERVIEW?.universe_rows || []));
+  }
+
+  const stockBlock = corrPayload?.stocks;
+  if (stockBlock?.symbols?.length) {
+    fillDatalist('stockPeerList', stockBlock.symbols);
+    const desired = stockBlock.symbols.includes(STOCK_FOCUS_SYMBOL) ? STOCK_FOCUS_SYMBOL : (stockBlock.focus_symbol || stockBlock.symbols[0]);
+    setStockFocusSymbol(desired);
+  } else {
+    el('stockUniverseMeta').textContent = 'Full-universe stock peer explorer is unavailable right now.';
+  }
+
+  if (!el('stockPeerSearch')?.dataset.bound) {
+    el('stockPeerSearch').dataset.bound = '1';
+    el('stockPeerSearch').addEventListener('change', e => setStockFocusSymbol(e.target.value));
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2120,8 +2912,14 @@ async function loadOdds() {
    TAB: BACKTESTS
 ════════════════════════════════════════════════════════════════════ */
 async function loadBacktests() {
-  const d = await api('/api/backtest/list');
   const c = el('btCards');
+  if (!c) return;
+  c.innerHTML = loadingMarkup('Loading reports…');
+  const d = await api('/api/backtest/list');
+  if (!d) {
+    c.innerHTML = unavailableMessage('Backtest reports are unavailable right now. Refresh the tab or restart the dashboard server.');
+    return;
+  }
   if (!d?.reports?.length) {
     c.innerHTML = '<div class="empty">No reports found — run a backtest.</div>'; return;
   }
@@ -2233,14 +3031,28 @@ async function pollBt(jid) {
    TAB: STRATEGY PARAMS
 ════════════════════════════════════════════════════════════════════ */
 async function loadParams() {
-  const [cur, def] = await Promise.all([
-    api('/api/strategies/params'),
-    api('/api/strategies/defaults'),
-  ]);
-  if (!cur) return;
-  stratP = cur.strategies||{};
-  engP   = cur.engine||{};
-  renderEng(); renderStrats();
+  const engNode = el('epCont');
+  const stratNode = el('spCards');
+  if (engNode) engNode.innerHTML = loadingMarkup();
+  if (stratNode) stratNode.innerHTML = loadingMarkup();
+
+  const cur = await api('/api/strategies/params');
+  if (!cur) {
+    if (engNode) engNode.innerHTML = unavailableMessage('Strategy engine parameters are unavailable right now.');
+    if (stratNode) stratNode.innerHTML = unavailableMessage('Strategy parameter cards are unavailable right now.');
+    return;
+  }
+
+  try {
+    stratP = cur.strategies||{};
+    engP   = cur.engine||{};
+    renderEng();
+    renderStrats();
+  } catch (e) {
+    console.warn('loadParams render failed', e?.message || e);
+    if (engNode) engNode.innerHTML = unavailableMessage('Strategy engine parameters failed to render.');
+    if (stratNode) stratNode.innerHTML = unavailableMessage('Strategy parameter cards failed to render.');
+  }
 }
 
 function renderEng() {
@@ -2380,10 +3192,10 @@ function renderRiskEngine(eng) {
   }
 }
 
-async function loadRisk() {
-  const [snap, hm, surf, eng] = await Promise.all([
+async function loadRisk(forceRefresh=false) {
+  const [snap, corrPayload, surf, eng] = await Promise.all([
     api('/api/risk/snapshot'),
-    api('/api/risk/heatmap'),
+    ensureCorrelationPayload(forceRefresh),
     api('/api/risk/var_surface'),
     api('/api/risk/engine'),
   ]);
@@ -2412,31 +3224,35 @@ async function loadRisk() {
     }
   }
 
-  const hmCont = el('hmCont');
-  if (hm?.symbols?.length) {
-    renderHeatmap(hm, hmCont);
-    const vols = hm.vols || {};
-    const maxV = Math.max(...Object.values(vols), 1);
-    const futSet = new Set(hm.futures_syms || []);
-    el('volBars').innerHTML = Object.entries(vols)
-      .sort(([,a],[,b])=>b-a)
-      .map(([s,v]) => {
-        const tag = futSet.has(s)
-          ? `<span style="font-size:7px;color:var(--purple);background:var(--purple-a);padding:1px 4px;border-radius:2px;margin-left:4px">FUT</span>`
-          : `<span style="font-size:7px;color:var(--cyan);background:var(--cyan-a);padding:1px 4px;border-radius:2px;margin-left:4px">SPOT</span>`;
-        return `<div class="vbrow">
-          <span class="vbsym">${s.replace('USDT','')}${tag}</span>
-          <div class="vbtrk"><div class="vbfil" style="width:${(v/maxV)*100}%"></div></div>
-          <span class="vbval">${fp(v)}</span>
-        </div>`;
-      }).join('');
+  const stocksBlock = corrPayload?.stocks || {};
+  const cryptoBlock = corrPayload?.crypto || {};
+  renderCorrelationSummary(stocksBlock, 'stockCorrSummary', 'S&P 500 daily correlation lattice');
+  renderCorrelationSummary(cryptoBlock, 'cryptoCorrSummary', 'Crypto pair correlation matrix');
+  fillDatalist('stockCorrList', stocksBlock.symbols || []);
+  renderCorrelationDeskMeta(stocksBlock, cryptoBlock);
+
+  if (stocksBlock?.symbols?.length) {
+    const desired = stocksBlock.symbols.includes(STOCK_FOCUS_SYMBOL) ? STOCK_FOCUS_SYMBOL : (stocksBlock.focus_symbol || stocksBlock.symbols[0]);
+    setStockFocusSymbol(desired);
   } else {
-    hmCont.innerHTML = '<div class="empty">No market data for heatmap</div>';
-    el('volBars').innerHTML = '';
+    el('stockCorrHover').textContent = 'No stock correlation lattice available.';
+    el('stockPeerMeta').textContent = 'No stock peer data available.';
+    renderPeerRows([], 'stockPeerPositiveBody');
+    renderPeerRows([], 'stockPeerNegativeBody');
+  }
+
+  if (cryptoBlock?.symbols?.length) {
+    renderHeatmap({symbols: cryptoBlock.symbols, corr: cryptoBlock.corr}, el('cryptoHmCont'));
+    renderCryptoPairLeaders(cryptoBlock, 'cryptoPairBody');
+    renderVolBars('cryptoVolBars', cryptoBlock.vols || {});
+  } else {
+    el('cryptoHmCont').innerHTML = '<div class="empty">No crypto correlation matrix available.</div>';
+    renderCryptoPairLeaders({}, 'cryptoPairBody');
+    renderVolBars('cryptoVolBars', {});
   }
 
   // Render options Greeks panel from heatmap data
-  const og = hm?.options_greeks || {};
+  const og = corrPayload?.options_greeks || {};
   const stressEl = el('riskStressScenarios');
   const ogEl = el('riskOptionsGreeks');
   if (ogEl && Object.keys(og).length) {
@@ -2453,13 +3269,14 @@ async function loadRisk() {
       ['Net Δ Exposure',    f(og.net_delta_exposure, 2)],
       ['Gross Exposure',    og.gross_exposure != null ? fp(og.gross_exposure * 100) : '—'],
       ['Risk Score',        f(og.risk_score, 3)],
+      ['Corr. Concentration', f(og.correlation_concentration, 3)],
       ['Kill Switch',       og.kill_switch ? 'ACTIVE' : 'SAFE', og.kill_switch ? 'var(--red)' : 'var(--green)'],
       ['Macro Regime',      og.macro_regime || '—'],
       ['VIX',               f(og.vix, 2)],
       ['Allowed Symbols',   og.allowed_symbols ?? '—'],
     ]);
   }
-  const ss = hm?.stress_scenarios || {};
+  const ss = corrPayload?.stress_scenarios || {};
   if (stressEl && Object.keys(ss).length) {
     stressEl.innerHTML = Object.entries(ss).map(([name, val]) => `
       <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
@@ -2514,7 +3331,8 @@ function renderVarSurface({levels, horizons, var:vg, cvar:cg}) {
   el('varSurf').innerHTML = mkTbl('Value at Risk (%)', vg) + mkTbl('CVaR / Expected Shortfall (%)', cg);
 }
 
-el('refreshHm').addEventListener('click', loadRisk);
+el('refreshHm').addEventListener('click', () => loadRisk(true));
+el('stockCorrSearch').addEventListener('change', e => setStockFocusSymbol(e.target.value));
 
 /* ═══════════════════════════════════════════════════════════════════
    TAB: SIM LAB
@@ -2699,6 +3517,19 @@ document.querySelectorAll('.ft-mc').forEach(card => {
   });
 });
 
+function resetFtProgress() {
+  el('ftProgLbl').textContent = 'Running forward test…';
+  el('ftProgPct').textContent = '0%';
+  el('ftProgBar').style.width = '0%';
+}
+
+function setFtProgress(label, progress) {
+  const pct = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
+  el('ftProgLbl').textContent = label || 'Running forward test…';
+  el('ftProgPct').textContent = `${Math.round(pct)}%`;
+  el('ftProgBar').style.width = `${pct}%`;
+}
+
 el('runFt').addEventListener('click', async () => {
   const body = {
     symbol:    el('ft-sym').value,
@@ -2721,14 +3552,19 @@ el('runFt').addEventListener('click', async () => {
   el('ftBadge').style.display='';
   el('runFt').disabled = true;
   el('ftRes').innerHTML = '';
+  resetFtProgress();
   pollFt(job.job_id);
 });
 
 async function pollFt(jid) {
   const j = await api(`/api/forwardtest/jobs/${jid}`);
   if (!j) { setTimeout(()=>pollFt(jid),3000); return; }
-  el('ftProgLbl').textContent = `Job ${jid}: ${j.status}`;
+  const stage = (j.stage || j.status || 'RUNNING').replace(/_/g,' ');
+  const detail = j.detail ? ` — ${j.detail}` : '';
+  const progress = Number(j.progress ?? (j.status === 'DONE' ? 100 : 0));
+  setFtProgress(`Job ${jid}: ${stage}${detail}`, progress);
   if (j.status === 'DONE') {
+    setFtProgress(`Job ${jid}: DONE — ${j.detail || 'Forward test complete'}`, 100);
     el('ftProg').style.display='none'; el('ftBadge').style.display='none';
     el('runFt').disabled = false; renderFtResults(j.result); toast('Forward test complete!','ok');
   } else if (j.status === 'ERROR') {
@@ -2836,7 +3672,11 @@ let trainPollTimer = null;
 
 async function loadTraining() {
   const d = await api('/api/training/scripts');
-  if (!d) return;
+  if (!d) {
+    el('trainScripts').innerHTML = unavailableMessage('Training endpoints unavailable - restart the dashboard server to load ML scripts.');
+    el('trainJobBody').innerHTML = unavailableTableRow(6, 'Training job history unavailable - restart the dashboard server to load ML routes.');
+    return;
+  }
   renderTrainScripts(d.scripts || []);
   loadTrainJobs();
 }
@@ -2922,7 +3762,10 @@ async function pollTrainJob(jid, scriptId, lastLine) {
 
 async function loadTrainJobs() {
   const d = await api('/api/training/jobs');
-  if (!d) return;
+  if (!d) {
+    el('trainJobBody').innerHTML = unavailableTableRow(6, 'Training job history unavailable - restart the dashboard server to load ML routes.');
+    return;
+  }
   const jobs = d.jobs || [];
   const fmt = ts => ts ? new Date(ts).toLocaleString() : '—';
   const bdgClass = s => s === 'DONE' ? 'bdg-ok' : s === 'ERROR' ? 'bdg-err' : s === 'RUNNING' ? 'bdg-run' : 'bdg-info';
@@ -2948,6 +3791,7 @@ async function loadIntelligence() {
   await apiInto('/api/ml/alpha',          'alphaGrid',      (d,_) => renderAlphaSignals(d));
   await apiInto('/api/execution/quality', 'execQualGrid',   (d,_) => renderExecQuality(d));
   await apiInto('/api/system/health',     'sysHealthBars',  (d,_) => renderSysHealth(d));
+  loadResearchDesk();
   loadRiskEvents();
 }
 
@@ -3047,10 +3891,120 @@ function renderSysHealth(d) {
     : '<div class="empty">No preflight data</div>';
 }
 
+function renderLeaderRows(bodyId, leaders1d, leaders1m) {
+  const body = el(bodyId);
+  if (!body) return;
+  const monthMap = Object.fromEntries((leaders1m || []).map(row => [row.symbol, row.return_pct]));
+  body.innerHTML = (leaders1d || []).length ? (leaders1d || []).map(row => `
+    <tr>
+      <td style="color:var(--t0)">${row.symbol}</td>
+      <td class="${cx(row.return_pct)}">${fsp(row.return_pct,2)}</td>
+      <td class="${cx(monthMap[row.symbol])}">${monthMap[row.symbol]!=null ? fsp(monthMap[row.symbol],2) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="3" class="empty">No leader data</td></tr>';
+}
+
+function renderResearchDesk(d) {
+  if (!d) return;
+  const stock = d.stock_breadth || {};
+  const crypto = d.crypto_breadth || {};
+  const stockCorr = d.stock_corr_stats || {};
+  const cryptoCorr = d.crypto_corr_stats || {};
+
+  const breadthBadge = el('breadthBadge');
+  if (breadthBadge) {
+    breadthBadge.textContent = `Breadth ${stock.breadth_score!=null ? f(stock.breadth_score,3) : '—'}`;
+    breadthBadge.className = 'bdg ' + ((stock.breadth_score || 0) >= 0.6 ? 'bdg-ok' : (stock.breadth_score || 0) >= 0.45 ? 'bdg-run' : 'bdg-warn');
+  }
+
+  el('breadthDesk').innerHTML = `
+    <div class="peer-grid">
+      <div>${infoRows([
+        ['S&P Adv / Dec', stock.advancers_1d!=null ? `${stock.advancers_1d} / ${stock.decliners_1d}` : '—'],
+        ['S&P > 20D MA', stock.pct_above_20d!=null ? fp(stock.pct_above_20d) : '—'],
+        ['S&P > 50D MA', stock.pct_above_50d!=null ? fp(stock.pct_above_50d) : '—'],
+        ['S&P Avg 1D', stock.avg_return_1d_pct!=null ? fsp(stock.avg_return_1d_pct,2) : '—', csh(stock.avg_return_1d_pct)],
+        ['S&P Dispersion', stock.dispersion_20d_pct!=null ? fp(stock.dispersion_20d_pct) : '—'],
+        ['S&P Avg |Corr|', f(stockCorr.avg_abs_corr,3)],
+      ])}</div>
+      <div>${infoRows([
+        ['Crypto Adv / Dec', crypto.advancers_1d!=null ? `${crypto.advancers_1d} / ${crypto.decliners_1d}` : '—'],
+        ['Crypto > 20D MA', crypto.pct_above_20d!=null ? fp(crypto.pct_above_20d) : '—'],
+        ['Crypto > 50D MA', crypto.pct_above_50d!=null ? fp(crypto.pct_above_50d) : '—'],
+        ['Crypto Avg 1D', crypto.avg_return_1d_pct!=null ? fsp(crypto.avg_return_1d_pct,2) : '—', csh(crypto.avg_return_1d_pct)],
+        ['Crypto Dispersion', crypto.dispersion_20d_pct!=null ? fp(crypto.dispersion_20d_pct) : '—'],
+        ['Crypto Avg |Corr|', f(cryptoCorr.avg_abs_corr,3)],
+      ])}</div>
+    </div>`;
+
+  renderLeaderRows('stockLeaderBody', d.stock_leaders?.leaders_1d, d.stock_leaders?.leaders_1m);
+  renderLeaderRows('cryptoLeaderBody', d.crypto_leaders?.leaders_1d, d.crypto_leaders?.leaders_1m);
+
+  const strategyCatalog = d.strategy_catalog || [];
+  const strategyMapBadge = el('strategyMapBadge');
+  if (strategyMapBadge) {
+    const liveCount = strategyCatalog.filter(row => row.enabled).length;
+    strategyMapBadge.textContent = `${liveCount}/${strategyCatalog.length} enabled`;
+    strategyMapBadge.className = 'bdg ' + (liveCount >= 12 ? 'bdg-ok' : 'bdg-info');
+  }
+
+  el('paperDesk').innerHTML = (d.papers || []).map(paper => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t0)">${paper.paper_family}</div>
+      <div style="font-size:9px;color:var(--t2);line-height:1.5;margin-top:4px">${paper.summary}</div>
+      <div style="font-size:8px;color:var(--t1);margin-top:4px">${paper.implemented_strategies} implemented: ${(paper.strategies || []).join(', ')}</div>
+    </div>`).join('') || '<div class="empty">No paper coverage mapped.</div>';
+
+  el('strategyMapBody').innerHTML = strategyCatalog.length ? strategyCatalog.map(row => `
+    <tr>
+      <td style="color:var(--t0)">${row.label}</td>
+      <td>${row.paper_family || '—'}</td>
+      <td>${row.category || '—'}</td>
+      <td>${row.asset_class || '—'}</td>
+      <td>${row.enabled ? '<span class="bdg bdg-ok">LIVE</span>' : '<span class="bdg bdg-warn">OFF</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty">No strategy catalog data.</td></tr>';
+
+  const micro = d.microstructure_board || [];
+  const microBadge = el('microBadge');
+  if (microBadge) {
+    microBadge.textContent = `${micro.length} names`;
+    microBadge.className = 'bdg ' + (micro.length ? 'bdg-ok' : 'bdg-info');
+  }
+  el('microBody').innerHTML = micro.length ? micro.map(row => `
+    <tr>
+      <td style="color:var(--t0)">${row.symbol}</td>
+      <td>${row.asset_class || '—'}</td>
+      <td class="${cx(row.pressure)}">${f(row.pressure,3)}</td>
+      <td>${row.direction || '—'}</td>
+      <td class="${cx(row.flow_imbalance)}">${f(row.flow_imbalance,3)}</td>
+      <td class="${cx(row.vwap_gap_pct)}">${fsp(row.vwap_gap_pct,2)}</td>
+      <td>${f(row.volume_shock,2)}x</td>
+      <td>${fp(row.realized_vol_pct)}</td>
+      <td>${row.archetype || '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">No microstructure board data.</td></tr>';
+}
+
+async function loadResearchDesk() {
+  const d = await api('/api/research/desk');
+  if (!d) {
+    el('breadthDesk').innerHTML = unavailableMessage('Research breadth desk unavailable right now.');
+    el('paperDesk').innerHTML = unavailableMessage('Paper strategy coverage unavailable right now.');
+    el('strategyMapBody').innerHTML = unavailableTableRow(5, 'Strategy research map unavailable right now.');
+    el('microBody').innerHTML = unavailableTableRow(9, 'Microstructure pressure board unavailable right now.');
+    el('stockLeaderBody').innerHTML = unavailableTableRow(3, 'Leader board unavailable right now.');
+    el('cryptoLeaderBody').innerHTML = unavailableTableRow(3, 'Leader board unavailable right now.');
+    return;
+  }
+  renderResearchDesk(d);
+}
+
 async function loadRiskEvents() {
   const d = await api('/api/risk/events?limit=100');
   const tb = el('riskEventsBody');
-  if (!d || !tb) return;
+  if (!tb) return;
+  if (!d) {
+    tb.innerHTML = unavailableTableRow(3, 'Risk event feed unavailable - restart the dashboard server to activate intelligence routes.');
+    return;
+  }
   const evts = d.events || [];
   tb.innerHTML = evts.length ? evts.map(e => {
     const lvl = (e.event||'').includes('KILL') || (e.event||'').includes('BREACH') ? 'var(--red)'
@@ -3145,6 +4099,8 @@ const TAB_INIT = {
   logs:          () => { initLogs(); },
 };
 
+const ALWAYS_REFRESH_TABS = new Set(['backtests', 'params']);
+
 document.querySelectorAll('.ntab').forEach(tab => {
   tab.addEventListener('click', () => {
     const name = tab.dataset.tab;
@@ -3152,7 +4108,12 @@ document.querySelectorAll('.ntab').forEach(tab => {
     tab.classList.add('active');
     document.querySelectorAll('.tab').forEach(p => p.classList.remove('active'));
     el(`tab-${name}`).classList.add('active');
-    if (!tabDone[name]) { tabDone[name]=true; TAB_INIT[name]?.(); }
+    if (!tabDone[name] || ALWAYS_REFRESH_TABS.has(name)) {
+      tabDone[name] = true;
+      Promise.resolve(TAB_INIT[name]?.()).catch(err => {
+        console.warn(`tab init failed for ${name}`, err?.message || err);
+      });
+    }
   });
 });
 
@@ -3161,6 +4122,7 @@ document.querySelectorAll('.ntab').forEach(tab => {
 ════════════════════════════════════════════════════════════════════ */
 (async function boot() {
   initDates();
+  await loadDashboardConfig();
   await checkHealth();
   // Live tab is already active by default
   tabDone['live'] = true;

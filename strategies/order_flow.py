@@ -25,8 +25,8 @@ class OrderFlowStrategy(BaseStrategy):
 
     @property
     def symbols(self) -> list[str]:
-        # Focus on most liquid — tightest spreads = best for microstructure
-        return [s for s in cfg.futures_symbols if s in ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT")]
+        # Focus on the mixed top-of-book universe where quote-based microstructure is meaningful.
+        return cfg.model_symbols[:4]
 
     def generate_signals(self, store, regime: str, predictions: dict) -> list[Signal]:
         signals = []

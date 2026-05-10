@@ -1,11 +1,11 @@
 {
   "weekend_recalibration": {
-    "timestamp_utc": "2026-05-09T22:38:45.087992+00:00",
-    "symbols_input": 502,
-    "symbols_retained": 502,
+    "timestamp_utc": "2026-05-10T11:06:12.292422+00:00",
+    "symbols_input": 498,
+    "symbols_retained": 498,
     "symbols_removed": 0,
     "top_n_requested": 0,
-    "top_n_applied": 502,
+    "top_n_applied": 498,
     "volatile_symbols_file": "config/volatile_symbols.txt",
     "target_daily_return": 0.002,
     "target_accuracy": 0.56,

@@ -51,7 +51,7 @@ class MomentumStrategy(BaseStrategy):
 
     @property
     def symbols(self) -> list[str]:
-        return cfg.futures_symbols
+        return cfg.runtime_symbols
 
     def generate_signals(self, store, regime: str, predictions: dict) -> list[Signal]:
         signals = []

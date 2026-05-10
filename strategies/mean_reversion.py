@@ -38,7 +38,7 @@ class MeanReversionStrategy(BaseStrategy):
 
     @property
     def symbols(self) -> list[str]:
-        return cfg.futures_symbols[:6]  # top-6 most liquid
+        return cfg.runtime_symbols[:6]
 
     def generate_signals(self, store, regime: str, predictions: dict) -> list[Signal]:
         signals = []

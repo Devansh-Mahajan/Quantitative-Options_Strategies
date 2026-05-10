@@ -1,6 +1,6 @@
 """
 Alpaca WebSocket stream adapter.
-Subscribes to crypto bars + quotes via CryptoDataStream and feeds the same
+Subscribes to both stock and crypto bars + quotes and feeds the same
 MarketDataStore that Binance streams use — strategies see identical data.
 """
 
@@ -22,6 +22,8 @@ _INTERVAL_SECONDS = {
 
 def _to_alpaca(symbol: str) -> str:
     sym = symbol.upper()
+    if cfg.is_stock_symbol(sym):
+        return sym
     for suffix in ("USDT", "BUSD", "USD"):
         if sym.endswith(suffix):
             return f"{sym[:-len(suffix)]}/USD"
@@ -29,62 +31,81 @@ def _to_alpaca(symbol: str) -> str:
 
 
 def _from_alpaca(alpaca_sym: str) -> str:
-    """'BTC/USD' → 'BTCUSDT'."""
-    base = alpaca_sym.split("/")[0]
-    return base + "USDT"
+    """'BTC/USD' → 'BTCUSDT'; 'AAPL' → 'AAPL'."""
+    sym = alpaca_sym.upper()
+    if "/" not in sym:
+        return sym
+    base, quote = sym.split("/", 1)
+    return f"{base}USDT" if quote in {"USD", "USDT", "BUSD"} else sym.replace("/", "")
 
 
 class AlpacaStreamManager:
-    """Wraps Alpaca CryptoDataStream; exposes same start/stop interface as StreamManager."""
+    """Wraps Alpaca stock + crypto streams; exposes same start/stop interface as StreamManager."""
 
     def __init__(self, client, store: MarketDataStore) -> None:
         self._client = client
         self.store = store
-        self._stream = None
+        self._crypto_stream = None
+        self._stock_stream = None
         self._tasks: list[asyncio.Task] = []
-        self._alpaca_symbols: list[str] = []
+        self._crypto_symbols: list[str] = []
+        self._stock_symbols: list[str] = []
 
     async def start(self, symbols: list[str], intervals: list[str] = None) -> None:
         intervals = intervals or ["1m", "5m", "15m", "1h", "4h"]
-        self._alpaca_symbols = [_to_alpaca(s) for s in symbols]
         self._intervals = intervals
+        self._stock_symbols = [_to_alpaca(s) for s in symbols if cfg.is_stock_symbol(s)]
+        self._crypto_symbols = [_to_alpaca(s) for s in symbols if cfg.is_crypto_symbol(s)]
 
         try:
-            from alpaca.data.live import CryptoDataStream
+            from alpaca.data.live import CryptoDataStream, StockDataStream
         except ImportError:
             log.warning("alpaca-py not installed — falling back to polling mode")
             t = asyncio.create_task(self._polling_fallback(symbols, intervals))
             self._tasks.append(t)
             return
 
-        self._stream = CryptoDataStream(
-            api_key=cfg.alpaca_api_key,
-            secret_key=cfg.alpaca_api_secret,
-        )
+        if self._crypto_symbols:
+            self._crypto_stream = CryptoDataStream(
+                api_key=cfg.alpaca_api_key,
+                secret_key=cfg.alpaca_api_secret,
+            )
+            self._crypto_stream.subscribe_bars(self._on_bar, *self._crypto_symbols)
+            self._crypto_stream.subscribe_quotes(self._on_quote, *self._crypto_symbols)
 
-        # Subscribe bars for the primary interval (1m) — we derive others via accumulation
-        self._stream.subscribe_bars(self._on_bar, *self._alpaca_symbols)
-        self._stream.subscribe_quotes(self._on_quote, *self._alpaca_symbols)
+        if self._stock_symbols:
+            self._stock_stream = StockDataStream(
+                api_key=cfg.alpaca_api_key,
+                secret_key=cfg.alpaca_api_secret,
+            )
+            self._stock_stream.subscribe_bars(self._on_bar, *self._stock_symbols)
+            self._stock_stream.subscribe_quotes(self._on_quote, *self._stock_symbols)
 
         # Seed historical data via REST before live stream starts
         t_seed = asyncio.create_task(self._seed_history(symbols, intervals))
         self._tasks.append(t_seed)
 
-        # Run WebSocket in a background task
-        t_ws = asyncio.create_task(self._run_stream(), name="alpaca_ws")
-        self._tasks.append(t_ws)
+        if self._crypto_stream:
+            self._tasks.append(asyncio.create_task(self._run_stream(self._crypto_stream, "alpaca_crypto_ws"), name="alpaca_crypto_ws"))
+        if self._stock_stream:
+            self._tasks.append(asyncio.create_task(self._run_stream(self._stock_stream, "alpaca_stock_ws"), name="alpaca_stock_ws"))
 
-        log.info("AlpacaStreamManager started — %d symbols, seeding history...", len(symbols))
+        log.info(
+            "AlpacaStreamManager started — %d stock symbols, %d crypto symbols, seeding history...",
+            len(self._stock_symbols),
+            len(self._crypto_symbols),
+        )
 
     async def stop(self) -> None:
         for t in self._tasks:
             t.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
-        if self._stream:
-            try:
-                await asyncio.to_thread(self._stream.stop)
-            except Exception:
-                pass
+        for stream in (self._stock_stream, self._crypto_stream):
+            if stream:
+                try:
+                    await asyncio.to_thread(stream.stop)
+                except Exception:
+                    pass
         log.info("AlpacaStreamManager stopped")
 
     # ------------------------------------------------------------------ #
@@ -117,14 +138,14 @@ class AlpacaStreamManager:
             ask=float(quote.ask_price),
         )
 
-    async def _run_stream(self) -> None:
+    async def _run_stream(self, stream, task_name: str) -> None:
         while True:
             try:
-                await self._stream._run_forever()
+                await stream._run_forever()
             except asyncio.CancelledError:
                 break
             except Exception as exc:
-                log.warning("Alpaca WS error: %s — reconnecting in 10s", exc)
+                log.warning("%s error: %s — reconnecting in 10s", task_name, exc)
                 await asyncio.sleep(10)
 
     # ------------------------------------------------------------------ #

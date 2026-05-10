@@ -28,6 +28,31 @@ def _list(key: str, default: str = "") -> list[str]:
     return [s.strip() for s in raw.split(",") if s.strip()]
 
 
+def _dedupe(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        norm = item.upper()
+        if norm in seen:
+            continue
+        seen.add(norm)
+        ordered.append(norm)
+    return ordered
+
+
+def _interleave(primary: list[str], secondary: list[str], total_limit: int | None = None) -> list[str]:
+    merged: list[str] = []
+    max_len = max(len(primary), len(secondary))
+    for idx in range(max_len):
+        if idx < len(primary):
+            merged.append(primary[idx])
+        if idx < len(secondary):
+            merged.append(secondary[idx])
+    if total_limit is not None:
+        merged = merged[:total_limit]
+    return _dedupe(merged)
+
+
 @dataclass
 class Config:
     # --- Broker selection ---
@@ -82,6 +107,8 @@ class Config:
     enable_pivot_sr: bool = field(default_factory=lambda: _bool("ENABLE_PIVOT_SR", True))
     enable_hp_trend: bool = field(default_factory=lambda: _bool("ENABLE_HP_TREND", True))
     enable_momentum_carry_combo: bool = field(default_factory=lambda: _bool("ENABLE_MOMENTUM_CARRY_COMBO", True))
+    enable_microstructure_pressure: bool = field(default_factory=lambda: _bool("ENABLE_MICROSTRUCTURE_PRESSURE", True))
+    enable_pullback_confluence: bool = field(default_factory=lambda: _bool("ENABLE_PULLBACK_CONFLUENCE", True))
 
     # --- Symbol universe ---
     futures_symbols: list[str] = field(
@@ -93,9 +120,17 @@ class Config:
     spot_symbols: list[str] = field(
         default_factory=lambda: _list("SPOT_SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT")
     )
+    stock_symbols: list[str] = field(
+        default_factory=lambda: _list(
+            "STOCK_SYMBOLS",
+            "SPY,QQQ,AAPL,MSFT,NVDA,AMZN,META,GOOGL",
+        )
+    )
     options_underlying: list[str] = field(
         default_factory=lambda: _list("OPTIONS_UNDERLYING", "BTC,ETH")
     )
+    regime_anchor_symbol: str = field(default_factory=lambda: os.getenv("REGIME_ANCHOR_SYMBOL", "").strip().upper())
+    benchmark_symbol: str = field(default_factory=lambda: os.getenv("BENCHMARK_SYMBOL", "").strip().upper())
 
     # --- ML ---
     device: str = field(default_factory=lambda: os.getenv("DEVICE", "cuda"))
@@ -129,6 +164,104 @@ class Config:
     @property
     def is_binance(self) -> bool:
         return self.broker == "binance"
+
+    @property
+    def crypto_symbols(self) -> list[str]:
+        return _dedupe(self.futures_symbols + self.spot_symbols)
+
+    @property
+    def asset_universe(self) -> list[str]:
+        return _dedupe(self.stock_symbols + self.crypto_symbols)
+
+    def balanced_symbols(
+        self,
+        *,
+        stock_limit: int | None = None,
+        crypto_limit: int | None = None,
+        total_limit: int | None = None,
+    ) -> list[str]:
+        stocks = self.stock_symbols[:stock_limit] if stock_limit is not None else list(self.stock_symbols)
+        crypto = self.crypto_symbols[:crypto_limit] if crypto_limit is not None else self.crypto_symbols
+        return _interleave(stocks, crypto, total_limit=total_limit)
+
+    @property
+    def runtime_symbols(self) -> list[str]:
+        return self.balanced_symbols(stock_limit=6, crypto_limit=6, total_limit=12)
+
+    @property
+    def model_symbols(self) -> list[str]:
+        return self.balanced_symbols(stock_limit=4, crypto_limit=4, total_limit=8)
+
+    @property
+    def risk_symbols(self) -> list[str]:
+        return self.balanced_symbols(stock_limit=5, crypto_limit=5, total_limit=10)
+
+    @property
+    def benchmark_symbols(self) -> list[str]:
+        return self.balanced_symbols(stock_limit=4, crypto_limit=4, total_limit=8)
+
+    @property
+    def live_runtime_symbols(self) -> list[str]:
+        return self.runtime_symbols if self.is_alpaca else self.crypto_symbols
+
+    @property
+    def live_model_symbols(self) -> list[str]:
+        return self.model_symbols if self.is_alpaca else self.crypto_symbols[:4]
+
+    @property
+    def primary_regime_symbol(self) -> str:
+        if self.regime_anchor_symbol:
+            return self.regime_anchor_symbol
+        if self.stock_symbols:
+            return self.stock_symbols[0]
+        if self.crypto_symbols:
+            return self.crypto_symbols[0]
+        return "SPY"
+
+    @property
+    def default_benchmark_symbol(self) -> str:
+        if self.benchmark_symbol:
+            return self.benchmark_symbol
+        if self.benchmark_symbols:
+            return self.benchmark_symbols[0]
+        return self.primary_regime_symbol
+
+    @property
+    def live_primary_regime_symbol(self) -> str:
+        if self.is_alpaca:
+            return self.primary_regime_symbol
+        if self.crypto_symbols:
+            return self.crypto_symbols[0]
+        return self.primary_regime_symbol
+
+    def is_crypto_symbol(self, symbol: str) -> bool:
+        sym = (symbol or "").strip().upper()
+        if not sym:
+            return False
+        if sym in {s.upper() for s in self.crypto_symbols}:
+            return True
+        if "/" in sym:
+            base, quote = sym.split("/", 1)
+            crypto_bases = {
+                s[:-4] for s in self.crypto_symbols if s.endswith("USDT")
+            } | {
+                s[:-3] for s in self.crypto_symbols if s.endswith("USD")
+            } | {
+                s[:-4] for s in self.crypto_symbols if s.endswith("BUSD")
+            }
+            return quote in {"USD", "USDT", "BUSD"} and base in crypto_bases
+        return any(sym.endswith(suffix) and len(sym) > len(suffix) for suffix in ("USDT", "BUSD", "USD"))
+
+    def is_stock_symbol(self, symbol: str) -> bool:
+        sym = (symbol or "").strip().upper()
+        if not sym or self.is_crypto_symbol(sym):
+            return False
+        if sym in {s.upper() for s in self.stock_symbols}:
+            return True
+        if "/" in sym:
+            return False
+        cleaned = sym.replace(".", "").replace("-", "")
+        return cleaned.isalpha()
 
     def validate(self) -> None:
         if self.broker not in ("alpaca", "binance"):

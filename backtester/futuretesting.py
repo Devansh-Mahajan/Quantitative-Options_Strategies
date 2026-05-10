@@ -309,6 +309,7 @@ class FuturetestEngine:
         strategy_factory: Callable,
         symbol: str = "BTCUSDT",
         verbose: bool = True,
+        progress_callback: Callable | None = None,
     ) -> FuturetestResult:
         """
         Run the strategy on N synthetic paths.
@@ -323,7 +324,24 @@ class FuturetestEngine:
         path_results = []
         failed = 0
 
+        def _emit_progress(path_index: int) -> None:
+            if progress_callback is None:
+                return
+            try:
+                progress = 100.0 * (path_index / max(self._n_paths, 1))
+                progress_callback(
+                    {
+                        "path_index": path_index,
+                        "n_paths": self._n_paths,
+                        "progress": round(progress, 1),
+                        "message": f"Running synthetic path {path_index}/{self._n_paths}",
+                    }
+                )
+            except Exception as exc:
+                log.debug("Futuretest progress callback failed: %s", exc)
+
         log.info("Futuretesting: %d paths × %d bars  model=%s", self._n_paths, self._horizon, self._model)
+        _emit_progress(0)
 
         for i in range(self._n_paths):
             if verbose and i % max(1, self._n_paths // 10) == 0:
@@ -349,6 +367,8 @@ class FuturetestEngine:
                 returns.append(-1.0)
                 max_dds.append(1.0)
                 win_rates.append(0.0)
+            finally:
+                _emit_progress(i + 1)
 
         sharpe_arr   = np.array(sharpes)
         acceptance   = float((sharpe_arr > 0.5).mean())

@@ -90,7 +90,7 @@ class Orchestrator:
         self.position_manager = PositionManager(self.client)
 
         # Warm up stream manager (Binance or Alpaca depending on BROKER)
-        all_symbols = list(set(cfg.futures_symbols + cfg.spot_symbols))
+        all_symbols = cfg.live_runtime_symbols
         self.stream_manager = self.client.create_stream_manager(self.store)
         await self.stream_manager.start(all_symbols, intervals=["1m", "5m", "15m", "1h", "4h"])
 
@@ -180,7 +180,7 @@ class Orchestrator:
         await self.order_manager.monitor_and_reprice()
 
         # --- 6. Determine regime ---
-        regime = self._get_regime("BTCUSDT")
+        regime = self._get_regime()
         log.info("Market regime: %s", regime)
 
         # --- 7. ML price predictions ---
@@ -214,8 +214,9 @@ class Orchestrator:
 
         # --- 12. Execute orders ---
         for sig in approved:
+            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
             leverage = self.sizer.safe_leverage(
-                self.vol_models.get("BTCUSDT", GARCHVolModel()).current_vol,
+                vol_model.current_vol,
                 regime,
             )
             await self.order_manager.execute(sig, leverage=leverage)
@@ -274,18 +275,31 @@ class Orchestrator:
     # ML helpers
     # ------------------------------------------------------------------ #
 
-    def _get_regime(self, anchor_symbol: str = "BTCUSDT") -> str:
-        hmm = self.regime_hmm.get(anchor_symbol)
-        if hmm is None:
-            return "ranging"
-        df = self.store.get_history_df(anchor_symbol, "1h")
-        if len(df) < 30:
-            return "ranging"
-        return hmm.predict_regime(df)
+    def _get_regime(self, anchor_symbol: str | None = None) -> str:
+        anchors: list[str] = []
+        if anchor_symbol:
+            anchors.append(anchor_symbol)
+        anchors.extend([cfg.live_primary_regime_symbol, *cfg.live_model_symbols])
+
+        seen: set[str] = set()
+        for symbol in anchors:
+            if symbol in seen:
+                continue
+            seen.add(symbol)
+            hmm = self.regime_hmm.get(symbol)
+            if hmm is None:
+                continue
+            df = self.store.get_history_df(symbol, "1h")
+            if len(df) < 30:
+                continue
+            regime = hmm.predict_regime(df)
+            if regime and regime != "unknown":
+                return regime
+        return "ranging"
 
     async def _get_predictions(self) -> dict[str, dict]:
         results: dict[str, dict] = {}
-        for symbol in cfg.futures_symbols[:4]:  # top-4 only to limit GPU calls
+        for symbol in cfg.live_model_symbols:
             predictor = self.predictors.get(symbol)
             if predictor is None:
                 continue
@@ -341,13 +355,13 @@ class Orchestrator:
 
     def _size_signals(self, signals: list[Signal], equity: float, regime: str) -> list[Signal]:
         sized = []
-        vol = self.vol_models.get("BTCUSDT", GARCHVolModel()).current_vol
         for sig in signals:
+            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
             notional, qty = self.sizer.size_from_signal(
                 signal_confidence=sig.confidence,
                 equity=equity,
                 price=sig.price or 1.0,
-                realised_vol=vol or 0.5,
+                realised_vol=vol_model.current_vol or 0.5,
                 regime=regime,
             )
             if qty > 0:
@@ -359,7 +373,7 @@ class Orchestrator:
     # ------------------------------------------------------------------ #
 
     async def _refresh_funding_and_oi(self) -> None:
-        for symbol in cfg.futures_symbols:
+        for symbol in cfg.crypto_symbols:
             try:
                 self.store.funding[symbol] = await self.client.get_funding_rate(symbol)
                 self.store.open_interest[symbol] = await self.client.get_open_interest(symbol)
@@ -372,7 +386,7 @@ class Orchestrator:
 
     async def _load_ml_models(self) -> None:
         log.info("Loading ML models...")
-        for symbol in cfg.futures_symbols[:4]:
+        for symbol in cfg.live_model_symbols:
             self.regime_hmm[symbol] = load_or_init_hmm(symbol)
             from ml.features import FEATURE_NAMES
             self.predictors[symbol] = load_or_init_predictor(symbol, n_features=len(FEATURE_NAMES))

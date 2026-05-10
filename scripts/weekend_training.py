@@ -24,6 +24,7 @@ import pandas as pd
 from bot.config import cfg
 from bot.logger import setup_logging
 from bot import state, notifications
+from core.torch_device import resolve_torch_runtime
 
 setup_logging(cfg.log_dir, "INFO")
 log = logging.getLogger("scripts.weekend_training")
@@ -33,21 +34,28 @@ log = logging.getLogger("scripts.weekend_training")
 # Data download
 # --------------------------------------------------------------------------- #
 
-async def download_data(client, symbols: list[str], lookback_days: int) -> dict[str, pd.DataFrame]:
-    """Download OHLCV data for all symbols from Binance."""
+async def download_data(symbols: list[str], lookback_days: int) -> dict[str, pd.DataFrame]:
+    """Download OHLCV data for a mixed crypto + stock universe."""
+    from backtester.data_loader import load_multi
+
+    end = pd.Timestamp.utcnow().normalize()
+    start = end - pd.Timedelta(days=lookback_days)
+    raw = await asyncio.to_thread(
+        load_multi,
+        symbols,
+        "1h",
+        start.strftime("%Y-%m-%d"),
+        end.strftime("%Y-%m-%d"),
+    )
+
     data: dict[str, pd.DataFrame] = {}
-    limit = lookback_days * 24  # hourly candles
-    for symbol in symbols:
-        try:
-            klines = await client.get_klines(symbol, interval="1h", limit=min(limit, 1500), futures=True)
-            df = pd.DataFrame(klines)
-            df = df[["open_time", "open", "high", "low", "close", "volume", "taker_buy_base"]]
-            df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
-            df.set_index("open_time", inplace=True)
-            data[symbol] = df
-            log.info("Downloaded %d bars for %s", len(df), symbol)
-        except Exception as exc:
-            log.warning("Failed to download %s: %s", symbol, exc)
+    for symbol, df in raw.items():
+        if df is None or df.empty:
+            log.warning("Failed to download %s: empty dataset", symbol)
+            continue
+        keep_cols = [c for c in ("open", "high", "low", "close", "volume", "taker_buy_base") if c in df.columns]
+        data[symbol] = df.loc[:, keep_cols].copy()
+        log.info("Downloaded %d bars for %s", len(df), symbol)
     return data
 
 
@@ -56,24 +64,21 @@ async def download_data(client, symbols: list[str], lookback_days: int) -> dict[
 # --------------------------------------------------------------------------- #
 
 def build_training_data(df: pd.DataFrame, funding: float = 0.0, oi: float = 0.0):
-    from ml.features import compute_feature_matrix
+    from ml.features import FEATURE_NAMES, compute_features
 
-    X = compute_feature_matrix(df, funding_rate=funding, open_interest=oi)
-    closes = df["close"].astype(float).values
-
-    # Forward returns at 1h, 4h, 24h (clipped to prevent outlier labels)
-    n = len(X)
-    max_idx = len(closes) - 25  # need 24 bars ahead
-    X = X[:max_idx]
-
-    y = np.zeros((max_idx, 3), dtype=np.float32)
-    for i in range(max_idx):
-        raw_idx = len(df) - n + i
-        if raw_idx + 24 < len(closes):
-            y[i, 0] = np.clip((closes[raw_idx + 1] / closes[raw_idx]) - 1, -0.5, 0.5)   # 1h
-            y[i, 1] = np.clip((closes[raw_idx + 4] / closes[raw_idx]) - 1, -0.5, 0.5)   # 4h
-            y[i, 2] = np.clip((closes[raw_idx + 24] / closes[raw_idx]) - 1, -0.5, 0.5)  # 24h
-
+    feat_df = compute_features(df, funding_rate=funding, open_interest=oi)
+    close = df["close"].astype(float)
+    targets = pd.DataFrame(
+        {
+            "target_1h": ((close.shift(-1) / close) - 1).clip(-0.5, 0.5),
+            "target_4h": ((close.shift(-4) / close) - 1).clip(-0.5, 0.5),
+            "target_24h": ((close.shift(-24) / close) - 1).clip(-0.5, 0.5),
+        },
+        index=df.index,
+    )
+    aligned = feat_df.join(targets, how="inner").dropna()
+    X = aligned.loc[:, FEATURE_NAMES].to_numpy(dtype=np.float32)
+    y = aligned.loc[:, ["target_1h", "target_4h", "target_24h"]].to_numpy(dtype=np.float32)
     return X, y
 
 
@@ -103,28 +108,30 @@ def validate_lstm(predictor, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, 
 # --------------------------------------------------------------------------- #
 
 async def run_training() -> None:
-    from exchange.client import BinanceClient
     from ml.regime_hmm import RegimeHMM
     from ml.price_lstm import PricePredictorTrainer
     from ml.rl_allocator import RLAllocator, StrategyAllocEnv
     from ml.vol_model import GARCHVolModel
     from ml.features import FEATURE_NAMES
 
+    runtime = resolve_torch_runtime()
     log.info("=" * 60)
-    log.info("WEEKEND TRAINING PIPELINE — GPU=%s", cfg.device)
+    log.info(
+        "WEEKEND TRAINING PIPELINE — target=%s resolved=%s (%s)",
+        cfg.device,
+        runtime.device.type,
+        runtime.accelerator_name,
+    )
     log.info("=" * 60)
 
     await notifications.alert("Weekend training started", title="Training", level="INFO")
 
-    client = BinanceClient()
-    await client.start()
-
-    symbols = cfg.futures_symbols
+    symbols = cfg.model_symbols
     lookback = cfg.retrain_lookback_days
 
     # 1. Download data
     log.info("[1/6] Downloading %d days of 1h data for %d symbols...", lookback, len(symbols))
-    data = await download_data(client, symbols, lookback_days=lookback)
+    data = await download_data(symbols, lookback_days=lookback)
 
     if not data:
         log.error("No data downloaded — aborting training")
@@ -149,8 +156,11 @@ async def run_training() -> None:
     n_features = len(FEATURE_NAMES)
     all_X, all_y = [], []
 
-    for symbol, df in list(data.items())[:4]:  # top-4 symbols
+    for symbol in cfg.model_symbols:
         try:
+            df = data.get(symbol)
+            if df is None:
+                continue
             X, y = build_training_data(df)
             if len(X) < 200:
                 continue
@@ -177,8 +187,11 @@ async def run_training() -> None:
 
     # 4. Retrain GARCH volatility models
     log.info("[4/6] Fitting GARCH volatility models...")
-    for symbol, df in list(data.items())[:4]:
+    for symbol in cfg.model_symbols:
         try:
+            df = data.get(symbol)
+            if df is None:
+                continue
             rets = df["close"].astype(float).pct_change().dropna()
             garch = GARCHVolModel()
             garch.fit(rets)
@@ -236,7 +249,6 @@ async def run_training() -> None:
         level="INFO",
     )
 
-    await client.close()
     log.info("Training pipeline complete")
 
 
