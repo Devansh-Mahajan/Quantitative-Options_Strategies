@@ -44,6 +44,7 @@ BROKER_LIVE_CACHE_TTL_SECONDS = 5
 
 _BROKER_POSITION_CACHE: dict[str, Any] = {"generated_at": None, "payload": ([], {"available": False, "reason": "cold_cache"})}
 _BROKER_SNAPSHOT_CACHE: dict[str, Any] = {"generated_at": None, "payload": {"available": False, "reason": "cold_cache"}}
+_LIVE_OPTION_CACHE: dict[str, Any] = {"generated_at": None, "payload": ([], {"available": False, "reason": "cold_cache"})}
 
 STRATEGY_CLASS_MAP: dict[str, tuple[str, str]] = {
     "momentum": ("strategies.momentum", "MomentumStrategy"),
@@ -909,7 +910,13 @@ def ledger_option_activity(limit: int = 24) -> list[dict[str, Any]]:
     records = sorted(load_execution_records(), key=lambda item: str(item.get("filled_at_utc") or item.get("updated_at_utc") or ""), reverse=True)
     rows: list[dict[str, Any]] = []
     for record in records:
+        status = str(record.get("status") or "").lower()
+        is_filled = "filled" in status or bool(record.get("partial_fill"))
+        if not is_filled:
+            continue
         qty = safe_float(record.get("filled_qty") or record.get("qty") or 0.0) or 0.0
+        if qty <= 0:
+            continue
         fill_price = safe_float(record.get("filled_avg_price") or record.get("limit_price"))
         pricing = record.get("pricing_snapshot") or {}
         execution_quality = record.get("execution_quality") or {}
@@ -940,6 +947,8 @@ def ledger_option_activity(limit: int = 24) -> list[dict[str, Any]]:
                     "mc_cvar_95": safe_float(pricing.get("mc_cvar_95")),
                     "execution_score": safe_float(execution_quality.get("score")),
                     "execution_tier": execution_quality.get("tier"),
+                    "status": status,
+                    "partial_fill": bool(record.get("partial_fill")),
                     "source": "execution_ledger",
                 }
             )
@@ -956,6 +965,10 @@ def _snapshot_value(snapshot: Any, attr: str, nested: str | None = None) -> floa
 
 
 def live_option_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if _cache_payload_fresh(_LIVE_OPTION_CACHE, BROKER_LIVE_CACHE_TTL_SECONDS):
+        rows, meta = _LIVE_OPTION_CACHE.get("payload") or ([], {})
+        return [dict(row) for row in rows], dict(meta)
+
     if not cfg.is_alpaca or not cfg.alpaca_api_key or not cfg.alpaca_api_secret:
         return [], {"available": False, "reason": "alpaca_broker_unavailable"}
 
@@ -972,7 +985,10 @@ def live_option_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
             if "option" in str(getattr(pos, "asset_class", "")).lower()
         ]
         if not option_positions:
-            return [], {"available": True, "source": "alpaca_live", "count": 0}
+            payload = ([], {"available": True, "source": "alpaca_live", "count": 0})
+            _LIVE_OPTION_CACHE["generated_at"] = utc_now_iso()
+            _LIVE_OPTION_CACHE["payload"] = payload
+            return [], dict(payload[1])
 
         symbols = [str(getattr(pos, "symbol", "")).upper() for pos in option_positions if getattr(pos, "symbol", None)]
         snapshots = client.get_option_snapshot(symbols) if symbols else {}
@@ -1019,9 +1035,15 @@ def live_option_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
                     "source": "alpaca_live",
                 }
             )
-        return rows, {"available": True, "source": "alpaca_live", "count": len(rows)}
+        payload = (rows, {"available": True, "source": "alpaca_live", "count": len(rows)})
+        _LIVE_OPTION_CACHE["generated_at"] = utc_now_iso()
+        _LIVE_OPTION_CACHE["payload"] = payload
+        return [dict(row) for row in rows], dict(payload[1])
     except Exception as exc:
-        return [], {"available": False, "reason": f"alpaca_fetch_failed: {exc}"}
+        payload = ([], {"available": False, "reason": f"alpaca_fetch_failed: {exc}"})
+        _LIVE_OPTION_CACHE["generated_at"] = utc_now_iso()
+        _LIVE_OPTION_CACHE["payload"] = payload
+        return [], dict(payload[1])
 
 
 def live_broker_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -1493,8 +1515,8 @@ def build_options_overview() -> dict[str, Any]:
     live_rows, live_meta = live_option_positions()
     activity_rows = ledger_option_activity()
 
-    rows = live_rows if live_rows else activity_rows
-    source = "live_options" if live_rows else ("execution_ledger" if activity_rows else "runtime_snapshot")
+    rows = live_rows
+    source = "live_options" if live_meta.get("available") else "runtime_snapshot"
 
     portfolio_theta_live = _sum_field(live_rows, "portfolio_theta") if live_rows else None
     portfolio_delta_live = _sum_field(live_rows, "portfolio_delta") if live_rows else None
@@ -1534,6 +1556,7 @@ def build_options_overview() -> dict[str, Any]:
         },
         "positions": rows[:18],
         "recent_activity": activity_rows[:16],
+        "recent_activity_source": "execution_ledger",
         "risk_snapshot": {
             "macro_regime": risk_snapshot.get("macro_regime"),
             "movement_bias": risk_snapshot.get("movement_bias"),
@@ -1914,10 +1937,37 @@ def build_simulation_payload(equity: list[float], timestamps: list[str]) -> dict
     base_equity = float(equity[-1]) if equity else (safe_float(risk_snapshot.get("total_equity")) or 10000.0)
 
     returns = _returns_from_equity(equity)
+    observation_count = int(returns.size)
     source = "equity_curve"
-    if returns.size == 0:
-        returns = _proxy_returns_from_snapshot(risk_snapshot)
-        source = "runtime_proxy"
+    notice: str | None = None
+    available = bool(returns.size >= 20 and not np.allclose(np.std(returns), 0.0))
+
+    if not available:
+        notice = (
+            "Simulation Lab needs at least 20 non-flat equity observations from a continuous portfolio history. "
+            "Current runtime history is too sparse or reset-heavy, so synthetic paths were suppressed."
+        )
+        horizons: list[int] = []
+        return {
+            "generated_at_utc": utc_now_iso(),
+            "available": False,
+            "source": "insufficient_history",
+            "base_equity": round(base_equity, 2),
+            "horizon_days": 0,
+            "monte_carlo": {"paths": 0, "prob_profit_pct": None, "terminal": {"p5": None, "p50": None, "p95": None}, "bands": {}},
+            "las_vegas": {"paths": 0, "prob_profit_pct": None, "terminal": {"p5": None, "p50": None, "p95": None}, "bands": {}},
+            "labels": horizons,
+            "observation_count": observation_count,
+            "notice": notice,
+            "risk_context": {
+                "daily_pnl_pct": safe_float(risk_snapshot.get("daily_pnl_pct")),
+                "vix": safe_float(risk_snapshot.get("vix")),
+                "macro_regime": risk_snapshot.get("macro_regime"),
+                "movement_bias": risk_snapshot.get("movement_bias"),
+                "risk_score": safe_float(((guard_snapshot.get("portfolio_risk_engine") or {}).get("risk_score"))),
+                "simulation_paths": safe_int(((guard_snapshot.get("portfolio_risk_engine") or {}).get("simulation_paths"))),
+            },
+        }
 
     np.random.seed(11)
     mc_paths, mc_terminal = _simulate_forward_paths(base_equity, returns, mode="bootstrap")
@@ -1930,9 +1980,12 @@ def build_simulation_payload(equity: list[float], timestamps: list[str]) -> dict
 
     return {
         "generated_at_utc": utc_now_iso(),
+        "available": True,
         "source": source,
         "base_equity": round(base_equity, 2),
         "horizon_days": len(horizons),
+        "observation_count": observation_count,
+        "notice": notice,
         "monte_carlo": {
             "paths": int(mc_paths.shape[0]) if mc_paths.size else 0,
             "prob_profit_pct": None if mc_prob_profit is None else round(mc_prob_profit, 2),
@@ -2474,7 +2527,12 @@ def build_trade_odds() -> dict[str, Any]:
     for row in runtime_trades:
         symbol = str(row.get("symbol") or "").upper()
         price = safe_float(row.get("price"))
+        status = str(row.get("status") or "").lower()
         if not symbol or price is None or price <= 0:
+            continue
+        if status in {"closed", "cancelled", "canceled", "rejected"}:
+            continue
+        if not (status == "open" or "filled" in status or "partial" in status):
             continue
         meta = row.get("meta_payload") or {}
         side = normalize_side(row.get("side") or meta.get("position_side"))
@@ -2522,34 +2580,16 @@ def build_trade_odds() -> dict[str, Any]:
         actual_trade_count += 1
         market_counts["options"] = market_counts.get("options", 0) + 1
 
-    if not runtime_trades:
-        for row in ledger_option_activity(limit=250):
-            symbol = str(row.get("symbol") or "").upper()
-            price = safe_float(row.get("entry_price"))
-            if not symbol or price is None or price <= 0:
-                continue
-            side = str(row.get("side") or "LONG").upper()
-            meta = {"iv": row.get("iv"), "implied_volatility": row.get("iv")}
-            stop, take = _trade_barriers(price, "options", side, meta)
-            profile = simulate_trade_profile(
-                symbol=symbol,
-                market="options",
-                side=side,
-                entry_price=price,
-                annual_vol=_trade_annual_vol(symbol, "options", meta, fallback=0.70),
-                stop_loss_price=stop,
-                take_profit_price=take,
-            )
-            profile["source"] = "execution_ledger"
-            profile["timestamp"] = row.get("filled_at")
-            trades.append(profile)
-            actual_trade_count += 1
-            market_counts["options"] = market_counts.get("options", 0) + 1
-
     np.random.seed(None)
 
     if not trades:
-        return {"generated_at_utc": utc_now_iso(), "curve": [], "trades": [], "summary": {"actual_trade_count": 0, "research_overlay_count": 0, "market_counts": {}}}
+        return {
+            "generated_at_utc": utc_now_iso(),
+            "curve": [],
+            "trades": [],
+            "note": "No active confirmed positions were available for odds modelling. Trader Odds now suppresses historical fill replays and research-only placeholders.",
+            "summary": {"actual_trade_count": 0, "research_overlay_count": 0, "market_counts": {}},
+        }
 
     xs = np.array([trade["expected_pnl_pct"] for trade in trades], dtype=float)
     spread = np.array([max(1.0, abs(trade["var_95_pct"])) for trade in trades], dtype=float)

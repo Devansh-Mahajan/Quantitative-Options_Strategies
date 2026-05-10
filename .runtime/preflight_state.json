@@ -2,11 +2,11 @@
   "ok": true,
   "skipped": false,
   "summary": "Preflight passed.",
-  "completed_at_utc": "2026-05-10T14:07:44Z",
-  "signature": "856af181092a523a16b5ed58b8d3346a87e4e1fbadd9d8077ea6b1b203f5fe61",
-  "source_files": 102,
+  "completed_at_utc": "2026-05-10T18:07:38Z",
+  "signature": "210f34a88f43a6bec891632bc65edb3910f2d17164a276a5d0310fa472370335",
+  "source_files": 104,
   "json_files": 16,
   "artifacts_checked": 7,
   "issues": [],
-  "completed_at_epoch": 1778422064.2036214
+  "completed_at_epoch": 1778436458.1991112
 }

@@ -85,6 +85,15 @@ class DashboardRouteTests(unittest.TestCase):
         cache_control = response.headers.get("cache-control", "")
         self.assertIn("no-store", cache_control)
 
+    def test_root_head_and_browser_icon_routes_are_clean(self):
+        with TestClient(app) as client:
+            head_response = client.head("/")
+            icon_response = client.get("/favicon.ico")
+
+        self.assertEqual(head_response.status_code, 200)
+        self.assertIn("no-store", head_response.headers.get("cache-control", ""))
+        self.assertEqual(icon_response.status_code, 204)
+
     def test_forwardtest_status_route_preserves_progress_fields(self):
         job_id = "ft_progress_test"
         server._ft_jobs[job_id] = {

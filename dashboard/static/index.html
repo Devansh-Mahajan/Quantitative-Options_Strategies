@@ -983,6 +983,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div id="riskBreachAlert" class="alert alert-err" style="display:none;margin-bottom:10px">
     <strong style="letter-spacing:.08em">RISK BREACHES ACTIVE:</strong>&nbsp;<span id="riskBreachList"></span>
   </div>
+  <div id="riskMetricsNotice" class="alert alert-info" style="display:none;margin-bottom:10px"></div>
 
   <!-- RISK ENGINE: Greeks + Exposure + VaR (live from risk guard) -->
   <div class="mcs">
@@ -1916,6 +1917,7 @@ let W = '1w', BENCH = 'SPY';
 let CHARTS = {};
 let liveWs, traderWs, riskWs;
 let trSc = true, rkSc = true, trF = '', rkF = '';
+let logsHandlersBound = false;
 let stratP = {}, engP = {};
 let permStratParams = {};
 let activeFtModel = 'gbm';
@@ -1935,6 +1937,7 @@ Chart.defaults.font.size = 10;
    UTILITIES
 ════════════════════════════════════════════════════════════════════ */
 const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
 function f(v, d=2, s='') { return (v==null||isNaN(v)) ? '—' : Number(v).toFixed(d)+s; }
 function fp(v, d=2) { return f(v, d, '%'); }
@@ -2023,15 +2026,23 @@ function norm(a) {
 }
 
 async function api(url, opts={}) {
+  const { timeoutMs = 12000, ...fetchOpts } = opts || {};
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const r = await fetch(BASE+url, opts);
+    const r = await fetch(BASE+url, { ...fetchOpts, signal: ctrl.signal });
+    clearTimeout(timer);
     if (r.status === 404) {
       console.warn(`404 ${url} — restart the dashboard server to load new endpoints`);
       return null;
     }
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
-  } catch(e) { console.warn(url, e.message); return null; }
+  } catch(e) {
+    clearTimeout(timer);
+    console.warn(url, e.message);
+    return null;
+  }
 }
 
 // Wrapper that shows a "loading" spinner in a container, then renders result
@@ -2092,9 +2103,12 @@ function renderDetailGrid(id, rows) {
 }
 
 function initDates() {
-  const now = new Date(), w7 = new Date(now-7*864e5);
+  const now = new Date(), w7 = new Date(now-7*864e5), y1 = new Date(now-365*864e5);
   el('tradeE').valueAsDate = now; el('tradeS').valueAsDate = w7;
   el('bt-e').valueAsDate = now; el('ft-ce').valueAsDate = now;
+  if (el('bt-s')) el('bt-s').valueAsDate = y1;
+  if (el('ft-cs')) el('ft-cs').valueAsDate = y1;
+  if (el('perm-start')) el('perm-start').valueAsDate = y1;
   if (el('perm-end')) el('perm-end').valueAsDate = now;
 }
 
@@ -3079,7 +3093,11 @@ async function triggerMasterRecal() {
   const setBadge = (txt, cls) => badges.forEach(b => { b.style.display = ''; b.className = 'bdg ' + cls; b.textContent = txt; });
   setBadge('QUEUED', 'bdg-run');
   btns.forEach(b => b.disabled = true);
-  const r = await api('/api/system/master_recalibrate', {method:'POST', body:JSON.stringify({confirm:true})});
+  const r = await api('/api/system/master_recalibrate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({confirm:true}),
+  });
   if (!r) {
     setBadge('ERROR', 'bdg-err');
     btns.forEach(b => b.disabled = false);
@@ -3109,7 +3127,7 @@ async function triggerMasterRecal() {
 async function loadLiveFills() {
   const d  = await api('/api/execution/ledger');
   const tb = el('blFillsBody');
-  const fills = d?.fills || d?.ledger || [];
+  const fills = d?.fills || d?.records || d?.ledger || [];
   if (el('bl-fills-ct')) el('bl-fills-ct').textContent = fills.length;
   if (!tb) return;
   if (!fills.length) {
@@ -3124,7 +3142,7 @@ async function loadLiveFills() {
     const ts    = f.filled_at || f.timestamp || f.created_at;
     const tsFmt = ts ? new Date(ts).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
     const status = f.status || '—';
-    const isFilled = String(status).includes('filled') || f.filled === true;
+    const isFilled = f.is_filled === true || String(status).includes('filled') || f.filled === true;
     const isSell = side.includes('SELL') || side.includes('SHORT');
     return `<tr>
       <td style="font-size:9px;color:var(--t2)">${tsFmt}</td>
@@ -3140,7 +3158,7 @@ async function loadLiveFills() {
 }
 
 async function loadLiveMlSignals() {
-  const d = await api('/api/intelligence');
+  const d = await api('/api/ml/alpha');
   const cont = el('blMlSignals');
   if (!cont) return;
   const signals = (d?.signals || []).slice(0, 10);
@@ -3308,7 +3326,7 @@ async function loadOptions() {
   alert.className = `alert ${liveMeta.available ? 'alert-ok' : 'alert-info'}`;
   alert.innerHTML = liveMeta.available
     ? `Live options data active via <strong>${liveMeta.source||'broker'}</strong>. Greeks, IV, and current marks are being pulled from the broker when available.`
-    : `Live broker option enrichment is unavailable right now, so this panel is using <strong>${d.source||'snapshot'}</strong> fallbacks from runtime snapshots, reports, and the execution ledger.`;
+    : `Live broker option enrichment is unavailable right now. The current book now shows only verified live positions; confirmed fills remain in the recent activity ledger below.`;
 
   const posRows = d.positions || [];
   el('optPosBody').innerHTML = posRows.length ? posRows.map(r => `
@@ -3325,7 +3343,7 @@ async function loadOptions() {
       <td>${f(r.vega,3)}</td>
       <td class="${cx(r.unrealized_pnl)}">${fm(r.unrealized_pnl)}</td>
       <td>${r.dte??'—'}</td>
-    </tr>`).join('') : '<tr><td colspan="12" class="empty">No option positions or recent option executions found.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="12" class="empty">No verified live option positions are available right now.</td></tr>';
 
   const modelRows = Object.entries(d.pricing_models || {});
   el('optModelBody').innerHTML = modelRows.length ? modelRows.map(([k,v]) => `
@@ -3371,7 +3389,8 @@ async function loadStocks() {
   // Update status bar
   if (el('stk-val-count')) el('stk-val-count').textContent = d.universe_size ?? '—';
   if (el('stk-res-count')) el('stk-res-count').textContent = d.research_coverage_pct != null ? fp(d.research_coverage_pct) + ' covered' : '—';
-  if (el('stk-last-update')) el('stk-last-update').textContent = d.generated_at ? new Date(d.generated_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Cached';
+  const stocksGeneratedAt = d.generated_at_utc || d.generated_at;
+  if (el('stk-last-update')) el('stk-last-update').textContent = stocksGeneratedAt ? new Date(stocksGeneratedAt).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Cached';
   el('stk-pairs-eval').textContent = d.pairs?.summary?.pairs_evaluated ?? (d.pairs?.all_pairs || []).length ?? '—';
   el('stk-pair-symbols').textContent = d.pairs?.pair_symbol_count ?? '—';
 
@@ -3425,34 +3444,24 @@ async function loadOdds() {
 
   bellChart('oddsChart', d.curve || [], trades);
 
-  // Also fetch execution ledger fills to overlay on the table
-  const ledger = await api('/api/execution/ledger');
-  const ledgerMap = {};
-  if (ledger?.records) {
-    for (const r of ledger.records) {
-      const baseSymbol = (r.symbol || '').replace(/\d{6}[CP]\d+$/, '').replace(/\d+$/, '');
-      ledgerMap[baseSymbol] = ledgerMap[baseSymbol] || r;
-    }
-  }
-
   el('oddsBody').innerHTML = trades.length ? trades.map(t => {
     const src = t.source || 'pairs_research';
-    const isFill = src === 'execution_ledger' || src.includes('broker');
-    const srcBadge = isFill
-      ? `<span class="bdg bdg-ok" style="font-size:7px">FILL</span>`
-      : src === 'live' ? `<span class="bdg bdg-run" style="font-size:7px">LIVE</span>`
-      : `<span class="bdg" style="font-size:7px;background:var(--bg3);color:var(--t2)">RESEARCH</span>`;
+    const isLive = src === 'live_options';
+    const isBot = src === 'bot_state';
+    const srcBadge = isLive
+      ? `<span class="bdg bdg-ok" style="font-size:7px">LIVE</span>`
+      : isBot ? `<span class="bdg bdg-run" style="font-size:7px">BOT</span>`
+      : `<span class="bdg" style="font-size:7px;background:var(--bg3);color:var(--t2)">MODEL</span>`;
     // Kelly fraction: f* = (p*(b+1) - 1)/b where b = take_profit/stop_loss ratio
     let kellyStr = '—';
-    if (t.prob_profit_pct != null && t.stop_loss_price && t.take_profit_price && t.price) {
-      const b = Math.abs((t.take_profit_price - (t.price || t.stop_loss_price)) / ((t.price || t.take_profit_price) - t.stop_loss_price + 1e-6));
+    if (t.prob_profit_pct != null && t.stop_loss_price && t.take_profit_price && t.entry_price) {
+      const b = Math.abs((t.take_profit_price - t.entry_price) / (t.entry_price - t.stop_loss_price + 1e-6));
       const p = (t.prob_profit_pct || 0) / 100;
       const kelly = (p * (b + 1) - 1) / (b + 1e-6);
       kellyStr = kelly > 0 ? fp(Math.min(kelly, 1) * 100) : '0%';
     }
-    const matchedFill = t.symbol && ledgerMap[t.symbol.substring(0,4)];
-    const fillPrice   = matchedFill ? fm(matchedFill.fill_price) : (t.fill_price ? fm(t.fill_price) : '—');
-    const rowStyle    = isFill ? 'border-left:3px solid var(--green)' : '';
+    const fillPrice = t.entry_price != null ? fm(t.entry_price) : '—';
+    const rowStyle = isLive || isBot ? 'border-left:3px solid var(--green)' : '';
     return `<tr style="${rowStyle}">
       <td style="color:var(--t0)">${t.symbol}</td>
       <td>${t.market}</td>
@@ -3468,7 +3477,7 @@ async function loadOdds() {
       <td>${fm(t.stop_loss_price)}</td>
       <td>${fm(t.take_profit_price)}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="13" class="empty">No trade probability set available.</td></tr>';
+  }).join('') : `<tr><td colspan="13" class="empty">${d.note || 'No active confirmed positions are available for Trader Odds.'}</td></tr>`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3730,6 +3739,9 @@ function renderRiskEngine(eng) {
 
   const ctx = el('riskContextDetail');
   if (ctx) ctx.innerHTML = infoRows([
+    ['Trading Status', eng.trading_status || (eng.kill_switch_active ? 'HALTED' : 'LIVE'), tradingStatusTone(eng.trading_status || '')],
+    ['Snapshot Fresh', eng.risk_snapshot_fresh === true ? 'YES' : eng.risk_snapshot_fresh === false ? 'STALE' : '—', eng.risk_snapshot_fresh === true ? 'var(--green)' : eng.risk_snapshot_fresh === false ? 'var(--yellow)' : 'var(--t1)'],
+    ['Snapshot Age (h)', f(eng.risk_snapshot_age_hours, 2)],
     ['Macro Regime',   eng.macro_regime || '—'],
     ['Movement Bias',  eng.movement_bias || '—'],
     ['Policy Mode',    eng.runtime_policy_mode || '—'],
@@ -3765,6 +3777,20 @@ async function loadRisk(forceRefresh=false) {
 
   if (eng) renderRiskEngine(eng);
 
+  const metricsNotice = el('riskMetricsNotice');
+  if (metricsNotice) {
+    if (snap?.notice) {
+      metricsNotice.style.display = '';
+      metricsNotice.textContent = snap.notice;
+    } else if (surf?.notice) {
+      metricsNotice.style.display = '';
+      metricsNotice.textContent = surf.notice;
+    } else {
+      metricsNotice.style.display = 'none';
+      metricsNotice.textContent = '';
+    }
+  }
+
   if (snap) {
     el('rv-v95').textContent  = fp(snap.var_95_pct);
     el('rv-v99').textContent  = fp(snap.var_99_pct);
@@ -3784,6 +3810,12 @@ async function loadRisk(forceRefresh=false) {
         backgroundColor:'rgba(247,82,90,.22)',
         fill:true, pointRadius:0, tension:.2,
       }], {legend:false});
+    } else if (CHARTS.riskDdChart) {
+      CHARTS.riskDdChart.destroy();
+      delete CHARTS.riskDdChart;
+      const canvas = el('riskDdChart');
+      const ctx = canvas?.getContext?.('2d');
+      if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
 
@@ -3907,6 +3939,27 @@ async function loadSimLab() {
   if (!d) return;
   const mc = d.monte_carlo || {}, lv = d.las_vegas || {}, labels = d.labels || [];
 
+  if (el('simCtx')) {
+    el('simCtx').innerHTML = d.notice
+      ? `<div class="alert alert-info" style="margin-bottom:8px">${esc(d.notice)}</div>`
+      : '';
+  }
+
+  if (d.available === false) {
+    ['sim-mc-profit','sim-mc-p50','sim-mc-p95','sim-lv-profit','sim-lv-p50','sim-vix'].forEach(id => {
+      const node = el(id);
+      if (node) node.textContent = '—';
+    });
+    el('simBandsBody').innerHTML = '<tr><td colspan="6" class="empty">Not enough stable equity history to run a truthful simulation.</td></tr>';
+    ['simMcChart','simLvChart'].forEach(name => {
+      if (CHARTS[name]) { CHARTS[name].destroy(); CHARTS[name] = null; }
+    });
+    el('simCtx').innerHTML += `
+      <div class="irow"><span class="fl" style="margin-bottom:0">Source</span><span style="font-family:var(--mono);color:var(--t0)">${d.source||'unknown'}</span></div>
+      <div class="irow"><span class="fl" style="margin-bottom:0">Observations</span><span style="font-family:var(--mono);color:var(--t0)">${d.observation_count ?? 0}</span></div>`;
+    return;
+  }
+
   el('sim-mc-profit').textContent = fp(mc.prob_profit_pct);
   el('sim-mc-p50').textContent = fm(mc.terminal?.p50);
   el('sim-mc-p95').textContent = fm(mc.terminal?.p95);
@@ -3964,13 +4017,15 @@ async function loadSimLab() {
     </tr>`;
 
   el('simCtx').innerHTML = `
+    ${d.notice ? `<div class="alert alert-info" style="margin-bottom:8px">${esc(d.notice)}</div>` : ''}
     <div class="irow"><span class="fl" style="margin-bottom:0">Macro Regime</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.macro_regime||'—'}</span></div>
     <div class="irow"><span class="fl" style="margin-bottom:0">Movement Bias</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.movement_bias||'—'}</span></div>
     <div class="irow"><span class="fl" style="margin-bottom:0">Daily P&L %</span><span style="font-family:var(--mono);color:${csh(d.risk_context?.daily_pnl_pct||0)}">${fsp((d.risk_context?.daily_pnl_pct||0)*100,2)}</span></div>
     <div class="irow"><span class="fl" style="margin-bottom:0">Risk Score</span><span style="font-family:var(--mono);color:var(--t0)">${f(d.risk_context?.risk_score,3)}</span></div>
     <div class="irow"><span class="fl" style="margin-bottom:0">Runtime Paths</span><span style="font-family:var(--mono);color:var(--t0)">${d.risk_context?.simulation_paths ?? '—'}</span></div>
+    <div class="irow"><span class="fl" style="margin-bottom:0">Observations</span><span style="font-family:var(--mono);color:var(--t0)">${d.observation_count ?? '—'}</span></div>
     <div style="font-size:10px;color:var(--t2);line-height:1.6;margin-top:8px">
-      Source mode: <strong style="color:var(--t1)">${d.source||'unknown'}</strong>. When a rich equity history is unavailable, the simulation falls back to runtime risk proxies so the desk still gets a forward scenario envelope.
+      Source mode: <strong style="color:var(--t1)">${d.source||'unknown'}</strong>. Sim Lab now suppresses proxy scenarios when the equity history is too sparse or discontinuous.
     </div>`;
 }
 
@@ -4140,6 +4195,7 @@ async function pollFt(jid) {
 
 function renderFtResults(res) {
   if (!res) { el('ftRes').innerHTML='<div class="empty">No results</div>'; return; }
+  el('ftRes').innerHTML = res.range_notice ? `<div class="alert alert-info">${esc(res.range_notice)}</div>` : '';
   el('ftChartsArea').style.display='block';
   const spec = [
     ['Paths Tested',    res.n_paths,                          'var(--t0)'],
@@ -4193,40 +4249,43 @@ function initLogs() {
     };
     ws.onclose = () => {
       dot.className = 'sdot';
-      setTimeout(() => mkWs(url, logEl, dot, getF, getS), 3500);
+      if (ws._manualClose) return;
+      setTimeout(() => {
+        if (url.includes('/trader')) traderWs = mkWs(url, logEl, dot, getF, getS);
+        else riskWs = mkWs(url, logEl, dot, getF, getS);
+      }, 3500);
     };
     ws.onerror = () => ws.close();
     return ws;
   }
 
+  if (traderWs) try { traderWs._manualClose = true; traderWs.close(); } catch {}
+  if (riskWs) try { riskWs._manualClose = true; riskWs.close(); } catch {}
   traderWs = mkWs(`${WSB}/ws/logs/trader`, el('traderLog'), el('traderDot'), ()=>trF, ()=>trSc);
   riskWs   = mkWs(`${WSB}/ws/logs/risk`,   el('riskLog'),   el('riskDot'),   ()=>rkF, ()=>rkSc);
 
-  function togScroll(btnId, get, set) {
-    el(btnId).addEventListener('click', () => {
-      set(!get()); el(btnId).classList.toggle('on', !get());
+  if (!logsHandlersBound) {
+    logsHandlersBound = true;
+    el('traderToggle').addEventListener('click', () => {
+      trSc = !trSc; el('traderToggle').classList.toggle('on', trSc);
     });
-  }
-  // Note: togScroll toggling logic — after set, get() returns new value
-  el('traderToggle').addEventListener('click', () => {
-    trSc = !trSc; el('traderToggle').classList.toggle('on', trSc);
-  });
-  el('riskToggle').addEventListener('click', () => {
-    rkSc = !rkSc; el('riskToggle').classList.toggle('on', rkSc);
-  });
-  el('clearTrader').addEventListener('click', () => el('traderLog').innerHTML='');
-  el('clearRisk').addEventListener('click', () => el('riskLog').innerHTML='');
+    el('riskToggle').addEventListener('click', () => {
+      rkSc = !rkSc; el('riskToggle').classList.toggle('on', rkSc);
+    });
+    el('clearTrader').addEventListener('click', () => el('traderLog').innerHTML='');
+    el('clearRisk').addEventListener('click', () => el('riskLog').innerHTML='');
 
-  function filterLog(srchId, logId, setF) {
-    el(srchId).addEventListener('input', e => {
-      setF(e.target.value);
-      Array.from(el(logId).children).forEach(d => {
-        d.style.display = (!e.target.value || d.textContent.toLowerCase().includes(e.target.value.toLowerCase())) ? '' : 'none';
+    function filterLog(srchId, logId, setF) {
+      el(srchId).addEventListener('input', e => {
+        setF(e.target.value);
+        Array.from(el(logId).children).forEach(d => {
+          d.style.display = (!e.target.value || d.textContent.toLowerCase().includes(e.target.value.toLowerCase())) ? '' : 'none';
+        });
       });
-    });
+    }
+    filterLog('traderSrch', 'traderLog', v => { trF=v; });
+    filterLog('riskSrch',   'riskLog',   v => { rkF=v; });
   }
-  filterLog('traderSrch', 'traderLog', v => { trF=v; });
-  filterLog('riskSrch',   'riskLog',   v => { rkF=v; });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4375,7 +4434,8 @@ function renderAlphaSignals(d) {
   if (!sigs.length) { grid.innerHTML = '<div class="empty">No signals yet — run ML training first</div>'; return; }
   grid.innerHTML = sigs.slice(0, 60).map(s => {
     const dir   = (s.direction || '').toLowerCase();
-    const bull  = dir === 'long', bear = dir === 'short';
+    const bull  = dir === 'long' || dir === 'up';
+    const bear  = dir === 'short' || dir === 'down';
     const ret   = s.predicted_return != null ? (s.predicted_return * 100).toFixed(2) : '—';
     const score = s.alpha_score != null ? s.alpha_score.toFixed(4) : '—';
     const pct   = s.percentile  != null ? s.percentile.toFixed(0)  : '—';
@@ -4594,11 +4654,28 @@ async function loadRiskEvents() {
 async function loadTradeAnalysis() {
   loadExecutionLedger();
   const d = await api('/api/trades/analysis');
-  if (!d || !d.total_trades) {
+  if (!d) {
     ['ta-total','ta-wr','ta-pf','ta-exp','ta-aw','ta-al','ta-lw','ta-ll','ta-ws','ta-ls']
       .forEach(id => { const e=el(id); if(e) e.textContent='—'; });
     el('taByMarket').innerHTML = '<div class="empty">No trade data</div>';
     el('taTopSymbols').innerHTML = '<div class="empty">No trade data</div>';
+    return;
+  }
+  if (!d.total_trades) {
+    ['ta-total','ta-wr','ta-pf','ta-exp','ta-aw','ta-al','ta-lw','ta-ll','ta-ws','ta-ls']
+      .forEach(id => { const e=el(id); if(e) e.textContent='—'; });
+    const fillCount = d.fill_activity?.records ?? 0;
+    const latestFill = d.fill_activity?.latest_fill_at_utc
+      ? new Date(d.fill_activity.latest_fill_at_utc).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    el('taByMarket').innerHTML = `<div class="empty">${d.note || 'No realized trade P&L available.'}<br>Confirmed fills in ledger: ${fillCount} · latest fill ${latestFill}</div>`;
+    const fillSymbols = d.fill_activity?.symbols || [];
+    el('taTopSymbols').innerHTML = fillSymbols.length ? fillSymbols.map(s => `
+      <div class="sym-pnl-bar">
+        <span class="sym-pnl-nm">${s.symbol}</span>
+        <div class="sym-pnl-trk"><div class="sym-pnl-fill" style="width:${Math.min(100, s.fills * 14)}%;background:var(--blue)"></div></div>
+        <span class="sym-pnl-val" style="color:var(--blue)">${s.fills} fills</span>
+      </div>`).join('') : '<div class="empty">No confirmed fill activity</div>';
     return;
   }
 
@@ -4677,19 +4754,50 @@ async function loadCmdCenter() {
 
   // Strategy grid
   const strats = d.strategies || {};
-  el('cc-stratGrid').innerHTML = Object.entries(strats).map(([name, s]) => {
+  const rows = Object.entries(strats).sort((a, b) => Number(b[1].enabled) - Number(a[1].enabled) || a[0].localeCompare(b[0]));
+  const enabledCount = rows.filter(([, s]) => s.enabled).length;
+  const advanced = new Set(['market_making','gamma_scalping','vol_surface_arb']);
+  const inferBucket = name => {
+    if (advanced.has(name)) return { label: 'Options', color: 'var(--cyan)' };
+    if (['order_flow','vpin_flow','microstructure_pressure','liquidation_cascade'].includes(name)) return { label: 'Microstructure', color: 'var(--orange)' };
+    if (['carry_portfolio','momentum_carry_combo','contrarian_oi'].includes(name)) return { label: 'Carry / Alt', color: 'var(--purple)' };
+    if (['knn_predictor','rma_strategy','quant_factors'].includes(name)) return { label: 'Model', color: 'var(--blue)' };
+    return { label: 'Core', color: 'var(--t1)' };
+  };
+  el('cc-stratGrid').innerHTML = `
+    <div class="bl-strip" style="margin-bottom:10px">
+      <div class="bl-cell"><span class="bl-clbl">Strategies</span><span class="bl-cval">${rows.length}</span></div>
+      <div class="bl-cell"><span class="bl-clbl">Enabled</span><span class="bl-cval pos">${enabledCount}</span></div>
+      <div class="bl-cell"><span class="bl-clbl">Disabled</span><span class="bl-cval neg">${rows.length - enabledCount}</span></div>
+      <div class="bl-cell"><span class="bl-clbl">Kill Switch</span><span class="bl-cval ${ks ? 'neg' : 'pos'}">${ks ? 'HALTED' : 'SAFE'}</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px">
+      ${rows.map(([name, s]) => {
     const label = STRATEGY_LABELS[name] || name;
     const isOn  = s.enabled;
-    const isNew = ['market_making','gamma_scalping','vol_surface_arb'].includes(name);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:10px;font-weight:700;color:${isNew?'var(--cyan)':'var(--t0)'}">${label}</span>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm ${isOn?'btn-p':'btn-g'}" style="min-width:60px" onclick="ccToggle('${name}',${!isOn})">
-          ${isOn?'ON':'OFF'}
+    const bucket = inferBucket(name);
+    const paramCount = Object.keys(s.params || {}).length;
+    return `<div style="background:linear-gradient(180deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:6px;padding:10px;box-shadow:0 8px 18px rgba(0,0,0,.18)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--t0);letter-spacing:.02em">${label}</div>
+          <div style="font-size:8px;color:var(--t2);font-family:var(--mono);margin-top:2px">${name}</div>
+        </div>
+        <span class="bdg ${isOn ? 'bdg-ok' : 'bdg-warn'}">${isOn ? 'LIVE' : 'OFF'}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="bdg" style="background:rgba(255,255,255,.03);color:${bucket.color};border-color:rgba(255,255,255,.06)">${bucket.label}</span>
+        <span class="bdg" style="background:rgba(255,255,255,.03);color:var(--t2);border-color:rgba(255,255,255,.06)">${paramCount} params</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-size:9px;color:var(--t2)">Runtime control</div>
+        <button class="btn btn-sm ${isOn?'btn-p':'btn-g'}" style="min-width:76px" onclick="ccToggle('${name}',${!isOn})">
+          ${isOn?'Disable':'Enable'}
         </button>
       </div>
     </div>`;
-  }).join('') || '<div class="empty">No strategies found.</div>';
+  }).join('') || '<div class="empty">No strategies found.</div>'}
+    </div>`;
 
   // Load risk config
   ccLoadRisk();
@@ -4787,7 +4895,8 @@ async function ccResetUniverse() {
 ════════════════════════════════════════════════════════════════════ */
 async function loadExecutionLedger() {
   const d = await api('/api/execution/ledger');
-  if (!d || !d.records?.length) {
+  const records = d?.fills || d?.records || [];
+  if (!d || !records.length) {
     const b = el('ta-ledgerBody');
     if (b) b.innerHTML = '<tr><td colspan="9" class="empty">No execution ledger records found.</td></tr>';
     const badge = el('ta-ledger-badge');
@@ -4799,8 +4908,8 @@ async function loadExecutionLedger() {
 
   const tbody = el('ta-ledgerBody');
   if (tbody) {
-    tbody.innerHTML = d.records.map(r => {
-      const notional   = (r.qty || 0) * (r.fill_price || 0) * 100;
+    tbody.innerHTML = records.map(r => {
+      const notional   = r.notional != null ? r.notional : (r.qty || 0) * (r.fill_price || 0);
       const isSell     = r.side === 'SELL';
       const scoreColor = r.exec_score >= 0.8 ? 'var(--green)' : r.exec_score >= 0.6 ? 'var(--yellow)' : 'var(--red)';
       const filledAt   = r.filled_at
@@ -4822,7 +4931,7 @@ async function loadExecutionLedger() {
 
   const qual = el('ta-fillQuality');
   if (qual) {
-    const scores = d.records.filter(r => r.exec_score != null).map(r => r.exec_score);
+    const scores = records.filter(r => r.exec_score != null).map(r => r.exec_score);
     const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2) : '—';
     qual.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
@@ -4837,7 +4946,7 @@ async function loadExecutionLedger() {
   const byStrat = el('taByStrategy');
   if (byStrat) {
     const groups = {};
-    for (const r of d.records) {
+    for (const r of records) {
       const src = r.source || 'unknown';
       groups[src] = (groups[src] || 0) + 1;
     }
@@ -4851,7 +4960,16 @@ async function loadExecutionLedger() {
 
 async function loadRollingSharpChartData() {
   const d = await api('/api/equity/analytics');
-  if (!d?.available) return;
+  if (!d?.available) {
+    if (CHARTS['rollingSharpe']) {
+      CHARTS['rollingSharpe'].destroy();
+      delete CHARTS['rollingSharpe'];
+    }
+    const canvas = el('rollingSharpeChart');
+    const ctx = canvas?.getContext?.('2d');
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
 
   const rs     = d.rolling_sharpe || [];
   const ts     = d.timestamps     || [];
@@ -5156,13 +5274,25 @@ async function loadGsQuant() {
   _gsqSetBadge('LOADING', 'bdg-run');
 
   const [ts, tech, risk, cone, vs, factors] = await Promise.all([
-    api(`/api/gsquant/timeseries/${sym}?lookback=${lb}`),
-    api(`/api/gsquant/technical/${sym}?lookback=${lb}`),
-    api(`/api/gsquant/risk/${sym}?lookback=${lb}`),
-    api(`/api/gsquant/vol_cone/${sym}?lookback=${lb}`),
-    api(`/api/gsquant/vol_surface/${sym}?lookback=${lb}`),
-    api(`/api/gsquant/factors?lookback=${lb}`),
+    api(`/api/gsquant/timeseries/${sym}?lookback=${lb}`, {timeoutMs: 25000}),
+    api(`/api/gsquant/technical/${sym}?lookback=${lb}`, {timeoutMs: 25000}),
+    api(`/api/gsquant/risk/${sym}?lookback=${lb}`, {timeoutMs: 25000}),
+    api(`/api/gsquant/vol_cone/${sym}?lookback=${lb}`, {timeoutMs: 25000}),
+    api(`/api/gsquant/vol_surface/${sym}?lookback=${lb}`, {timeoutMs: 30000}),
+    api(`/api/gsquant/factors?lookback=${lb}`, {timeoutMs: 30000}),
   ]);
+  const panelsLoaded = [
+    !!ts?.available,
+    !!tech?.available,
+    !!risk?.available,
+    !!cone?.available || !!cone?.cone,
+    !!vs?.available,
+    !!factors?.available || !!factors?.factors,
+  ].filter(Boolean).length;
+  if (!panelsLoaded) {
+    _gsqSetBadge('CACHE MISS / DATA UNAVAILABLE', 'bdg-err');
+    return;
+  }
 
   // ── Metrics strip ───────────────────────────────────────────────────────
   if (ts?.available) {
@@ -5388,13 +5518,13 @@ async function loadGsQuant() {
   }
 
   _gsqSetBadge('', '');
-  _gsqSetBadge('READY', 'bdg-ok');
+  _gsqSetBadge(`READY ${panelsLoaded}/6`, 'bdg-ok');
   setTimeout(() => _gsqSetBadge('', ''), 3000);
 }
 
 async function loadGsCorrelation() {
   _gsqSetBadge('LOADING CORR', 'bdg-run');
-  const d = await api('/api/gsquant/correlation?symbols=SPY,QQQ,AAPL,MSFT,NVDA,AMZN,TSLA,BTCUSDT,ETHUSDT,GLD');
+  const d = await api('/api/gsquant/correlation?symbols=SPY,QQQ,AAPL,MSFT,NVDA,AMZN,TSLA,BTCUSDT,ETHUSDT,GLD', {timeoutMs: 30000});
   const el2 = el('gsq-corr-body');
   if (!el2) return;
   if (!d?.available) { el2.innerHTML = '<div class="empty">No data</div>'; return; }
@@ -5430,9 +5560,15 @@ async function loadGsCorrelation() {
 }
 
 async function loadGsSummary() {
-  const d = await api('/api/gsquant/summary');
+  _gsqSetBadge('LOADING SUMMARY', 'bdg-run');
+  const d = await api('/api/gsquant/summary', {timeoutMs: 45000});
   const tb = el('gsq-universe-body');
-  if (!tb || !d?.available) return;
+  if (!tb) return;
+  if (!d?.available) {
+    tb.innerHTML = '<tr><td colspan="8" class="empty">No cache-backed GS Quant summary is available right now.</td></tr>';
+    _gsqSetBadge('SUMMARY UNAVAILABLE', 'bdg-err');
+    return;
+  }
   const entries = Object.entries(d.symbols);
   tb.innerHTML = entries.map(([sym, v]) => {
     const zv = v.zscore_1m;
@@ -5449,6 +5585,8 @@ async function loadGsSummary() {
       <td style="color:${rvClr};font-size:9px;font-weight:800">${rvSig}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="8" class="empty">No data</td></tr>';
+  _gsqSetBadge(`SUMMARY ${entries.length}`, 'bdg-ok');
+  setTimeout(() => _gsqSetBadge('', ''), 3000);
 }
 
 async function runBsPricer() {
@@ -5459,7 +5597,11 @@ async function runBsPricer() {
   const r    = parseFloat(el('bsp-r')?.value||0.05);
   const type = el('bsp-type')?.value || 'Call';
 
-  const d = await api('/api/gsquant/pricer', {method:'POST', body:JSON.stringify({S,K,dte,sigma:sig,r,option_type:type})});
+  const d = await api('/api/gsquant/pricer', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({S,K,dte,sigma:sig,r,option_type:type}),
+  });
   if (!d || d.error) {
     const re = el('bsp-result'); if (re) re.innerHTML = `<div class="alert alert-err">${d?.error||'Request failed'}</div>`;
     return;

@@ -167,7 +167,12 @@ class Orchestrator:
 
         # --- 2. Get current equity ---
         balance = await self.client.get_futures_balance()
-        equity = float(balance.get("USDT", self._start_equity))
+        account_snapshot = await self.client.get_account_snapshot() if hasattr(self.client, "get_account_snapshot") else {}
+        equity = float(
+            account_snapshot.get("equity", 0)
+            or balance.get("USDT", self._start_equity)
+            or balance.get("USD", self._start_equity)
+        )
         state.record_equity(equity, self.guard.current_drawdown if hasattr(self.guard, 'current_drawdown') else 0)
 
         # --- 3. Daily reset ---

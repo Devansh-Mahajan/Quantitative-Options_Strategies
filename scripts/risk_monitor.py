@@ -43,7 +43,13 @@ async def _monitor_loop() -> None:
         try:
             await pos_manager.refresh(force=True)
             balance = await client.get_futures_balance()
-            equity = float(balance.get("USDT", 0))
+            account_snapshot = await client.get_account_snapshot() if hasattr(client, "get_account_snapshot") else {}
+            equity = float(
+                account_snapshot.get("equity", 0)
+                or balance.get("USDT", 0)
+                or balance.get("USD", 0)
+                or 0
+            )
 
             if equity > peak_equity:
                 peak_equity = equity

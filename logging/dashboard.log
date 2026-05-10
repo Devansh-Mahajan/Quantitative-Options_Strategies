@@ -398,3 +398,5 @@ INFO:     127.0.0.1:55644 - "GET /api/research/desk?refresh=1 HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     connection closed
 INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+19:28:15  INFO     exchange.alpaca_client — Alpaca client connected (paper=True) — account=c006ab26-c163-4da8-8b20-67550986783a equity=$10115.51
+19:34:22  INFO     exchange.alpaca_client — Alpaca client connected (paper=True) — account=c006ab26-c163-4da8-8b20-67550986783a equity=$10140.61
