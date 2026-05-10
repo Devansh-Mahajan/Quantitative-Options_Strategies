@@ -313,6 +313,42 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .sym-pnl-trk{flex:1;height:8px;background:var(--bg3);border-radius:2px;overflow:hidden}
 .sym-pnl-fill{height:100%;border-radius:2px}
 .sym-pnl-val{font-family:var(--mono);font-size:9px;min-width:55px;text-align:right}
+
+/* ── BLOOMBERG LIVE TAB ─────────────────────────────────────────────── */
+.bl-sysbar{display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r);
+  padding:9px 16px;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.bl-sysbar-l{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bl-sysbar-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bl-kv{display:flex;flex-direction:column;gap:0}
+.bl-sk{font-size:7px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
+.bl-sv{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--t0);line-height:1.2;white-space:nowrap}
+.bl-regime-chip{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.05em;
+  padding:4px 10px;border-radius:3px;text-transform:uppercase;
+  border:1px solid var(--cyan);background:var(--cyan-a);color:var(--cyan)}
+.bl-divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.bl-strip{display:grid;grid-template-columns:repeat(9,1fr);
+  border:1px solid var(--border);border-radius:var(--r);background:var(--bg1);
+  overflow:hidden;margin-bottom:2px}
+.bl-strip+.bl-strip{border-top:none;border-radius:0 0 var(--r) var(--r);margin-top:0;margin-bottom:12px}
+.bl-cell{padding:10px 12px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:3px;cursor:default;transition:background .12s}
+.bl-cell:last-child{border-right:none}
+.bl-cell:hover{background:var(--bg2)}
+.bl-clbl{font-size:7.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-cval{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--t0);
+  line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ml-sig-row{display:flex;align-items:center;gap:8px;padding:5px 0;
+  border-bottom:1px solid var(--border)}
+.ml-sig-row:last-child{border-bottom:none}
+.ml-sig-sym{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t0);
+  min-width:90px;overflow:hidden;text-overflow:ellipsis}
+.ml-sig-dir{font-size:8px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;min-width:45px}
+.ml-sig-score{font-family:var(--mono);font-size:9px;color:var(--t1);min-width:55px}
+.ml-sig-ret{font-family:var(--mono);font-size:9px;flex:1;text-align:right}
+@media(max-width:900px){.bl-strip{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.bl-strip{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -357,6 +393,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button class="ntab" data-tab="training">ML Training</button>
   <button class="ntab" data-tab="intelligence">Intelligence</button>
   <button class="ntab" data-tab="tradeanalysis">Trade Analysis</button>
+  <button class="ntab" data-tab="cmdcenter">Command Center</button>
+  <button class="ntab" data-tab="gsquant">GS Quant</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
 
@@ -365,86 +403,168 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <!-- ───────────────────── LIVE PERFORMANCE ──────────────────────────── -->
 <div id="tab-live" class="tab active">
-  <div class="mcs" id="liveMcs">
-    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
-      <div class="mc-lbl">Equity</div><div class="mc-val" id="mv-eq">—</div><div class="mc-sub">Portfolio value</div></div>
-    <div class="mc"><div class="mc-bar" id="mbar-ret" style="background:var(--accent)"></div>
-      <div class="mc-lbl">Total Return</div><div class="mc-val" id="mv-ret">—</div><div class="mc-sub">Since inception</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
-      <div class="mc-lbl">Sharpe Ratio</div><div class="mc-val" id="mv-sh">—</div><div class="mc-sub">Annualised</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
-      <div class="mc-lbl">Sortino</div><div class="mc-val" id="mv-so">—</div><div class="mc-sub">Downside adj.</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
-      <div class="mc-lbl">Calmar</div><div class="mc-val" id="mv-ca">—</div><div class="mc-sub">Return / Max DD</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
-      <div class="mc-lbl">Max Drawdown</div><div class="mc-val neg" id="mv-dd">—</div><div class="mc-sub">Peak-to-trough</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
-      <div class="mc-lbl">Ann. Volatility</div><div class="mc-val" id="mv-vl">—</div><div class="mc-sub">Annualised σ</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
-      <div class="mc-lbl">Ann. Return</div><div class="mc-val" id="mv-ar">—</div><div class="mc-sub">CAGR</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
-      <div class="mc-lbl">Peak Equity</div><div class="mc-val" id="mv-pk">—</div><div class="mc-sub">All-time high</div></div>
+
+  <!-- ── BLOOMBERG SYSTEM STATUS BAR ─────────────────────────────────── -->
+  <div class="bl-sysbar">
+    <div class="bl-sysbar-l">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="sdot live"></span>
+        <span style="font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--t2)">TRADING DESK</span>
+      </div>
+      <div class="bl-divider"></div>
+      <span class="bl-regime-chip" id="bl-regime-chip">—</span>
+      <div class="bl-divider"></div>
+      <div class="bl-kv"><span class="bl-sk">VIX</span><span class="bl-sv" id="bl-vix-val">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">Fills</span><span class="bl-sv" id="bl-fills-ct">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">Positions</span><span class="bl-sv" id="bl-pos-sbar">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">Daily P&amp;L</span><span class="bl-sv" id="bl-dpnl-val">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">Equity</span><span class="bl-sv" id="bl-equity-sbar">—</span></div>
+    </div>
+    <div class="bl-sysbar-r">
+      <button class="btn btn-g btn-sm" onclick="triggerMasterRecal()" id="blRecalBtn">⚡ RECALIBRATE ALL</button>
+      <span id="bl-recal-badge" class="bdg" style="display:none"></span>
+    </div>
   </div>
 
-  <div class="cw">
-    <div class="chdr">
-      <span class="cttl">Portfolio vs Benchmark — Normalised %</span>
-      <div class="cctrls">
-        <select class="bench-sel" id="benchSel">
-          <option value="SPY">SPY</option>
-          <option value="BTCUSDT">BTC / USD</option>
-          <option value="QQQ">QQQ</option>
-          <option value="ETHUSDT">ETH / USD</option>
-          <option value="AAPL">AAPL</option>
-          <option value="MSFT">MSFT</option>
-        </select>
-        <button class="wbtn" data-w="1d">1D</button>
-        <button class="wbtn active" data-w="1w">1W</button>
-        <button class="wbtn" data-w="1m">1M</button>
-        <button class="wbtn" data-w="3m">3M</button>
-        <button class="wbtn" data-w="1y">1Y</button>
-        <button class="wbtn" data-w="max">MAX</button>
+  <!-- ── PERFORMANCE METRICS STRIP ────────────────────────────────────── -->
+  <div class="bl-strip">
+    <div class="bl-cell"><span class="bl-clbl">Equity</span><span class="bl-cval" id="mv-eq">—</span></div>
+    <div class="bl-cell">
+      <span class="bl-clbl">Total Return</span>
+      <span id="mbar-ret" style="display:none"></span>
+      <span class="bl-cval" id="mv-ret">—</span>
+    </div>
+    <div class="bl-cell"><span class="bl-clbl">Sharpe</span><span class="bl-cval" id="mv-sh">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Sortino</span><span class="bl-cval" id="mv-so">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Calmar</span><span class="bl-cval" id="mv-ca">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Max DD</span><span class="bl-cval neg" id="mv-dd">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Ann Vol</span><span class="bl-cval" id="mv-vl">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">CAGR</span><span class="bl-cval" id="mv-ar">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Peak Equity</span><span class="bl-cval" id="mv-pk">—</span></div>
+  </div>
+  <!-- RISK / DESK METRICS STRIP -->
+  <div class="bl-strip">
+    <div class="bl-cell"><span class="bl-clbl">Status</span><span class="bl-cval" id="eo-status">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Risk Score</span><span class="bl-cval" id="eo-risk">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Exec Quality</span><span class="bl-cval" id="eo-exec">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Inst Score</span><span class="bl-cval" id="eo-inst">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Predict Score</span><span class="bl-cval" id="eo-predict">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Daily P&amp;L</span><span class="bl-cval" id="eo-daily">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Open Pos</span><span class="bl-cval" id="eo-open">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Cash</span><span class="bl-cval" id="eo-cash">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Buying Power</span><span class="bl-cval" id="eo-buy">—</span></div>
+  </div>
+
+  <!-- ── CHARTS + REGIME + BREADTH ────────────────────────────────────── -->
+  <div class="row">
+    <div class="col2">
+      <div class="cw" style="margin-bottom:10px">
+        <div class="chdr">
+          <span class="cttl">Portfolio vs Benchmark — Normalised %</span>
+          <div class="cctrls">
+            <select class="bench-sel" id="benchSel">
+              <option value="SPY">SPY</option>
+              <option value="BTCUSDT">BTC / USD</option>
+              <option value="QQQ">QQQ</option>
+              <option value="ETHUSDT">ETH / USD</option>
+              <option value="AAPL">AAPL</option>
+              <option value="MSFT">MSFT</option>
+            </select>
+            <button class="wbtn" data-w="1d">1D</button>
+            <button class="wbtn active" data-w="1w">1W</button>
+            <button class="wbtn" data-w="1m">1M</button>
+            <button class="wbtn" data-w="3m">3M</button>
+            <button class="wbtn" data-w="1y">1Y</button>
+            <button class="wbtn" data-w="max">MAX</button>
+          </div>
+        </div>
+        <canvas id="eqChart" height="220"></canvas>
+      </div>
+      <div class="cw">
+        <div class="chdr"><span class="cttl">Drawdown from Peak</span></div>
+        <canvas id="ddChart" height="90"></canvas>
       </div>
     </div>
-    <canvas id="eqChart" height="270"></canvas>
-  </div>
-
-  <div class="cw">
-    <div class="chdr"><span class="cttl">Drawdown from Peak</span></div>
-    <canvas id="ddChart" height="110"></canvas>
-  </div>
-
-  <div class="mcs" id="eliteDeskMcs">
-    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
-      <div class="mc-lbl">Trading Status</div><div class="mc-val" id="eo-status">—</div><div class="mc-sub">Broker + risk state</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
-      <div class="mc-lbl">Risk Score</div><div class="mc-val" id="eo-risk">—</div><div class="mc-sub">Portfolio engine</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--cyan)"></div>
-      <div class="mc-lbl">Execution Quality</div><div class="mc-val" id="eo-exec">—</div><div class="mc-sub">Recent fill stack</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--purple)"></div>
-      <div class="mc-lbl">Institutional Score</div><div class="mc-val" id="eo-inst">—</div><div class="mc-sub">Deployment readiness</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--green)"></div>
-      <div class="mc-lbl">Predictive Score</div><div class="mc-val" id="eo-predict">—</div><div class="mc-sub">Research stack blend</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--orange)"></div>
-      <div class="mc-lbl">Daily P&L</div><div class="mc-val" id="eo-daily">—</div><div class="mc-sub">Runtime snapshot</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--yellow)"></div>
-      <div class="mc-lbl">Open Positions</div><div class="mc-val" id="eo-open">—</div><div class="mc-sub">Broker live book</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--blue)"></div>
-      <div class="mc-lbl">Broker Cash</div><div class="mc-val" id="eo-cash">—</div><div class="mc-sub">Deployable cash buffer</div></div>
-    <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
-      <div class="mc-lbl">Buying Power</div><div class="mc-val" id="eo-buy">—</div><div class="mc-sub">Account buying power</div></div>
-  </div>
-
-  <div class="cw">
-    <div class="chdr">
-      <span class="cttl">Intraday Equity Tape</span>
-      <span id="tapeSource" class="bdg bdg-info">—</span>
+    <div class="col">
+      <div class="card" id="bl-regime-card" style="margin-bottom:10px">
+        <div class="card-hdr">
+          <span class="ctitle">Market Regime</span>
+          <span id="bl-policy-badge" class="bdg bdg-info">—</span>
+        </div>
+        <div id="live-regime-panel" class="empty">Loading…</div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="ctitle">Market Breadth</span></div>
+        <div id="live-breadth-panel" class="empty">Loading…</div>
+      </div>
     </div>
-    <canvas id="tapeChart" height="170"></canvas>
-    <div id="tapeStats" class="loading tape-meta"><div class="spinner"></div>Loading broker tape…</div>
   </div>
 
-  <div class="row">
+  <!-- ── OPEN POSITIONS ────────────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Open Positions</span>
+      <span id="posCount" class="bdg bdg-info">0</span>
+    </div>
+    <div id="posSummary"></div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Symbol</th><th>Asset</th><th>Side</th><th>Size</th>
+          <th>Entry</th><th>Mark</th><th>Market Value</th><th>Unr. PnL</th><th>Weight</th><th>Source</th>
+        </tr></thead>
+        <tbody id="posBody"><tr><td colspan="10" class="empty">No open positions</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── EXECUTION TAPE + ML SIGNALS ──────────────────────────────────── -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Execution Tape — Actual Fills Only</span>
+        <span id="bl-fills-badge" class="bdg bdg-ok">LEDGER</span>
+      </div>
+      <div class="tw" style="max-height:320px;overflow-y:auto">
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill Price</th><th>Status</th>
+          </tr></thead>
+          <tbody id="blFillsBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading fills…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">ML Alpha Signals — Top 10</span>
+        <span class="bdg bdg-info">XGB ENGINE</span>
+      </div>
+      <div id="blMlSignals" class="loading" style="padding:14px"><div class="spinner"></div> Loading signals…</div>
+    </div>
+  </div>
+
+  <!-- ── STRATEGY PNL + RISK GAUGES ───────────────────────────────────── -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">Strategy P&amp;L Attribution</span>
+        <span id="totalPnlBadge" class="bdg bdg-info">Calculating…</span>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Strategy</th><th>Total P&L</th><th>Trades</th><th>Win Rate</th><th>W / L</th></tr></thead>
+          <tbody id="stratPnlBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Live Risk Gauges</span></div>
+      <div id="liveRiskGauges" class="empty">Loading risk engine…</div>
+    </div>
+  </div>
+
+  <!-- ── DESK RADAR + RESEARCH ALPHA + SESSION ────────────────────────── -->
+  <div class="row" style="margin-bottom:14px">
     <div class="col card">
       <div class="card-hdr">
         <span class="ctitle">Desk Radar</span>
@@ -467,21 +587,26 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
     </div>
     <div class="col card">
-      <div class="card-hdr"><span class="ctitle">Execution + Infra</span></div>
-      <div id="eliteExecMeta" class="loading"><div class="spinner"></div>Loading execution stack…</div>
-      <hr class="dv">
-      <div id="eliteInfraMeta" class="loading"><div class="spinner"></div>Loading host telemetry…</div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col card">
       <div class="card-hdr">
         <span class="ctitle">Session Telemetry</span>
         <span id="elitePnlSourceBadge" class="bdg bdg-info">—</span>
       </div>
       <div id="eliteSessionMeta" class="loading"><div class="spinner"></div>Loading session telemetry…</div>
     </div>
+  </div>
+
+  <!-- ── INTRADAY TAPE CHART ───────────────────────────────────────────── -->
+  <div class="cw" style="margin-bottom:14px">
+    <div class="chdr">
+      <span class="cttl">Intraday Equity Tape</span>
+      <span id="tapeSource" class="bdg bdg-info">—</span>
+    </div>
+    <canvas id="tapeChart" height="140"></canvas>
+    <div id="tapeStats" class="loading tape-meta"><div class="spinner"></div>Loading broker tape…</div>
+  </div>
+
+  <!-- ── READINESS + FRESHNESS + INFRA ────────────────────────────────── -->
+  <div class="row" style="margin-bottom:14px">
     <div class="col card">
       <div class="card-hdr"><span class="ctitle">Readiness Breakdown</span></div>
       <div id="eliteScoreBars" class="loading"><div class="spinner"></div>Loading score stack…</div>
@@ -496,34 +621,27 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
       <div id="eliteFreshnessMeta" class="loading"><div class="spinner"></div>Loading freshness telemetry…</div>
     </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Execution + Infra</span></div>
+      <div id="eliteExecMeta" class="loading"><div class="spinner"></div>Loading execution stack…</div>
+      <hr class="dv">
+      <div id="eliteInfraMeta" class="loading"><div class="spinner"></div>Loading host telemetry…</div>
+    </div>
   </div>
 
-  <div class="row">
-    <div class="col2 card">
-      <div class="card-hdr">
-        <span class="ctitle">Open Positions</span>
-        <span id="posCount" class="bdg bdg-info">0</span>
-      </div>
-      <div id="posSummary" class="loading"><div class="spinner"></div>Loading position blotter…</div>
-      <hr class="dv">
-      <div class="tw">
-        <table>
-          <thead><tr><th>Symbol</th><th>Asset</th><th>Side</th><th>Size</th><th>Entry</th>
-            <th>Mark</th><th>Market Value</th><th>Unr. PnL</th><th>Weight</th><th>Source</th></tr></thead>
-          <tbody id="posBody"><tr><td colspan="10" class="empty">No open positions</td></tr></tbody>
-        </table>
-      </div>
-    </div>
+  <!-- ── TRADE LOG + RECENT TRADES ────────────────────────────────────── -->
+  <div class="row" style="margin-bottom:14px">
     <div class="col card">
       <div class="card-hdr"><span class="ctitle">Trade Log Export</span></div>
       <div class="fg2">
         <div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="tradeS"></div>
         <div class="fg"><label class="fl">End Date</label><input type="date" class="fi" id="tradeE"></div>
       </div>
-      <button class="btn btn-p" id="dlBtn" style="width:100%;margin-bottom:10px">↓ Download CSV</button>
-      <hr class="dv">
-      <div class="ctitle" style="margin-bottom:8px">Recent Trades</div>
-      <div class="tw" style="max-height:220px;overflow-y:auto">
+      <button class="btn btn-p" id="dlBtn" style="width:100%">↓ Download CSV</button>
+    </div>
+    <div class="col2 card">
+      <div class="card-hdr"><span class="ctitle">Recent Trades</span></div>
+      <div class="tw" style="max-height:180px;overflow-y:auto">
         <table>
           <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th><th>PnL</th><th>Strategy</th></tr></thead>
           <tbody id="recentBody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
@@ -531,25 +649,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       </div>
     </div>
   </div>
-  <!-- Strategy P&L attribution -->
-  <div class="row">
-    <div class="col2 card">
-      <div class="card-hdr">
-        <span class="ctitle">Strategy P&L Attribution</span>
-        <span id="totalPnlBadge" class="bdg bdg-info">Calculating…</span>
-      </div>
-      <div class="tw" style="max-height:220px;overflow-y:auto">
-        <table>
-          <thead><tr><th>Strategy</th><th>Total P&L</th><th>Trades</th><th>Win Rate</th><th>W / L</th></tr></thead>
-          <tbody id="stratPnlBody"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="col card">
-      <div class="card-hdr"><span class="ctitle">Live Risk Gauges</span></div>
-      <div id="liveRiskGauges" class="empty">Loading risk engine…</div>
-    </div>
-  </div>
+
 </div><!-- /live -->
 
 <!-- ───────────────────── OPTIONS INTEL ────────────────────────────── -->
@@ -696,6 +796,21 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <!-- ───────────────────── STOCKS + PAIRS ──────────────────────────── -->
 <div id="tab-stocks" class="tab">
+  <!-- Stocks tab recalibration bar -->
+  <div class="bl-sysbar" style="margin-bottom:14px">
+    <div class="bl-sysbar-l">
+      <span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--t1)">FORTUNE 500 / S&amp;P 500 UNIVERSE</span>
+      <div class="bl-divider"></div>
+      <div class="bl-kv"><span class="bl-sk">Validated</span><span class="bl-sv" id="stk-val-count">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">With Research</span><span class="bl-sv" id="stk-res-count">—</span></div>
+      <div class="bl-kv"><span class="bl-sk">Last Updated</span><span class="bl-sv" id="stk-last-update">—</span></div>
+    </div>
+    <div class="bl-sysbar-r">
+      <button class="btn btn-ok btn-sm" onclick="triggerMasterRecal()" id="stkRecalBtn">⚡ DOWNLOAD ALL DATA &amp; RECALIBRATE</button>
+      <span id="stk-recal-status" class="bdg" style="display:none"></span>
+    </div>
+  </div>
+
   <div class="mcs">
     <div class="mc"><div class="mc-bar" style="background:var(--accent)"></div>
       <div class="mc-lbl">Universe Size</div><div class="mc-val" id="stk-universe">—</div><div class="mc-sub">Validated equities</div></div>
@@ -1024,6 +1139,11 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="chdr"><span class="cttl">Rolling Drawdown Series (Last 720 Bars)</span></div>
     <canvas id="riskDdChart" height="160"></canvas>
   </div>
+
+  <div class="cw" style="margin-top:14px">
+    <div class="chdr"><span class="cttl">Rolling Sharpe (50-bar window)</span></div>
+    <canvas id="rollingSharpeChart" height="130"></canvas>
+  </div>
 </div><!-- /risk -->
 
 <!-- ───────────────────── SIM LAB ──────────────────────────────────── -->
@@ -1163,6 +1283,9 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
           <option value="knn_predictor">KNN Predictor</option><option value="vpin_flow">VPIN Flow</option>
           <option value="pivot_sr">Pivot S/R</option><option value="statistical_arb">Statistical Arb</option>
           <option value="microstructure_pressure">Microstructure Pressure</option><option value="pullback_confluence">Pullback Confluence</option>
+          <option value="market_making">Market Making (Avellaneda-Stoikov)</option>
+          <option value="gamma_scalping">Gamma Scalping (GARCH VRP)</option>
+          <option value="vol_surface_arb">Vol Surface Arb (Term Structure)</option>
         </select></div>
       <div id="ftProg" style="display:none;margin-bottom:9px">
         <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--t2);margin-bottom:6px">
@@ -1216,8 +1339,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="card-hdr"><span class="ctitle">Simulated Trade Odds</span></div>
     <div class="tw" style="max-height:460px;overflow-y:auto">
       <table>
-        <thead><tr><th>Trade</th><th>Market</th><th>Side</th><th>Prob. Profit</th><th>Expected P&L</th><th>VaR 95</th><th>CVaR 95</th><th>Ann. Vol</th><th>Stop</th><th>Take</th></tr></thead>
-        <tbody id="oddsBody"><tr><td colspan="10" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+        <thead><tr><th>Trade</th><th>Market</th><th>Side</th><th>Source</th><th>Fill Price</th><th>Kelly Size</th><th>Prob. Profit</th><th>Expected P&L</th><th>VaR 95</th><th>CVaR 95</th><th>Ann. Vol</th><th>Stop</th><th>Take</th></tr></thead>
+        <tbody id="oddsBody"><tr><td colspan="13" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1272,6 +1395,271 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   </div>
 </div><!-- /training -->
 
+<!-- ───────────────────── COMMAND CENTER ────────────────────────────── -->
+<div id="tab-cmdcenter" class="tab">
+
+  <!-- GLOBAL KILL SWITCH -->
+  <div id="cc-killAlert" class="alert alert-err" style="display:none;margin-bottom:10px">
+    <strong style="letter-spacing:.08em">⚠ GLOBAL KILL SWITCH IS ACTIVE</strong> — All new orders are blocked.
+  </div>
+  <div class="irow" style="margin-bottom:14px">
+    <div class="stitle" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Global Kill Switch</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" id="cc-killActivate" onclick="ccKillSwitch(true)">☠ HALT ALL TRADING</button>
+      <button class="btn btn-g" id="cc-killDeactivate" onclick="ccKillSwitch(false)">✓ RESUME TRADING</button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:14px">
+
+    <!-- STRATEGY ENABLE / DISABLE -->
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">Strategy Control</span>
+        <div class="cctrls">
+          <button class="btn btn-g btn-sm" onclick="ccEnableAll()">Enable All</button>
+          <button class="btn btn-g btn-sm" onclick="ccDisableAll()">Disable All</button>
+          <button class="btn btn-g btn-sm" onclick="loadCmdCenter()">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="cc-stratGrid" class="loading"><div class="spinner"></div>Loading strategies…</div>
+    </div>
+
+    <!-- RISK CONFIG -->
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Risk Config Override</span></div>
+      <div class="alert alert-info" style="margin-bottom:10px">Overrides apply at runtime without restarting the bot. Leave blank to use .env defaults.</div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Max Risk / Trade (%)</label><input type="number" class="fi" id="cc-riskPerTrade" placeholder="e.g. 2" step="0.1" min="0.1" max="10"></div>
+        <div class="fg"><label class="fl">Daily Loss Limit (%)</label><input type="number" class="fi" id="cc-dailyLoss" placeholder="e.g. 5" step="0.5" min="0.5" max="25"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Max Drawdown (%)</label><input type="number" class="fi" id="cc-maxDD" placeholder="e.g. 15" step="1" min="1" max="50"></div>
+        <div class="fg"><label class="fl">Max Leverage (×)</label><input type="number" class="fi" id="cc-maxLev" placeholder="e.g. 10" step="1" min="1" max="100"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Max Open Positions</label><input type="number" class="fi" id="cc-maxPos" placeholder="e.g. 8" step="1" min="1" max="50"></div>
+        <div class="fg"><label class="fl">Kelly Fraction</label><input type="number" class="fi" id="cc-kelly" placeholder="e.g. 0.25" step="0.05" min="0.05" max="1"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-p" style="flex:1" onclick="ccSaveRisk()">Save Risk Config</button>
+        <button class="btn btn-g btn-sm" onclick="ccLoadRisk()">Load Current</button>
+      </div>
+      <div id="cc-riskStatus" style="font-size:10px;color:var(--t2);margin-top:6px"></div>
+    </div>
+  </div>
+
+  <!-- UNIVERSE EDITOR -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="ctitle">Symbol Universe Editor</span>
+      <div class="cctrls">
+        <button class="btn btn-g btn-sm" onclick="ccResetUniverse()">↺ Reset to Defaults</button>
+        <button class="btn btn-p btn-sm" onclick="ccSaveUniverse()">Save Universe</button>
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:10px">Comma-separated symbol lists. Changes take effect at next strategy cycle.</div>
+    <div class="row">
+      <div class="col fg">
+        <label class="fl">Futures Symbols</label>
+        <textarea class="fi" id="cc-futSym" rows="3" placeholder="BTCUSDT,ETHUSDT,SOLUSDT…" style="font-family:var(--mono);font-size:10px;resize:vertical"></textarea>
+      </div>
+      <div class="col fg">
+        <label class="fl">Spot Symbols</label>
+        <textarea class="fi" id="cc-spotSym" rows="3" placeholder="BTCUSDT,ETHUSDT…" style="font-family:var(--mono);font-size:10px;resize:vertical"></textarea>
+      </div>
+      <div class="col fg">
+        <label class="fl">Stock Symbols</label>
+        <textarea class="fi" id="cc-stkSym" rows="3" placeholder="SPY,QQQ,AAPL,MSFT…" style="font-family:var(--mono);font-size:10px;resize:vertical"></textarea>
+      </div>
+    </div>
+    <div id="cc-univStatus" style="font-size:10px;color:var(--t2);margin-top:6px"></div>
+  </div>
+
+</div><!-- /cmdcenter -->
+
+<!-- ═══════════════════ GS QUANT ANALYTICS ══════════════════════════ -->
+<div id="tab-gsquant" class="tab">
+
+  <!-- Universe selector bar -->
+  <div class="bl-sysbar" style="margin-bottom:14px">
+    <div class="bl-sysbar-l">
+      <span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--t1)">GS QUANT ENGINE — POWERED BY GOLDMAN SACHS gs-quant</span>
+      <div class="bl-divider"></div>
+      <div class="bl-kv"><span class="bl-sk">Symbol</span>
+        <select class="fs" id="gsq-symbol" style="font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);color:var(--t0);border-radius:var(--rs)">
+          <option value="SPY">SPY</option><option value="QQQ">QQQ</option>
+          <option value="AAPL">AAPL</option><option value="MSFT">MSFT</option>
+          <option value="NVDA">NVDA</option><option value="BTCUSDT">BTCUSDT</option>
+          <option value="ETHUSDT">ETHUSDT</option><option value="SOLUSDT">SOLUSDT</option>
+        </select>
+      </div>
+      <div class="bl-kv"><span class="bl-sk">Lookback</span>
+        <select class="fs" id="gsq-lookback" style="font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);color:var(--t0);border-radius:var(--rs)">
+          <option value="90">90d</option><option value="180">180d</option>
+          <option value="365" selected>1Y</option><option value="730">2Y</option>
+        </select>
+      </div>
+    </div>
+    <div class="bl-sysbar-r">
+      <button class="btn btn-p btn-sm" onclick="loadGsQuant()">↻ Run Analytics</button>
+      <span id="gsq-status" class="bdg bdg-info" style="display:none">LOADING</span>
+    </div>
+  </div>
+
+  <!-- Summary metrics strip -->
+  <div class="bl-strip" id="gsq-strip">
+    <div class="bl-cell"><span class="bl-clbl">Sharpe (Ann)</span><span class="bl-cval" id="gsq-sharpe">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Max DD</span><span class="bl-cval neg" id="gsq-maxdd">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Vol 21d</span><span class="bl-cval" id="gsq-vol21">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">RSI 14</span><span class="bl-cval" id="gsq-rsi">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">VaR 1d (95%)</span><span class="bl-cval neg" id="gsq-var">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Skewness</span><span class="bl-cval" id="gsq-skew">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Kurtosis</span><span class="bl-cval" id="gsq-kurt">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Z-Score 1m</span><span class="bl-cval" id="gsq-zscore">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">Sortino</span><span class="bl-cval" id="gsq-sortino">—</span></div>
+  </div>
+
+  <!-- Technical strip -->
+  <div class="bl-strip">
+    <div class="bl-cell"><span class="bl-clbl">EMA 21</span><span class="bl-cval" id="gsq-ema21">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">EMA 50</span><span class="bl-cval" id="gsq-ema50">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">EMA 200</span><span class="bl-cval" id="gsq-ema200">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">MACD</span><span class="bl-cval" id="gsq-macd">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">BB Width</span><span class="bl-cval" id="gsq-bbw">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">BB %</span><span class="bl-cval" id="gsq-bbpct">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">BB Signal</span><span class="bl-cval" id="gsq-bbsig">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">RSI Signal</span><span class="bl-cval" id="gsq-rsisig">—</span></div>
+    <div class="bl-cell"><span class="bl-clbl">MACD Cross</span><span class="bl-cval" id="gsq-macdx">—</span></div>
+  </div>
+
+  <!-- Rolling series charts row -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col2 cw">
+      <div class="chdr"><span class="cttl">Rolling Vol 21d + RSI 14</span></div>
+      <canvas id="gsqVolChart" height="180"></canvas>
+    </div>
+    <div class="col cw">
+      <div class="chdr"><span class="cttl">Z-Score Regime (1M / 1Y)</span></div>
+      <canvas id="gsqZChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Vol Cone + Risk Analytics -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Realized Vol Cone</span><span class="bdg bdg-info">gs_quant.timeseries.volatility</span></div>
+      <div id="gsq-cone-body" class="empty">Run analytics to load…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">VaR / CVaR / Stress</span><span class="bdg bdg-info">Historical Simulation</span></div>
+      <div id="gsq-risk-body" class="empty">Run analytics to load…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Stress Scenarios</span></div>
+      <div id="gsq-stress-body" class="empty">Run analytics to load…</div>
+    </div>
+  </div>
+
+  <!-- Correlation Matrix + Factor Analytics -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Cross-Asset Correlation (63d)</span>
+        <button class="btn btn-g btn-sm" onclick="loadGsCorrelation()">↻ Load</button>
+      </div>
+      <div id="gsq-corr-body" class="empty">Click Load to compute…</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Cross-Sectional Factors</span>
+        <span class="bdg bdg-info">Momentum / Vol / Mean-Rev</span>
+      </div>
+      <div id="gsq-factor-body" class="empty">Run analytics to load…</div>
+    </div>
+  </div>
+
+  <!-- Vol Surface -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col2 card">
+      <div class="card-hdr">
+        <span class="ctitle">SABR Vol Surface — Term Structure</span>
+        <span id="gsq-vol-regime-badge" class="bdg bdg-info">—</span>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col">
+          <canvas id="gsqVolSurfChart" height="200"></canvas>
+        </div>
+        <div class="col">
+          <div id="gsq-ts-body" class="empty" style="max-height:220px;overflow-y:auto">Run analytics to load…</div>
+        </div>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Vol Regime Signal</span></div>
+      <div id="gsq-vol-regime-body" class="empty">Run analytics to load…</div>
+      <hr class="dv">
+      <div class="card-hdr" style="margin-top:8px"><span class="ctitle">Skew Report</span></div>
+      <div id="gsq-skew-body" class="empty">Run analytics to load…</div>
+    </div>
+  </div>
+
+  <!-- Options Pricer -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Black-Scholes Pricer — Full Greeks</span>
+        <span class="bdg bdg-ok">13 Greeks including Vanna, Volga, Charm, Zomma</span>
+      </div>
+      <div class="fg3">
+        <div class="fg"><label class="fl">Spot (S)</label><input type="number" class="fi" id="bsp-S" value="500" step="1"></div>
+        <div class="fg"><label class="fl">Strike (K)</label><input type="number" class="fi" id="bsp-K" value="500" step="1"></div>
+        <div class="fg"><label class="fl">DTE (days)</label><input type="number" class="fi" id="bsp-dte" value="30" step="1"></div>
+      </div>
+      <div class="fg3">
+        <div class="fg"><label class="fl">IV (σ)</label><input type="number" class="fi" id="bsp-sigma" value="0.25" step="0.01"></div>
+        <div class="fg"><label class="fl">Rate (r)</label><input type="number" class="fi" id="bsp-r" value="0.05" step="0.01"></div>
+        <div class="fg"><label class="fl">Type</label>
+          <select class="fs" id="bsp-type"><option value="Call">Call</option><option value="Put">Put</option><option value="Straddle">Straddle</option></select>
+        </div>
+      </div>
+      <button class="btn btn-p" onclick="runBsPricer()" style="width:100%;margin-bottom:12px">▶ Price Option</button>
+      <div id="bsp-result" class="empty">Enter parameters and click Price.</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Greeks Dashboard</span></div>
+      <div id="bsp-greeks" class="empty">Price an option to view Greeks.</div>
+      <hr class="dv">
+      <div class="card-hdr" style="margin-top:8px"><span class="ctitle">Spot P&L Scenarios</span></div>
+      <div id="bsp-scenarios" class="empty">Price to view scenarios.</div>
+    </div>
+  </div>
+
+  <!-- Scenario Heatmap -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">P&L Scenario Grid — Spot × Vol Shocks</span>
+      <span class="bdg bdg-info">Taylor: ΔV ≈ Δ·ΔS + ½Γ·ΔS² + ν·Δσ + Θ·Δt</span>
+    </div>
+    <div id="bsp-heatmap" class="empty">Price an option to generate the scenario grid.</div>
+  </div>
+
+  <!-- Universe Summary Table -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Universe GS-Quant Summary</span>
+      <button class="btn btn-g btn-sm" onclick="loadGsSummary()">↻ Load All</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Symbol</th><th>Sharpe</th><th>Max DD</th><th>Vol 21d</th><th>RSI 14</th><th>VaR 1d %</th><th>Z-Score 1M</th><th>Signal</th></tr></thead>
+        <tbody id="gsq-universe-body"><tr><td colspan="8" class="empty">Click "Load All" to populate</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /gsquant -->
+
 <!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
 <div id="tab-logs" class="tab">
   <div class="row">
@@ -1312,6 +1700,18 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <!-- ───────────────────── INTELLIGENCE ──────────────────────────────── -->
 <div id="tab-intelligence" class="tab">
+
+  <!-- Alpha scatter + direction charts -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col2 cw">
+      <div class="chdr"><span class="cttl">Alpha Score vs Predicted Return (Bubble = Dispersion)</span></div>
+      <canvas id="alphaScatterChart" height="220"></canvas>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Signal Direction Split</span></div>
+      <canvas id="alphaDirectionChart" height="220"></canvas>
+    </div>
+  </div>
 
   <!-- ML Alpha signals -->
   <div class="card" style="margin-bottom:14px">
@@ -1439,6 +1839,33 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       <div class="mc-lbl">Largest Win</div><div class="mc-val" id="ta-lw">—</div><div class="mc-sub">Best single trade</div></div>
     <div class="mc"><div class="mc-bar" style="background:var(--red)"></div>
       <div class="mc-lbl">Largest Loss</div><div class="mc-val" id="ta-ll">—</div><div class="mc-sub">Worst single trade</div></div>
+  </div>
+
+  <!-- EXECUTION LEDGER -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr">
+      <span class="ctitle">Filled Trades (Execution Ledger)</span>
+      <span id="ta-ledger-badge" class="bdg bdg-ok">Loading…</span>
+    </div>
+    <div class="alert alert-info">All broker-confirmed filled orders. These are the actual trades executed, not simulated.</div>
+    <div class="tw" style="max-height:360px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Filled At</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill Price</th><th>Notional</th><th>Exec Score</th><th>Tier</th><th>Source</th></tr></thead>
+        <tbody id="ta-ledgerBody"><tr><td colspan="9" class="loading"><div class="spinner"></div>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FILL QUALITY BREAKDOWN -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Execution Quality</span></div>
+      <div id="ta-fillQuality"></div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">P&amp;L by Strategy</span></div>
+      <div id="taByStrategy"></div>
+    </div>
   </div>
 
   <!-- Streaks -->
@@ -2508,12 +2935,15 @@ async function loadLive() {
   ]);
   loadStrategyPnl();
   loadLiveRiskGauges();
+  loadLiveFills();
+  loadLiveMlSignals();
 
   if (eq?.metrics) {
     const m = eq.metrics;
     el('mv-eq').textContent = fm(m.current_equity);
     el('hEq').textContent   = fm(m.current_equity);
     el('mv-pk').textContent = fm(m.peak_equity);
+    if (el('bl-equity-sbar')) el('bl-equity-sbar').textContent = fm(m.current_equity);
 
     const rv = el('mv-ret');
     rv.textContent = fp(m.total_return_pct);
@@ -2584,6 +3014,7 @@ async function loadLive() {
 
   if (pos?.positions) {
     el('posCount').textContent = pos.count;
+    if (el('bl-pos-sbar')) el('bl-pos-sbar').textContent = pos.count;
     renderDetailGrid('posSummary', [
       ['Position Source', liveSourceLabel(pos.source || pos.summary?.source), 'var(--t0)', pos.summary?.available === false ? (pos.summary?.reason || '') : ''],
       ['Gross MV', fm(pos.summary?.gross_market_value)],
@@ -2624,6 +3055,8 @@ async function loadLive() {
   }
 
   if (elite) renderEliteOverview(elite);
+
+  loadLiveBreadthPanel();
 }
 
 document.querySelectorAll('.wbtn').forEach(btn => {
@@ -2639,6 +3072,100 @@ el('dlBtn').addEventListener('click', () => {
   const s = el('tradeS').value, e2 = el('tradeE').value;
   window.open(`${BASE}/api/trades?start=${s}T00:00:00Z&end=${e2}T23:59:59Z&download=true`);
 });
+
+async function triggerMasterRecal() {
+  const badges = ['bl-recal-badge', 'stk-recal-status'].map(id => el(id)).filter(Boolean);
+  const btns   = ['blRecalBtn', 'stkRecalBtn'].map(id => el(id)).filter(Boolean);
+  const setBadge = (txt, cls) => badges.forEach(b => { b.style.display = ''; b.className = 'bdg ' + cls; b.textContent = txt; });
+  setBadge('QUEUED', 'bdg-run');
+  btns.forEach(b => b.disabled = true);
+  const r = await api('/api/system/master_recalibrate', {method:'POST', body:JSON.stringify({confirm:true})});
+  if (!r) {
+    setBadge('ERROR', 'bdg-err');
+    btns.forEach(b => b.disabled = false);
+    showToast('Recalibration request failed', 'err');
+    return;
+  }
+  showToast('Master recalibration queued — all scripts running in background', 'ok');
+  setBadge('RUNNING', 'bdg-run');
+  let polls = 0;
+  const poll = setInterval(async () => {
+    polls++;
+    const s = await api('/api/system/master_recalibrate');
+    if (!s) return;
+    const label = `${s.status || 'RUNNING'} (${(s.completed||[]).length}/${(s.scripts||[]).length})`;
+    setBadge(label, 'bdg-run');
+    if (s.status === 'DONE' || s.status === 'PARTIAL' || polls > 60) {
+      clearInterval(poll);
+      btns.forEach(b => b.disabled = false);
+      const finCls = s.status === 'DONE' ? 'bdg-ok' : 'bdg-warn';
+      setBadge(s.status || 'DONE', finCls);
+      const done = (s.completed||[]).length, fail = (s.failed||[]).length;
+      showToast(`Recalibration ${s.status || 'done'}: ${done} completed, ${fail} failed`, s.status === 'DONE' ? 'ok' : 'info');
+    }
+  }, 8000);
+}
+
+async function loadLiveFills() {
+  const d  = await api('/api/execution/ledger');
+  const tb = el('blFillsBody');
+  const fills = d?.fills || d?.ledger || [];
+  if (el('bl-fills-ct')) el('bl-fills-ct').textContent = fills.length;
+  if (!tb) return;
+  if (!fills.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="empty">No fills in ledger</td></tr>';
+    return;
+  }
+  tb.innerHTML = fills.map(f => {
+    const side  = (f.side || f.direction || '—').toUpperCase();
+    const sym   = f.symbol || f.ticker || '—';
+    const qty   = f.quantity || f.qty || f.filled_quantity || '—';
+    const price = f.fill_price || f.filled_avg_price || f.price || null;
+    const ts    = f.filled_at || f.timestamp || f.created_at;
+    const tsFmt = ts ? new Date(ts).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const status = f.status || '—';
+    const isFilled = String(status).includes('filled') || f.filled === true;
+    const isSell = side.includes('SELL') || side.includes('SHORT');
+    return `<tr>
+      <td style="font-size:9px;color:var(--t2)">${tsFmt}</td>
+      <td style="color:var(--t0);font-weight:700">${sym}</td>
+      <td class="${isSell ? 'tshort' : 'tlong'}">${side}</td>
+      <td style="color:var(--t2)">${qty}</td>
+      <td>${price != null ? fm(price) : '—'}</td>
+      <td style="color:${isFilled ? 'var(--green)' : 'var(--yellow)'};font-size:9px;font-weight:700">
+        ${isFilled ? 'FILLED' : status.toUpperCase()}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadLiveMlSignals() {
+  const d = await api('/api/intelligence');
+  const cont = el('blMlSignals');
+  if (!cont) return;
+  const signals = (d?.signals || []).slice(0, 10);
+  if (!signals.length) {
+    cont.innerHTML = '<div class="empty">No ML signals available — run training to generate signals</div>';
+    return;
+  }
+  cont.className = '';
+  cont.innerHTML = signals.map(s => {
+    const dir    = (s.direction || '').toLowerCase();
+    const isBull = dir === 'up'   || dir === 'long';
+    const isBear = dir === 'down' || dir === 'short';
+    const clr    = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--t2)';
+    const lbl    = isBull ? '▲ BULL' : isBear ? '▼ BEAR' : '◆ NEUT';
+    const alpha  = s.alpha_score   != null ? f(s.alpha_score, 2) : '—';
+    const ret    = s.predicted_return != null ? fsp(s.predicted_return * 100, 2) : '—';
+    const retClr = (s.predicted_return || 0) > 0 ? 'var(--green)' : (s.predicted_return || 0) < 0 ? 'var(--red)' : 'var(--t2)';
+    return `<div class="ml-sig-row">
+      <span class="ml-sig-sym">${s.symbol || '—'}</span>
+      <span class="ml-sig-dir" style="color:${clr}">${lbl}</span>
+      <span class="ml-sig-score">α=${alpha}</span>
+      <span class="ml-sig-ret" style="color:${retClr}">${ret}</span>
+    </div>`;
+  }).join('');
+}
 
 function connectLiveWs() {
   if (liveWs) try { liveWs.close(); } catch{}
@@ -2841,6 +3368,10 @@ async function loadStocks() {
   el('stk-alpha-pos').textContent = d.positive_alpha_symbols ?? '—';
   el('stk-alpha-ret').textContent = fp(((d.ml_alpha?.long_only?.annualized_return)||0)*100);
   el('stk-alpha-sh').textContent = f(d.ml_alpha?.long_only?.sharpe_ratio, 3);
+  // Update status bar
+  if (el('stk-val-count')) el('stk-val-count').textContent = d.universe_size ?? '—';
+  if (el('stk-res-count')) el('stk-res-count').textContent = d.research_coverage_pct != null ? fp(d.research_coverage_pct) + ' covered' : '—';
+  if (el('stk-last-update')) el('stk-last-update').textContent = d.generated_at ? new Date(d.generated_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Cached';
   el('stk-pairs-eval').textContent = d.pairs?.summary?.pairs_evaluated ?? (d.pairs?.all_pairs || []).length ?? '—';
   el('stk-pair-symbols').textContent = d.pairs?.pair_symbol_count ?? '—';
 
@@ -2893,11 +3424,42 @@ async function loadOdds() {
   el('odds-live').textContent = fsp(d.distribution?.mean, 2);
 
   bellChart('oddsChart', d.curve || [], trades);
-  el('oddsBody').innerHTML = trades.length ? trades.map(t => `
-    <tr>
+
+  // Also fetch execution ledger fills to overlay on the table
+  const ledger = await api('/api/execution/ledger');
+  const ledgerMap = {};
+  if (ledger?.records) {
+    for (const r of ledger.records) {
+      const baseSymbol = (r.symbol || '').replace(/\d{6}[CP]\d+$/, '').replace(/\d+$/, '');
+      ledgerMap[baseSymbol] = ledgerMap[baseSymbol] || r;
+    }
+  }
+
+  el('oddsBody').innerHTML = trades.length ? trades.map(t => {
+    const src = t.source || 'pairs_research';
+    const isFill = src === 'execution_ledger' || src.includes('broker');
+    const srcBadge = isFill
+      ? `<span class="bdg bdg-ok" style="font-size:7px">FILL</span>`
+      : src === 'live' ? `<span class="bdg bdg-run" style="font-size:7px">LIVE</span>`
+      : `<span class="bdg" style="font-size:7px;background:var(--bg3);color:var(--t2)">RESEARCH</span>`;
+    // Kelly fraction: f* = (p*(b+1) - 1)/b where b = take_profit/stop_loss ratio
+    let kellyStr = '—';
+    if (t.prob_profit_pct != null && t.stop_loss_price && t.take_profit_price && t.price) {
+      const b = Math.abs((t.take_profit_price - (t.price || t.stop_loss_price)) / ((t.price || t.take_profit_price) - t.stop_loss_price + 1e-6));
+      const p = (t.prob_profit_pct || 0) / 100;
+      const kelly = (p * (b + 1) - 1) / (b + 1e-6);
+      kellyStr = kelly > 0 ? fp(Math.min(kelly, 1) * 100) : '0%';
+    }
+    const matchedFill = t.symbol && ledgerMap[t.symbol.substring(0,4)];
+    const fillPrice   = matchedFill ? fm(matchedFill.fill_price) : (t.fill_price ? fm(t.fill_price) : '—');
+    const rowStyle    = isFill ? 'border-left:3px solid var(--green)' : '';
+    return `<tr style="${rowStyle}">
       <td style="color:var(--t0)">${t.symbol}</td>
       <td>${t.market}</td>
       <td class="${String(t.side).toUpperCase()==='LONG'?'tlong':'tshort'}">${t.side}</td>
+      <td>${srcBadge}</td>
+      <td style="font-family:var(--mono);color:var(--t1)">${fillPrice}</td>
+      <td style="font-family:var(--mono)">${kellyStr}</td>
       <td>${fp(t.prob_profit_pct)}</td>
       <td class="${cx(t.expected_pnl_pct)}">${fsp(t.expected_pnl_pct)}</td>
       <td>${fp(t.var_95_pct)}</td>
@@ -2905,7 +3467,8 @@ async function loadOdds() {
       <td>${fp(t.annual_vol*100)}</td>
       <td>${fm(t.stop_loss_price)}</td>
       <td>${fm(t.take_profit_price)}</td>
-    </tr>`).join('') : '<tr><td colspan="10" class="empty">No trade probability set available.</td></tr>';
+    </tr>`;
+  }).join('') : '<tr><td colspan="13" class="empty">No trade probability set available.</td></tr>';
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3289,6 +3852,8 @@ async function loadRisk(forceRefresh=false) {
 
   if (surf?.levels?.length) renderVarSurface(surf);
   else el('varSurf').innerHTML = '<div class="empty">Not enough data for VaR surface</div>';
+
+  loadRollingSharpChartData();
 }
 
 function renderHeatmap({symbols, corr}, container) {
@@ -3788,7 +4353,13 @@ el('refreshTrainJobs').addEventListener('click', loadTrainJobs);
    TAB: INTELLIGENCE (ML Alpha + Execution Quality + System Health)
 ════════════════════════════════════════════════════════════════════ */
 async function loadIntelligence() {
-  await apiInto('/api/ml/alpha',          'alphaGrid',      (d,_) => renderAlphaSignals(d));
+  const alphaData = await api('/api/ml/alpha');
+  if (alphaData) {
+    renderAlphaSignals(alphaData);
+    loadAlphaCharts(alphaData.signals || []);
+  } else {
+    const g = el('alphaGrid'); if (g) g.innerHTML = '<div class="empty">Alpha signals unavailable</div>';
+  }
   await apiInto('/api/execution/quality', 'execQualGrid',   (d,_) => renderExecQuality(d));
   await apiInto('/api/system/health',     'sysHealthBars',  (d,_) => renderSysHealth(d));
   loadResearchDesk();
@@ -4021,6 +4592,7 @@ async function loadRiskEvents() {
    TAB: TRADE ANALYSIS
 ════════════════════════════════════════════════════════════════════ */
 async function loadTradeAnalysis() {
+  loadExecutionLedger();
   const d = await api('/api/trades/analysis');
   if (!d || !d.total_trades) {
     ['ta-total','ta-wr','ta-pf','ta-exp','ta-aw','ta-al','ta-lw','ta-ll','ta-ws','ta-ls']
@@ -4080,6 +4652,402 @@ async function loadTradeAnalysis() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   TAB: COMMAND CENTER
+════════════════════════════════════════════════════════════════════ */
+const STRATEGY_LABELS = {
+  momentum: 'Momentum', mean_reversion: 'Mean Reversion', funding_arb: 'Funding Arb',
+  basis_trade: 'Basis Trade', pairs_arb: 'Pairs Arb', order_flow: 'Order Flow',
+  breakout: 'Breakout', statistical_arb: 'Statistical Arb',
+  cross_sectional_momentum: 'Cross-Sect. Momentum', liquidation_cascade: 'Liquidation Cascade',
+  carry_portfolio: 'Carry Portfolio', tsmom: 'TS Momentum', quant_factors: 'Quant Factors',
+  contrarian_oi: 'Contrarian OI', rma_strategy: 'RMA Strategy', vpin_flow: 'VPIN Flow',
+  knn_predictor: 'KNN Predictor', pivot_sr: 'Pivot S/R', hp_trend: 'HP Trend',
+  momentum_carry_combo: 'Mom+Carry Combo', microstructure_pressure: 'Microstructure',
+  pullback_confluence: 'Pullback Confluence',
+  market_making: 'Market Making ★', gamma_scalping: 'Gamma Scalping ★', vol_surface_arb: 'Vol Surface Arb ★',
+};
+
+async function loadCmdCenter() {
+  const d = await api('/api/strategies/status');
+  if (!d) { el('cc-stratGrid').innerHTML = '<div class="empty">Failed to load strategy status.</div>'; return; }
+
+  // Kill switch alert
+  const ks = !!d.kill_switch;
+  el('cc-killAlert').style.display = ks ? '' : 'none';
+
+  // Strategy grid
+  const strats = d.strategies || {};
+  el('cc-stratGrid').innerHTML = Object.entries(strats).map(([name, s]) => {
+    const label = STRATEGY_LABELS[name] || name;
+    const isOn  = s.enabled;
+    const isNew = ['market_making','gamma_scalping','vol_surface_arb'].includes(name);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;font-weight:700;color:${isNew?'var(--cyan)':'var(--t0)'}">${label}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm ${isOn?'btn-p':'btn-g'}" style="min-width:60px" onclick="ccToggle('${name}',${!isOn})">
+          ${isOn?'ON':'OFF'}
+        </button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">No strategies found.</div>';
+
+  // Load risk config
+  ccLoadRisk();
+  // Load universe
+  ccLoadUniverse();
+}
+
+async function ccToggle(name, enable) {
+  const endpoint = enable ? `/api/strategies/${name}/enable` : `/api/strategies/${name}/disable`;
+  const r = await api(endpoint, {method:'POST'});
+  if (r?.ok) { toast(`Strategy ${name} ${enable?'enabled':'disabled'}`, enable?'ok':'warn'); loadCmdCenter(); }
+  else toast(`Failed to toggle ${name}`, 'err');
+}
+
+async function ccEnableAll() {
+  const d = await api('/api/strategies/status');
+  if (!d?.strategies) return;
+  for (const name of Object.keys(d.strategies)) await api(`/api/strategies/${name}/enable`, {method:'POST'});
+  toast('All strategies enabled', 'ok');
+  loadCmdCenter();
+}
+
+async function ccDisableAll() {
+  if (!confirm('Disable ALL strategies? This stops all new signals.')) return;
+  const d = await api('/api/strategies/status');
+  if (!d?.strategies) return;
+  for (const name of Object.keys(d.strategies)) await api(`/api/strategies/${name}/disable`, {method:'POST'});
+  toast('All strategies disabled', 'warn');
+  loadCmdCenter();
+}
+
+async function ccKillSwitch(active) {
+  if (active && !confirm('ACTIVATE global kill switch? This halts all trading immediately.')) return;
+  const r = await api('/api/trading/kill_switch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({active})});
+  if (r?.ok) {
+    toast(active ? '⚠ Kill switch ACTIVATED' : '✓ Kill switch deactivated', active ? 'err' : 'ok');
+    el('cc-killAlert').style.display = active ? '' : 'none';
+  }
+}
+
+async function ccLoadRisk() {
+  const d = await api('/api/config/risk');
+  if (!d?.risk) return;
+  const r = d.risk;
+  const g = (k) => r[k]?.effective;
+  const toPercent = (v) => v != null ? (v*100).toFixed(2) : '';
+  el('cc-riskPerTrade').value = toPercent(g('max_risk_per_trade')) || '';
+  el('cc-dailyLoss').value   = toPercent(g('daily_loss_limit'))    || '';
+  el('cc-maxDD').value       = toPercent(g('max_drawdown'))        || '';
+  el('cc-maxLev').value      = g('max_leverage') != null ? g('max_leverage') : '';
+  el('cc-kelly').value       = g('kelly_fraction') != null ? g('kelly_fraction') : '';
+  el('cc-riskStatus').textContent = 'Loaded from config.';
+}
+
+async function ccSaveRisk() {
+  const body = {};
+  const toFrac = (id) => { const v = parseFloat(el(id).value); return isNaN(v) ? null : v/100; };
+  const raw  = (id) => { const v = parseFloat(el(id).value); return isNaN(v) ? null : v; };
+  if (el('cc-riskPerTrade').value) body.max_risk_per_trade = toFrac('cc-riskPerTrade');
+  if (el('cc-dailyLoss').value)   body.daily_loss_limit   = toFrac('cc-dailyLoss');
+  if (el('cc-maxDD').value)       body.max_drawdown        = toFrac('cc-maxDD');
+  if (el('cc-maxLev').value)      body.max_leverage        = raw('cc-maxLev');
+  if (el('cc-kelly').value)       body.kelly_fraction      = raw('cc-kelly');
+  if (!Object.keys(body).length) { toast('Nothing to save', 'warn'); return; }
+  const r = await api('/api/config/risk', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if (r?.ok) { el('cc-riskStatus').textContent = 'Saved ✓'; toast('Risk config saved', 'ok'); }
+  else toast('Failed to save risk config', 'err');
+}
+
+async function ccLoadUniverse() {
+  const d = await api('/api/config/universe');
+  if (!d) return;
+  el('cc-futSym').value  = (d.futures||[]).join(', ');
+  el('cc-spotSym').value = (d.spot   ||[]).join(', ');
+  el('cc-stkSym').value  = (d.stocks ||[]).join(', ');
+  el('cc-univStatus').textContent = 'Loaded current universe.';
+}
+
+async function ccSaveUniverse() {
+  const parse = (id) => el(id).value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const body = { futures: parse('cc-futSym'), spot: parse('cc-spotSym'), stocks: parse('cc-stkSym') };
+  const r = await api('/api/config/universe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if (r?.ok) { el('cc-univStatus').textContent = 'Universe saved ✓'; toast('Universe saved', 'ok'); }
+  else toast('Failed to save universe', 'err');
+}
+
+async function ccResetUniverse() {
+  if (!confirm('Reset symbol universe to config defaults?')) return;
+  const r = await api('/api/config/universe/reset', {method:'POST'});
+  if (r?.ok) { await ccLoadUniverse(); toast('Universe reset to defaults', 'ok'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EXECUTION LEDGER + EQUITY ANALYTICS + ALPHA CHARTS
+════════════════════════════════════════════════════════════════════ */
+async function loadExecutionLedger() {
+  const d = await api('/api/execution/ledger');
+  if (!d || !d.records?.length) {
+    const b = el('ta-ledgerBody');
+    if (b) b.innerHTML = '<tr><td colspan="9" class="empty">No execution ledger records found.</td></tr>';
+    const badge = el('ta-ledger-badge');
+    if (badge) { badge.textContent = '0 fills'; badge.className = 'bdg bdg-warn'; }
+    return;
+  }
+  const badge = el('ta-ledger-badge');
+  if (badge) { badge.textContent = `${d.filled} fills`; badge.className = 'bdg bdg-ok'; }
+
+  const tbody = el('ta-ledgerBody');
+  if (tbody) {
+    tbody.innerHTML = d.records.map(r => {
+      const notional   = (r.qty || 0) * (r.fill_price || 0) * 100;
+      const isSell     = r.side === 'SELL';
+      const scoreColor = r.exec_score >= 0.8 ? 'var(--green)' : r.exec_score >= 0.6 ? 'var(--yellow)' : 'var(--red)';
+      const filledAt   = r.filled_at
+        ? new Date(r.filled_at).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})
+        : '—';
+      return `<tr style="border-left:3px solid ${(r.is_filled || r.partial_fill) ? 'var(--green)' : 'var(--t3)'}">
+        <td style="font-family:var(--mono);font-size:9px;color:var(--t2)">${filledAt}</td>
+        <td style="font-weight:700;font-size:10px">${r.symbol}</td>
+        <td><span class="bdg ${isSell ? 'bdg-warn' : 'bdg-ok'}" style="font-size:8px">${r.side}</span></td>
+        <td style="font-family:var(--mono)">${r.qty || '—'}</td>
+        <td style="font-family:var(--mono);color:${isSell ? 'var(--green)' : 'var(--red)'}">$${(r.fill_price||0).toFixed(2)}</td>
+        <td style="font-family:var(--mono)">${fm(notional)}</td>
+        <td style="font-family:var(--mono);color:${scoreColor}">${r.exec_score != null ? r.exec_score.toFixed(2) : '—'}</td>
+        <td style="font-size:9px;text-transform:uppercase;color:var(--t2)">${r.exec_tier || '—'}</td>
+        <td style="font-size:9px;color:var(--t2)">${r.source || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const qual = el('ta-fillQuality');
+  if (qual) {
+    const scores = d.records.filter(r => r.exec_score != null).map(r => r.exec_score);
+    const avgScore = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2) : '—';
+    qual.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="mc"><div class="mc-lbl">Total Records</div><div class="mc-val">${d.total}</div></div>
+        <div class="mc"><div class="mc-lbl">Fill Rate</div><div class="mc-val pos">${fp(d.fill_rate * 100)}</div></div>
+        <div class="mc"><div class="mc-lbl">Filled</div><div class="mc-val pos">${d.filled}</div></div>
+        <div class="mc"><div class="mc-lbl">Avg Exec Score</div><div class="mc-val">${avgScore}</div></div>
+      </div>`;
+  }
+
+  // P&L by strategy (source grouping)
+  const byStrat = el('taByStrategy');
+  if (byStrat) {
+    const groups = {};
+    for (const r of d.records) {
+      const src = r.source || 'unknown';
+      groups[src] = (groups[src] || 0) + 1;
+    }
+    byStrat.innerHTML = Object.entries(groups).map(([src, cnt]) =>
+      `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:9px;color:var(--t1)">${src}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--t0)">${cnt} fills</span>
+      </div>`).join('') || '<div class="empty">No data</div>';
+  }
+}
+
+async function loadRollingSharpChartData() {
+  const d = await api('/api/equity/analytics');
+  if (!d?.available) return;
+
+  const rs     = d.rolling_sharpe || [];
+  const ts     = d.timestamps     || [];
+  const valid  = rs.map((v, i) => v != null ? {v, t: ts[i]} : null).filter(Boolean);
+  const labels = valid.map(pt => new Date(pt.t).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', month:'short', day:'numeric'}));
+  const data   = valid.map(pt => pt.v);
+
+  const canvas = el('rollingSharpeChart');
+  if (!canvas) return;
+  if (CHARTS['rollingSharpe']) CHARTS['rollingSharpe'].destroy();
+  CHARTS['rollingSharpe'] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        segment: {
+          borderColor: ctx => ctx.p1.parsed.y > 0 ? 'rgba(0,214,143,0.8)' : 'rgba(247,82,90,0.8)',
+        },
+        borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `Sharpe: ${ctx.raw?.toFixed(2)}` } }
+      },
+      scales: {
+        x: { display: false },
+        y: { grid: { color: '#1e2b42' }, ticks: { color: '#4d6080' }, border: { color: '#1e2b42' } }
+      }
+    }
+  });
+}
+
+async function loadAlphaCharts(signals) {
+  if (!signals?.length) return;
+
+  const ups     = signals.filter(s => (s.direction||'').toLowerCase() === 'up' || (s.direction||'').toLowerCase() === 'long');
+  const downs   = signals.filter(s => (s.direction||'').toLowerCase() === 'down' || (s.direction||'').toLowerCase() === 'short');
+
+  const scatter = el('alphaScatterChart');
+  if (scatter) {
+    if (CHARTS['alphaScatter']) CHARTS['alphaScatter'].destroy();
+    CHARTS['alphaScatter'] = new Chart(scatter, {
+      type: 'bubble',
+      data: {
+        datasets: [
+          {
+            label: 'Bullish',
+            data: ups.map(s => ({ x: s.alpha_score || 0, y: (s.predicted_return || 0) * 100, r: Math.max(3, (s.model_dispersion || 0.05) * 80) })),
+            backgroundColor: 'rgba(0,214,143,0.6)', borderColor: 'rgba(0,214,143,0.9)',
+          },
+          {
+            label: 'Bearish',
+            data: downs.map(s => ({ x: s.alpha_score || 0, y: (s.predicted_return || 0) * 100, r: Math.max(3, (s.model_dispersion || 0.05) * 80) })),
+            backgroundColor: 'rgba(247,82,90,0.6)', borderColor: 'rgba(247,82,90,0.9)',
+          }
+        ]
+      },
+      options: {
+        responsive: true, animation: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: α=${ctx.raw.x.toFixed(2)} ret=${ctx.raw.y.toFixed(2)}%` } }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Alpha Score', color: '#4d6080' }, grid: { color: '#1e2b42' }, ticks: { color: '#4d6080' } },
+          y: { title: { display: true, text: 'Predicted Return (%)', color: '#4d6080' }, grid: { color: '#1e2b42' }, ticks: { color: '#4d6080' } }
+        }
+      }
+    });
+  }
+
+  const dirChart = el('alphaDirectionChart');
+  if (dirChart) {
+    if (CHARTS['alphaDir']) CHARTS['alphaDir'].destroy();
+    const neutral = signals.length - ups.length - downs.length;
+    CHARTS['alphaDir'] = new Chart(dirChart, {
+      type: 'doughnut',
+      data: {
+        labels: ['Bullish', 'Bearish', 'Neutral'],
+        datasets: [{
+          data: [ups.length, downs.length, neutral],
+          backgroundColor: ['rgba(0,214,143,0.8)', 'rgba(247,82,90,0.8)', 'rgba(77,96,128,0.6)'],
+          borderColor: ['#00D68F', '#F7525A', '#4d6080'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, animation: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+}
+
+async function loadLiveBreadthPanel() {
+  const snap = await api('/api/risk/snapshot');
+  const breadth = await api('/api/market/breadth');
+
+  const regimeEl = el('live-regime-panel');
+  if (regimeEl && snap) {
+    const regime  = snap.macro_regime || '—';
+    const policy  = snap.runtime_regime_policy || '—';
+    const vix     = snap.vix != null ? f(snap.vix, 2) : '—';
+    const dpnl    = snap.daily_pnl_dollars != null ? snap.daily_pnl_dollars : snap.daily_pnl_pct;
+    const dpnlFmt = snap.daily_pnl_dollars != null ? fm(snap.daily_pnl_dollars) : fp(snap.daily_pnl_pct);
+    const regimeColor = regime === 'THETA_ENGINE' ? 'var(--cyan)' : regime === 'RISK_OFF' ? 'var(--red)' : 'var(--yellow)';
+    const regimeBg    = regime === 'THETA_ENGINE' ? 'var(--cyan-a)' : regime === 'RISK_OFF' ? 'var(--red-a)' : 'var(--yellow-a)';
+    regimeEl.innerHTML = `
+      <div style="margin-top:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:800;letter-spacing:.06em;color:${regimeColor}">${regime}</span>
+          <span class="bdg bdg-info" style="font-size:8px">${policy}</span>
+        </div>
+        ${infoRows([
+          ['VIX',       vix, vix > 25 ? 'var(--red)' : vix > 18 ? 'var(--yellow)' : 'var(--green)'],
+          ['Daily P&L', dpnlFmt, csh(dpnl)],
+          ['Equity',    fm(snap.total_equity)],
+          ['Open Pos',  snap.open_positions ?? '—'],
+          ['Buying Power', fm(snap.buying_power)],
+        ])}
+      </div>`;
+
+    // Populate Bloomberg system status bar
+    const chip = el('bl-regime-chip');
+    if (chip) {
+      chip.textContent = regime;
+      chip.style.color = regimeColor;
+      chip.style.background = regimeBg;
+      chip.style.borderColor = regimeColor;
+    }
+    const policyBadge = el('bl-policy-badge');
+    if (policyBadge) policyBadge.textContent = policy;
+    const regCard = el('bl-regime-card');
+    if (regCard) regCard.style.borderLeft = `3px solid ${regimeColor}`;
+    if (el('bl-vix-val')) {
+      const vixEl = el('bl-vix-val');
+      vixEl.textContent = vix;
+      vixEl.style.color = vix > 25 ? 'var(--red)' : vix > 18 ? 'var(--yellow)' : 'var(--green)';
+    }
+    if (el('bl-equity-sbar')) el('bl-equity-sbar').textContent = fm(snap.total_equity);
+    if (el('bl-pos-sbar'))    el('bl-pos-sbar').textContent    = snap.open_positions ?? '—';
+    if (el('bl-dpnl-val')) {
+      const dpnlEl = el('bl-dpnl-val');
+      dpnlEl.textContent = dpnlFmt;
+      dpnlEl.className = 'bl-sv ' + cx(dpnl || 0);
+    }
+  }
+
+  const breadthEl = el('live-breadth-panel');
+  if (breadthEl && breadth) {
+    const sb = breadth.stock_breadth  || {};
+    const cb = breadth.crypto_breadth || {};
+    const totalStock  = (sb.advancers_1d || 0) + (sb.decliners_1d || 0);
+    const advPctStock = totalStock ? (sb.advancers_1d / totalStock * 100) : 0;
+    const totalCrypto = (cb.advancers_1d || 0) + (cb.decliners_1d || 0);
+    const advPctCrypto = totalCrypto ? (cb.advancers_1d / totalCrypto * 100) : 0;
+    breadthEl.innerHTML = `
+      <div style="margin-top:6px">
+        <div style="font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">S&amp;P 500 Universe</div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px">
+            <span style="color:var(--green)">ADV ${sb.advancers_1d || 0}</span>
+            <span style="color:var(--red)">DEC ${sb.decliners_1d || 0}</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:3px;height:8px;overflow:hidden">
+            <div style="width:${advPctStock.toFixed(1)}%;height:100%;background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
+          </div>
+        </div>
+        ${infoRows([
+          ['> 20D MA', fp(sb.pct_above_20d), sb.pct_above_20d > 50 ? 'var(--green)' : 'var(--red)'],
+          ['> 50D MA', fp(sb.pct_above_50d), sb.pct_above_50d > 50 ? 'var(--green)' : 'var(--red)'],
+          ['Avg RV',   fp(sb.avg_realized_vol)],
+        ])}
+        <hr class="dv" style="margin:8px 0">
+        <div style="font-size:8px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Crypto Universe</div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px">
+            <span style="color:var(--green)">ADV ${cb.advancers_1d || 0}</span>
+            <span style="color:var(--red)">DEC ${cb.decliners_1d || 0}</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:3px;height:8px;overflow:hidden">
+            <div style="width:${advPctCrypto.toFixed(1)}%;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div>
+          </div>
+        </div>
+        ${infoRows([
+          ['> 20D MA', fp(cb.pct_above_20d), cb.pct_above_20d > 50 ? 'var(--green)' : 'var(--red)'],
+        ])}
+      </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════════ */
 const TAB_INIT = {
@@ -4096,10 +5064,12 @@ const TAB_INIT = {
   training:      () => { loadTraining(); },
   intelligence:  () => { loadIntelligence(); },
   tradeanalysis: () => { loadTradeAnalysis(); },
+  cmdcenter:     () => { loadCmdCenter(); },
+  gsquant:       () => { loadGsQuant(); },
   logs:          () => { initLogs(); },
 };
 
-const ALWAYS_REFRESH_TABS = new Set(['backtests', 'params']);
+const ALWAYS_REFRESH_TABS = new Set(['backtests', 'params', 'cmdcenter']);
 
 document.querySelectorAll('.ntab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -4157,6 +5127,446 @@ document.querySelectorAll('.ntab').forEach(tab => {
     if (el('tab-tradeanalysis').classList.contains('active')) loadTradeAnalysis();
   }, 120000);
 })();
+
+/* ═══════════════════════════════════════════════════════════════════
+   GS QUANT TAB
+════════════════════════════════════════════════════════════════════ */
+function _gsqSym()      { return el('gsq-symbol')?.value || 'SPY'; }
+function _gsqLookback() { return el('gsq-lookback')?.value || '365'; }
+
+function _gsqSetBadge(txt, cls) {
+  const b = el('gsq-status');
+  if (!b) return;
+  b.style.display = txt ? '' : 'none';
+  b.className = 'bdg ' + cls;
+  b.textContent = txt;
+}
+
+function _gsqDetailGrid(rows) {
+  return rows.map(([k, v, c]) =>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+       <span style="font-size:9px;color:var(--t2)">${k}</span>
+       <span style="font-family:var(--mono);font-size:10px;color:${c||'var(--t0)'}">${v!=null?v:'—'}</span>
+     </div>`
+  ).join('');
+}
+
+async function loadGsQuant() {
+  const sym = _gsqSym(), lb = _gsqLookback();
+  _gsqSetBadge('LOADING', 'bdg-run');
+
+  const [ts, tech, risk, cone, vs, factors] = await Promise.all([
+    api(`/api/gsquant/timeseries/${sym}?lookback=${lb}`),
+    api(`/api/gsquant/technical/${sym}?lookback=${lb}`),
+    api(`/api/gsquant/risk/${sym}?lookback=${lb}`),
+    api(`/api/gsquant/vol_cone/${sym}?lookback=${lb}`),
+    api(`/api/gsquant/vol_surface/${sym}?lookback=${lb}`),
+    api(`/api/gsquant/factors?lookback=${lb}`),
+  ]);
+
+  // ── Metrics strip ───────────────────────────────────────────────────────
+  if (ts?.available) {
+    const pct = v => v != null ? (v * 100).toFixed(2) + '%' : '—';
+    const f3  = v => v != null ? Number(v).toFixed(3) : '—';
+    const f2  = v => v != null ? Number(v).toFixed(2) : '—';
+    el('gsq-sharpe').textContent = f3(ts.sharpe_ratio);
+    el('gsq-sharpe').className   = 'bl-cval ' + ((ts.sharpe_ratio||0) >= 0 ? 'pos' : 'neg');
+    el('gsq-maxdd').textContent  = ts.max_drawdown != null ? (ts.max_drawdown*100).toFixed(1)+'%' : '—';
+    el('gsq-vol21').textContent  = ts.annualized_vol_21 != null ? (ts.annualized_vol_21*100).toFixed(1)+'%' : '—';
+    el('gsq-rsi').textContent    = f2(ts.rsi_14);
+    el('gsq-skew').textContent   = f3(ts.skewness);
+    el('gsq-kurt').textContent   = f3(ts.kurtosis);
+    el('gsq-sortino').textContent= f3(ts.sortino_ratio);
+  }
+  if (risk?.available) {
+    el('gsq-var').textContent = risk.var_1d_pct != null ? risk.var_1d_pct.toFixed(2)+'%' : '—';
+  }
+
+  // ── Technical strip ─────────────────────────────────────────────────────
+  if (tech?.available) {
+    const fm2 = v => v != null ? '$'+Number(v).toFixed(2) : '—';
+    el('gsq-ema21').textContent  = fm2(tech.ema_21);
+    el('gsq-ema50').textContent  = fm2(tech.ema_50);
+    el('gsq-ema200').textContent = fm2(tech.ema_200);
+    el('gsq-macd').textContent   = tech.macd != null ? Number(tech.macd).toFixed(4) : '—';
+    el('gsq-bbw').textContent    = tech.bb_width != null ? Number(tech.bb_width).toFixed(4) : '—';
+    el('gsq-bbpct').textContent  = tech.bb_pct != null ? (tech.bb_pct*100).toFixed(1)+'%' : '—';
+    const bbSig = el('gsq-bbsig'); if (bbSig) { bbSig.textContent = tech.bb_signal||'—'; bbSig.style.color = tech.bb_signal==='overbought'?'var(--red)':tech.bb_signal==='oversold'?'var(--green)':'var(--t1)'; }
+    const rsiSig = el('gsq-rsisig'); if (rsiSig) { rsiSig.textContent = tech.rsi_signal||'—'; rsiSig.style.color = tech.rsi_signal==='overbought'?'var(--red)':tech.rsi_signal==='oversold'?'var(--green)':'var(--t1)'; }
+    const macdX = el('gsq-macdx'); if (macdX) { macdX.textContent = tech.macd_cross||'—'; macdX.style.color = tech.macd_cross==='bullish'?'var(--green)':'var(--red)'; }
+  }
+
+  // ── Update zscore ────────────────────────────────────────────────────────
+  if (ts?.zscore_1m != null) {
+    const z = el('gsq-zscore');
+    if (z) { z.textContent = Number(ts.zscore_1m).toFixed(2); z.className = 'bl-cval ' + ((ts.zscore_1m||0) > 0 ? 'pos' : 'neg'); }
+  }
+
+  // ── Rolling charts ──────────────────────────────────────────────────────
+  if (ts?.series) {
+    const s = ts.series;
+    const rsiS = (tech?.series?.rsi || s.rsi_14 || []).map(pt => ({x: new Date(pt[0]), y: pt[1]}));
+    const rvS  = (s.rolling_vol_21 || []).map(pt => ({x: new Date(pt[0]), y: pt[1] != null ? pt[1]*100 : null}));
+
+    if (CHARTS['gsqVol']) CHARTS['gsqVol'].destroy();
+    CHARTS['gsqVol'] = new Chart(el('gsqVolChart'), {
+      type: 'line',
+      data: { datasets: [
+        { label: 'Vol 21d (%)', data: rvS, borderColor:'#a855f7', borderWidth:1.5, pointRadius:0, fill:false, tension:.3, yAxisID:'vol' },
+        { label: 'RSI 14',     data: rsiS, borderColor:'#f5c518', borderWidth:1.5, pointRadius:0, fill:false, tension:.3, yAxisID:'rsi' },
+      ]},
+      options: {
+        responsive:true, animation:false,
+        plugins:{ legend:{labels:{color:'#8fa3bf',font:{size:9}}} },
+        scales:{
+          x:{ type:'time', adapters:{date:{locale:{}}}, grid:{color:'#1e2b42'}, ticks:{color:'#4d6080',maxTicksLimit:6} },
+          vol:{ position:'left', grid:{color:'#1e2b42'}, ticks:{color:'#a855f7',callback:v=>v.toFixed(0)+'%'} },
+          rsi:{ position:'right', grid:{display:false}, ticks:{color:'#f5c518'}, min:0, max:100 },
+        }
+      }
+    });
+
+    // Z-score chart
+    const zSeries = (ts.series?.rolling_sharpe || []).map(pt => ({x: new Date(pt[0]), y: pt[1]}));
+    if (CHARTS['gsqZ']) CHARTS['gsqZ'].destroy();
+    if (zSeries.length) {
+      CHARTS['gsqZ'] = new Chart(el('gsqZChart'), {
+        type:'line',
+        data:{ datasets:[{
+          label:'Rolling Sharpe', data: zSeries,
+          segment:{ borderColor: ctx => ctx.p1.parsed.y >= 0 ? 'rgba(0,214,143,0.85)' : 'rgba(247,82,90,0.85)' },
+          borderWidth:1.5, pointRadius:0, fill:false, tension:.3,
+        }]},
+        options:{
+          responsive:true, animation:false,
+          plugins:{ legend:{display:false} },
+          scales:{
+            x:{ type:'time', grid:{color:'#1e2b42'}, ticks:{color:'#4d6080',maxTicksLimit:6} },
+            y:{ grid:{color:'#1e2b42'}, ticks:{color:'#4d6080'} }
+          }
+        }
+      });
+    }
+  }
+
+  // ── Vol Cone ────────────────────────────────────────────────────────────
+  const coneEl = el('gsq-cone-body');
+  if (coneEl && cone?.cone) {
+    const wLabels = { '5':'5d','10':'10d','21':'21d','42':'42d','63':'63d','126':'126d','252':'252d' };
+    coneEl.className = 'tw';
+    coneEl.innerHTML = `<table><thead><tr><th>Window</th><th>Current</th><th>P5</th><th>P25</th><th>P50</th><th>P75</th><th>P95</th></tr></thead><tbody>
+      ${Object.entries(cone.cone).map(([w, v]) =>
+        `<tr><td>${wLabels[w]||w+'d'}</td>
+         <td style="font-weight:700;color:var(--accent)">${(v.current*100).toFixed(1)}%</td>
+         <td>${(v.p5*100).toFixed(1)}%</td><td>${(v.p25*100).toFixed(1)}%</td>
+         <td>${(v.p50*100).toFixed(1)}%</td><td>${(v.p75*100).toFixed(1)}%</td>
+         <td>${(v.p95*100).toFixed(1)}%</td></tr>`
+      ).join('')}</tbody></table>`;
+  }
+
+  // ── Risk analytics ──────────────────────────────────────────────────────
+  const riskEl = el('gsq-risk-body');
+  if (riskEl && risk?.available) {
+    riskEl.className = '';
+    riskEl.innerHTML = _gsqDetailGrid([
+      ['VaR 1d (95%)',   risk.var_1d_pct?.toFixed(2)+'%', 'var(--red)'],
+      ['VaR 5d (95%)',   risk.var_5d_pct?.toFixed(2)+'%', 'var(--red)'],
+      ['VaR 10d (95%)',  risk.var_10d_pct?.toFixed(2)+'%','var(--red)'],
+      ['CVaR 1d (95%)',  risk.cvar_1d_pct?.toFixed(2)+'%','var(--orange)'],
+      ['Current DD',     risk.current_drawdown_pct?.toFixed(2)+'%', 'var(--red)'],
+      ['DD Length (bars)',risk.drawdown_length_bars, 'var(--t1)'],
+      ['Semi-Variance',  risk.semi_variance?.toFixed(6), 'var(--t1)'],
+      ['Vol of Vol',     risk.vol_of_vol?.toFixed(6), 'var(--purple)'],
+    ]);
+  }
+
+  // ── Stress scenarios ─────────────────────────────────────────────────────
+  const stressEl = el('gsq-stress-body');
+  if (stressEl && risk?.stress_scenarios) {
+    const s = risk.stress_scenarios;
+    stressEl.className = '';
+    stressEl.innerHTML = _gsqDetailGrid([
+      ['1σ Down (-'+s.pct_move_1sigma?.toFixed(1)+'%)', '$'+s.down_1sigma, 'var(--yellow)'],
+      ['2σ Down (-'+s.pct_move_2sigma?.toFixed(1)+'%)', '$'+s.down_2sigma, 'var(--orange)'],
+      ['3σ Down (-'+s.pct_move_3sigma?.toFixed(1)+'%)', '$'+s.down_3sigma, 'var(--red)'],
+      ['1σ Up (+'+s.pct_move_1sigma?.toFixed(1)+'%)',   '$'+s.up_1sigma,   'var(--green)'],
+      ['2σ Up (+'+s.pct_move_2sigma?.toFixed(1)+'%)',   '$'+s.up_2sigma,   'var(--green)'],
+      ['3σ Up (+'+s.pct_move_3sigma?.toFixed(1)+'%)',   '$'+s.up_3sigma,   'var(--cyan)'],
+    ]);
+  }
+
+  // ── Vol surface ──────────────────────────────────────────────────────────
+  if (vs?.available) {
+    const regime = vs.vol_regime || {};
+    const regB = el('gsq-vol-regime-badge');
+    if (regB) {
+      regB.textContent = regime.regime || '—';
+      const rc = {'RICH_IV':'bdg-err','CHEAP_IV':'bdg-ok','INVERTED_TS':'bdg-warn','STEEP_TS':'bdg-warn','NORMAL':'bdg-info'};
+      regB.className = 'bdg ' + (rc[regime.regime] || 'bdg-info');
+    }
+    const regEl = el('gsq-vol-regime-body');
+    if (regEl) {
+      regEl.className = '';
+      regEl.innerHTML = _gsqDetailGrid([
+        ['ATM IV',        ((vs.atm_iv||0)*100).toFixed(1)+'%', 'var(--cyan)'],
+        ['IV / RV Ratio', regime.iv_rv_ratio?.toFixed(3), regime.iv_rv_ratio > 1.2 ? 'var(--red)' : 'var(--green)'],
+        ['Premium',       regime.premium_pct?.toFixed(1)+'%', 'var(--orange)'],
+        ['TS Slope',      regime.ts_slope?.toFixed(4), 'var(--t1)'],
+        ['Signal',        regime.signal, 'var(--accent)'],
+        ['Regime',        regime.regime, 'var(--t0)'],
+      ]);
+    }
+
+    // Term structure table
+    const tsEl = el('gsq-ts-body');
+    if (tsEl && vs.term_structure?.length) {
+      tsEl.className = 'tw';
+      tsEl.innerHTML = `<table><thead><tr><th>DTE</th><th>ATM Vol</th><th>25Δ Skew</th><th>SABR ρ</th><th>SABR ν</th></tr></thead><tbody>
+        ${vs.term_structure.map(row => `<tr>
+          <td>${row.expiry_days?.toFixed(0)}d</td>
+          <td style="color:var(--accent)">${(row.atm_vol*100).toFixed(2)}%</td>
+          <td class="${(row.skew_25d||0)<0?'neg':'pos'}">${(row.skew_25d*100).toFixed(2)}%</td>
+          <td style="color:var(--t2)">${row.sabr_rho?.toFixed(3)||'—'}</td>
+          <td style="color:var(--t2)">${row.sabr_nu?.toFixed(3)||'—'}</td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    // Vol surface line chart (term structure)
+    if (vs.term_structure?.length) {
+      const tsLabels = vs.term_structure.map(r => r.expiry_days?.toFixed(0)+'d');
+      const tsVols   = vs.term_structure.map(r => (r.atm_vol*100).toFixed(2));
+      if (CHARTS['gsqVS']) CHARTS['gsqVS'].destroy();
+      CHARTS['gsqVS'] = new Chart(el('gsqVolSurfChart'), {
+        type:'line',
+        data:{ labels: tsLabels, datasets:[{
+          label:'ATM Vol (%)', data: tsVols,
+          borderColor:'#22d3ee', borderWidth:2, pointRadius:4,
+          backgroundColor:'rgba(34,211,238,0.08)', fill:true, tension:.3,
+        }]},
+        options:{
+          responsive:true, animation:false,
+          plugins:{legend:{labels:{color:'#8fa3bf',font:{size:9}}}},
+          scales:{
+            x:{grid:{color:'#1e2b42'},ticks:{color:'#4d6080'}},
+            y:{grid:{color:'#1e2b42'},ticks:{color:'#4d6080',callback:v=>v+'%'}},
+          }
+        }
+      });
+    }
+
+    // Skew report
+    const skewEl = el('gsq-skew-body');
+    if (skewEl && vs.skew_report?.length) {
+      skewEl.className = 'tw';
+      skewEl.innerHTML = `<table style="font-size:9px"><thead><tr><th>DTE</th><th>ATM Vol</th><th>25Δ RR</th><th>Slope</th></tr></thead><tbody>
+        ${vs.skew_report.map(r => `<tr>
+          <td>${r.expiry_days?.toFixed(0)}d</td>
+          <td>${(r.atm_vol*100).toFixed(2)}%</td>
+          <td class="${(r.skew_25d||0)<0?'neg':'pos'}">${(r.skew_25d*100).toFixed(2)}%</td>
+          <td class="${(r.slope||0)<0?'neg':'pos'}">${r.slope?.toFixed(3)}</td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+  }
+
+  // ── Factor analytics ─────────────────────────────────────────────────────
+  const facEl = el('gsq-factor-body');
+  if (facEl && factors?.available) {
+    const syms = Object.entries(factors.factors)
+      .sort((a, b) => (b[1].momentum_1m||0) - (a[1].momentum_1m||0))
+      .slice(0, 12);
+    facEl.className = 'tw';
+    facEl.innerHTML = `<table style="font-size:9px">
+      <thead><tr><th>Symbol</th><th>Mom 1M</th><th>Mom 3M</th><th>Vol 21d</th><th>MR Z</th><th>Vol Ratio</th></tr></thead>
+      <tbody>${syms.map(([s, v]) => `<tr>
+        <td style="color:var(--t0);font-weight:700">${s}</td>
+        <td class="${(v.momentum_1m||0)>0?'tlong':'tshort'}">${((v.momentum_1m||0)*100).toFixed(1)}%</td>
+        <td class="${(v.momentum_3m||0)>0?'tlong':'tshort'}">${((v.momentum_3m||0)*100).toFixed(1)}%</td>
+        <td style="color:var(--t2)">${((v.vol_21||0)*100).toFixed(1)}%</td>
+        <td class="${(v.mean_rev_zscore||0)>0?'pos':'neg'}">${(v.mean_rev_zscore||0).toFixed(2)}</td>
+        <td style="color:var(--t2)">${(v.vol_ratio||0).toFixed(2)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  _gsqSetBadge('', '');
+  _gsqSetBadge('READY', 'bdg-ok');
+  setTimeout(() => _gsqSetBadge('', ''), 3000);
+}
+
+async function loadGsCorrelation() {
+  _gsqSetBadge('LOADING CORR', 'bdg-run');
+  const d = await api('/api/gsquant/correlation?symbols=SPY,QQQ,AAPL,MSFT,NVDA,AMZN,TSLA,BTCUSDT,ETHUSDT,GLD');
+  const el2 = el('gsq-corr-body');
+  if (!el2) return;
+  if (!d?.available) { el2.innerHTML = '<div class="empty">No data</div>'; return; }
+
+  const syms = d.symbols;
+  el2.className = '';
+  el2.style.overflowX = 'auto';
+  let html = `<div style="font-size:8px;color:var(--t2);margin-bottom:6px">63-day return correlation — colour coded by strength</div>
+    <table style="font-size:8px;border-collapse:collapse;white-space:nowrap">
+    <thead><tr><th style="padding:3px 6px;color:var(--t2)"></th>${syms.map(s=>`<th style="padding:3px 6px;color:var(--t2);font-size:8px;text-align:center">${s}</th>`).join('')}</tr></thead><tbody>`;
+  for (const s1 of syms) {
+    html += `<tr><td style="padding:3px 6px;color:var(--t2);font-size:8px;white-space:nowrap">${s1}</td>`;
+    for (const s2 of syms) {
+      const v = d.matrix[s1]?.[s2] ?? (s1===s2?1:null);
+      const abs = Math.abs(v||0);
+      const alpha = Math.round(abs * 160);
+      const bg = s1===s2 ? 'rgba(79,142,247,0.3)' : (v||0)>0 ? `rgba(0,214,143,${alpha/255})` : `rgba(247,82,90,${alpha/255})`;
+      const clr = abs > 0.5 ? '#fff' : 'var(--t1)';
+      html += `<td style="padding:3px 6px;text-align:center;background:${bg};color:${clr}">${v!=null?v.toFixed(2):'—'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+
+  if (d.top_pairs?.length) {
+    html += `<div style="margin-top:10px;font-size:8px;color:var(--t2);margin-bottom:4px">TOP CORRELATED PAIRS</div>`;
+    html += d.top_pairs.slice(0,8).map(p =>
+      `<span class="bdg ${Math.abs(p.corr)>0.8?'bdg-err':'bdg-info'}" style="margin:2px">${p.s1}↔${p.s2}: ${p.corr.toFixed(3)}</span>`
+    ).join('');
+  }
+  el2.innerHTML = html;
+  _gsqSetBadge('', '');
+}
+
+async function loadGsSummary() {
+  const d = await api('/api/gsquant/summary');
+  const tb = el('gsq-universe-body');
+  if (!tb || !d?.available) return;
+  const entries = Object.entries(d.symbols);
+  tb.innerHTML = entries.map(([sym, v]) => {
+    const zv = v.zscore_1m;
+    const rvSig = zv != null ? (zv > 1.5 ? 'OVERBOUGHT' : zv < -1.5 ? 'OVERSOLD' : zv > 0.5 ? 'ELEVATED' : 'NEUTRAL') : '—';
+    const rvClr = zv != null ? (zv > 1.5 ? 'var(--red)' : zv < -1.5 ? 'var(--green)' : 'var(--t1)') : 'var(--t2)';
+    return `<tr>
+      <td style="color:var(--t0);font-weight:700">${sym}</td>
+      <td class="${(v.sharpe||0)>=0?'pos':'neg'}">${v.sharpe?.toFixed(2)||'—'}</td>
+      <td class="neg">${v.max_dd!=null?(v.max_dd*100).toFixed(1)+'%':'—'}</td>
+      <td>${v.vol_21!=null?(v.vol_21*100).toFixed(1)+'%':'—'}</td>
+      <td style="color:${(v.rsi_14||50)>70?'var(--red)':(v.rsi_14||50)<30?'var(--green)':'var(--t1)'}">${v.rsi_14?.toFixed(1)||'—'}</td>
+      <td class="neg">${v.var_1d?.toFixed(2)||'—'}%</td>
+      <td class="${(zv||0)>=0?'pos':'neg'}">${zv?.toFixed(2)||'—'}</td>
+      <td style="color:${rvClr};font-size:9px;font-weight:800">${rvSig}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">No data</td></tr>';
+}
+
+async function runBsPricer() {
+  const S    = parseFloat(el('bsp-S')?.value||100);
+  const K    = parseFloat(el('bsp-K')?.value||100);
+  const dte  = parseFloat(el('bsp-dte')?.value||30);
+  const sig  = parseFloat(el('bsp-sigma')?.value||0.25);
+  const r    = parseFloat(el('bsp-r')?.value||0.05);
+  const type = el('bsp-type')?.value || 'Call';
+
+  const d = await api('/api/gsquant/pricer', {method:'POST', body:JSON.stringify({S,K,dte,sigma:sig,r,option_type:type})});
+  if (!d || d.error) {
+    const re = el('bsp-result'); if (re) re.innerHTML = `<div class="alert alert-err">${d?.error||'Request failed'}</div>`;
+    return;
+  }
+
+  // Main result
+  const re = el('bsp-result');
+  if (re) {
+    const iv_pct = (d.sigma * 100).toFixed(2);
+    const em_pct = (d.expected_move / d.spot * 100).toFixed(2);
+    re.className = '';
+    re.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${[
+          ['Fair Value', '$'+d.price?.toFixed(4), d.price>0?'var(--green)':'var(--t0)'],
+          ['Intrinsic',  '$'+d.intrinsic?.toFixed(4)],
+          ['Time Value', '$'+d.time_value?.toFixed(4), 'var(--purple)'],
+          ['Expected ±Move', '±$'+d.expected_move?.toFixed(2)+' ('+em_pct+'%)', 'var(--cyan)'],
+          ['Imp. Vol',   iv_pct+'%', 'var(--yellow)'],
+          ['DTE',        d.dte+'d'],
+        ].map(([k,v,c]) => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px">
+          <div style="font-size:7.5px;color:var(--t2);font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">${k}</div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${c||'var(--t0)'}">${v}</div>
+        </div>`).join('')}
+      </div>`;
+  }
+
+  // Greeks dashboard
+  const ge = el('bsp-greeks');
+  if (ge && d.greeks) {
+    const g = d.greeks;
+    ge.className = '';
+    ge.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px">
+        ${[
+          ['Δ Delta',  g.delta?.toFixed(4),  g.delta>=0?'var(--green)':'var(--red)'],
+          ['Γ Gamma',  g.gamma?.toFixed(6),  'var(--cyan)'],
+          ['ν Vega',   g.vega?.toFixed(4),   'var(--purple)'],
+          ['Θ Theta',  g.theta?.toFixed(4),  'var(--orange)'],
+          ['ρ Rho',    g.rho?.toFixed(4),    'var(--blue)'],
+          ['Vanna',    g.vanna?.toFixed(6),  'var(--t1)'],
+          ['Volga',    g.volga?.toFixed(6),  'var(--t1)'],
+          ['Charm',    g.charm?.toFixed(6),  'var(--t1)'],
+          ['Veta',     g.veta?.toFixed(6),   'var(--t2)'],
+          ['Speed',    g.speed?.toFixed(8),  'var(--t2)'],
+          ['Color',    g.color?.toFixed(8),  'var(--t2)'],
+          ['Zomma',    g.zomma?.toFixed(6),  'var(--t2)'],
+          ['Ultima',   g.ultima?.toFixed(6), 'var(--t2)'],
+        ].map(([k,v,c]) => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:6px 8px">
+          <div style="font-size:7px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em">${k}</div>
+          <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${c||'var(--t0)'}">${v??'—'}</div>
+        </div>`).join('')}
+      </div>`;
+  }
+
+  // Spot scenarios
+  const se = el('bsp-scenarios');
+  if (se && d.spot_scenarios) {
+    se.className = 'tw';
+    se.innerHTML = `<table style="font-size:9px">
+      <thead><tr><th>Spot Shock</th><th>P&L Estimate</th></tr></thead>
+      <tbody>${d.spot_scenarios.map(s => `<tr>
+        <td style="color:var(--t2)">${s.spot_shock_pct > 0 ? '+' : ''}${s.spot_shock_pct}%</td>
+        <td class="${s.pnl>=0?'pos':'neg'}" style="font-weight:700">${s.pnl>=0?'+':''}$${s.pnl?.toFixed(4)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  // Heatmap
+  await loadBsHeatmap(d);
+}
+
+async function loadBsHeatmap(d) {
+  const hm = el('bsp-heatmap');
+  if (!hm || !d?.scenario_grid) return;
+
+  const spotShocks = [...new Set(d.scenario_grid.map(r => r.spot_shock_pct))].sort((a,b)=>a-b);
+  const volShocks  = [...new Set(d.scenario_grid.map(r => r.vol_shock_abs))].sort((a,b)=>a-b);
+
+  const maxAbs = Math.max(...d.scenario_grid.map(r => Math.abs(r.pnl||0)));
+
+  let html = `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-family:var(--mono);font-size:9px;white-space:nowrap">
+    <thead><tr>
+      <th style="padding:4px 8px;color:var(--t2);font-size:8px">Vol↓ Spot→</th>
+      ${spotShocks.map(ds => `<th style="padding:4px 6px;color:var(--t2);font-size:8px;text-align:center">${ds>0?'+':''}${ds}%</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  for (const dv of volShocks) {
+    html += `<tr><td style="padding:4px 8px;color:var(--t2);font-size:8px">${dv>0?'+':''}${(dv*100).toFixed(0)}%σ</td>`;
+    for (const ds of spotShocks) {
+      const cell = d.scenario_grid.find(r => r.spot_shock_pct===ds && r.vol_shock_abs===dv);
+      const pnl  = cell?.pnl ?? 0;
+      const intensity = Math.min(Math.abs(pnl) / Math.max(maxAbs, 1e-9), 1);
+      const alpha = Math.round(intensity * 180);
+      const bg    = pnl >= 0 ? `rgba(0,214,143,${alpha/255})` : `rgba(247,82,90,${alpha/255})`;
+      const tc    = intensity > 0.5 ? '#fff' : 'var(--t1)';
+      html += `<td style="padding:4px 6px;text-align:center;background:${bg};color:${tc}">
+        ${pnl>=0?'+':''}${pnl?.toFixed(2)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  html += `<div style="font-size:8px;color:var(--t2);margin-top:6px">Taylor expansion: ΔV ≈ Δ·ΔS + ½Γ·ΔS² + ν·Δσ. Green = profit, Red = loss.</div>`;
+  hm.innerHTML = html;
+}
+
+document.getElementById('gsq-symbol')?.addEventListener('change', () => {});
+document.getElementById('gsq-lookback')?.addEventListener('change', () => {});
 </script>
 </body>
 </html>

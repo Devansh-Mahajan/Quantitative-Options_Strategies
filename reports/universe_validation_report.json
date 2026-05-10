@@ -1,6 +1,6 @@
 {
-  "symbols_input": 498,
-  "symbols_valid": 498,
+  "symbols_input": 497,
+  "symbols_valid": 497,
   "symbols_invalid": 0,
   "valid_symbols": [
     "WMT",
@@ -114,7 +114,6 @@
     "CB",
     "BIIB",
     "BDX",
-    "SO",
     "DUK",
     "SLB",
     "EOG",
@@ -619,7 +618,6 @@
     "CB": "CB",
     "BIIB": "BIIB",
     "BDX": "BDX",
-    "SO": "SO",
     "DUK": "DUK",
     "SLB": "SLB",
     "EOG": "EOG",

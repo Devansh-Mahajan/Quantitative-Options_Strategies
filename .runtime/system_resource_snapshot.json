@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-10T11:07:28Z",
+  "generated_at_utc": "2026-05-10T14:07:33Z",
   "resource_profile": {
     "cpu_count": 28,
     "memory_gb": 31.32,
@@ -16,25 +16,25 @@
     "telemetry_interval_seconds": 300
   },
   "host_metrics": {
-    "loadavg_1m": 3.42,
-    "loadavg_5m": 1.69,
-    "loadavg_15m": 1.31,
-    "normalized_cpu_load_pct": 12.2,
+    "loadavg_1m": 22.52,
+    "loadavg_5m": 22.03,
+    "loadavg_15m": 21.93,
+    "normalized_cpu_load_pct": 80.44,
     "memory": {
       "total_gb": 31.32,
-      "available_gb": 26.42,
-      "used_gb": 4.9,
-      "usage_pct": 15.65
+      "available_gb": 24.33,
+      "used_gb": 6.99,
+      "usage_pct": 22.31
     },
     "disk": {
       "total_gb": 96.37,
-      "used_gb": 38.64,
-      "free_gb": 52.79,
-      "usage_pct": 40.1
+      "used_gb": 38.69,
+      "free_gb": 52.74,
+      "usage_pct": 40.15
     }
   },
   "status": {
-    "pressure": "normal",
+    "pressure": "elevated",
     "note": "Host utilization is a planning signal, not a guarantee of task health."
   }
 }

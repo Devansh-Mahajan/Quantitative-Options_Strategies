@@ -109,6 +109,10 @@ class Config:
     enable_momentum_carry_combo: bool = field(default_factory=lambda: _bool("ENABLE_MOMENTUM_CARRY_COMBO", True))
     enable_microstructure_pressure: bool = field(default_factory=lambda: _bool("ENABLE_MICROSTRUCTURE_PRESSURE", True))
     enable_pullback_confluence: bool = field(default_factory=lambda: _bool("ENABLE_PULLBACK_CONFLUENCE", True))
+    # High-alpha quantitative strategies (batch 3 — Avellaneda-Stoikov, Taleb, Gatheral)
+    enable_market_making: bool = field(default_factory=lambda: _bool("ENABLE_MARKET_MAKING", True))
+    enable_gamma_scalping: bool = field(default_factory=lambda: _bool("ENABLE_GAMMA_SCALPING", True))
+    enable_vol_surface_arb: bool = field(default_factory=lambda: _bool("ENABLE_VOL_SURFACE_ARB", True))
 
     # --- Symbol universe ---
     futures_symbols: list[str] = field(

@@ -2546,30 +2546,6 @@ def build_trade_odds() -> dict[str, Any]:
             actual_trade_count += 1
             market_counts["options"] = market_counts.get("options", 0) + 1
 
-    if len(trades) < 12:
-        stock_overview = build_stocks_overview()
-        needed = max(0, 12 - len(trades))
-        for pair in (stock_overview.get("pairs", {}) or {}).get("top_pairs", [])[:needed]:
-            corr = safe_float(pair.get("correlation")) or 0.7
-            avg_ret = safe_float(pair.get("avg_trade_return")) or 0.01
-            win_rate = safe_float(pair.get("win_rate")) or 0.5
-            annual_vol = max(0.10, min(0.45, (1.0 - corr) + 0.10))
-            profile = simulate_trade_profile(
-                symbol=str(pair.get("pair")),
-                market="pairs",
-                side="LONG",
-                entry_price=1.0,
-                annual_vol=annual_vol,
-                stop_loss_price=0.97,
-                take_profit_price=1.0 + max(0.02, min(abs(avg_ret) * 3.0, 0.08)),
-            )
-            profile["research_win_rate_pct"] = round(win_rate * 100.0, 2)
-            profile["correlation"] = round(corr, 3)
-            profile["source"] = "pairs_research"
-            trades.append(profile)
-            research_overlay_count += 1
-            market_counts["pairs"] = market_counts.get("pairs", 0) + 1
-
     np.random.seed(None)
 
     if not trades:

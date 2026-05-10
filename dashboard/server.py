@@ -91,6 +91,10 @@ STRATEGY_DEFAULTS: dict[str, dict] = {
     "order_flow":        {"imbalance_threshold": 0.65, "vwap_threshold": 0.003},
     "microstructure_pressure": {"flow_window": 12, "volume_window": 24, "vwap_window": 16, "pressure_threshold": 0.48, "spread_ceiling_bps": 30.0},
     "pullback_confluence": {"fast_window": 20, "slow_window": 55, "breakout_lookback": 20, "pullback_atr": 1.0, "trend_floor": 0.003},
+    # Batch 3 — Avellaneda-Stoikov, Taleb gamma scalping, Gatheral vol surface
+    "market_making":    {"gamma": 0.05, "kappa": 1.5, "vol_window": 20, "spread_floor_bps": 5.0, "spread_cap_bps": 30.0, "max_inventory": 3},
+    "gamma_scalping":   {"garch_alpha": 0.10, "garch_beta": 0.85, "rv_window": 20, "long_gamma_threshold": 0.15, "short_gamma_threshold": 0.20, "min_iv": 0.08},
+    "vol_surface_arb":  {"short_window": 5, "long_window": 60, "ts_lookback_norm": 120, "ts_contango_threshold": 1.25, "ts_backwdn_threshold": 0.80, "skew_zscore_entry": 2.0},
 }
 
 # Engine parameter defaults
@@ -118,6 +122,7 @@ TRAINING_SCRIPTS: dict[str, dict] = {
     "train_correlation_alpha": {"label": "Correlation Alpha",      "module": "scripts.train_correlation_alpha",      "est_min": 15,  "desc": "Cross-asset correlation alpha models"},
     "train_regime_movement":   {"label": "Regime + Movement",      "module": "scripts.train_regime_movement_models", "est_min": 20,  "desc": "Regime detection and movement prediction retraining"},
     "weekend_recalibration":   {"label": "Weekend Recalibration",  "module": "scripts.weekend_recalibration",        "est_min": 30,  "desc": "Recalibrate all live strategy parameters from fresh data"},
+    "train_xgb_alpha":         {"label": "XGBoost Alpha Engine",   "module": "scripts.train_xgb_alpha",              "est_min": 10,  "desc": "Train XGBoost alpha model on all symbols (Gu, Kelly & Xiu 2020)"},
 }
 
 
@@ -1235,6 +1240,132 @@ async def get_strategy_defaults():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# REST — Strategy Command Center (enable/disable, kill switch, universe)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _strategy_enabled_key(name: str) -> str:
+    return f"strategy_enabled_{name}"
+
+
+@app.get("/api/strategies/status")
+async def get_strategies_status():
+    """Return enabled state and current params for every known strategy."""
+    result = {}
+    for name, defaults in STRATEGY_DEFAULTS.items():
+        override   = state.kv_get(f"strategy_params_{name}", {})
+        # Enabled state defaults to True (matches config defaults) unless overridden
+        enabled    = state.kv_get(_strategy_enabled_key(name), True)
+        result[name] = {
+            "enabled": bool(enabled),
+            "params":  {**defaults, **override},
+        }
+    return {
+        "strategies": result,
+        "kill_switch": bool(state.kv_get("global_kill_switch", False)),
+    }
+
+
+@app.post("/api/strategies/{name}/enable")
+async def enable_strategy(name: str):
+    if name not in STRATEGY_DEFAULTS:
+        raise HTTPException(404, f"Strategy '{name}' not found")
+    state.kv_set(_strategy_enabled_key(name), True)
+    log.info("Dashboard: strategy '%s' ENABLED", name)
+    return {"ok": True, "name": name, "enabled": True}
+
+
+@app.post("/api/strategies/{name}/disable")
+async def disable_strategy(name: str):
+    if name not in STRATEGY_DEFAULTS:
+        raise HTTPException(404, f"Strategy '{name}' not found")
+    state.kv_set(_strategy_enabled_key(name), False)
+    log.info("Dashboard: strategy '%s' DISABLED", name)
+    return {"ok": True, "name": name, "enabled": False}
+
+
+@app.post("/api/trading/kill_switch")
+async def toggle_kill_switch(body: dict):
+    """Activate or deactivate the global kill switch. Body: {active: bool}"""
+    active = bool(body.get("active", True))
+    state.kv_set("global_kill_switch", active)
+    log.warning("Dashboard: global kill switch set to %s", active)
+    return {"ok": True, "kill_switch_active": active}
+
+
+@app.get("/api/config/universe")
+async def get_universe():
+    """Return current symbol universes (overridable from dashboard)."""
+    futures  = state.kv_get("universe_futures",  cfg.futures_symbols)
+    spot     = state.kv_get("universe_spot",     cfg.spot_symbols)
+    stocks   = state.kv_get("universe_stocks",   cfg.stock_symbols)
+    return {
+        "futures": futures,
+        "spot":    spot,
+        "stocks":  stocks,
+        "defaults": {
+            "futures": cfg.futures_symbols,
+            "spot":    cfg.spot_symbols,
+            "stocks":  cfg.stock_symbols,
+        },
+    }
+
+
+@app.post("/api/config/universe")
+async def set_universe(body: dict):
+    """Update symbol universe. Body: {futures: [...], spot: [...], stocks: [...]}"""
+    if "futures" in body:
+        syms = [s.strip().upper() for s in body["futures"] if str(s).strip()]
+        state.kv_set("universe_futures", syms)
+    if "spot" in body:
+        syms = [s.strip().upper() for s in body["spot"] if str(s).strip()]
+        state.kv_set("universe_spot", syms)
+    if "stocks" in body:
+        syms = [s.strip().upper() for s in body["stocks"] if str(s).strip()]
+        state.kv_set("universe_stocks", syms)
+    return {"ok": True, "universe": await get_universe()}
+
+
+@app.post("/api/config/universe/reset")
+async def reset_universe():
+    """Reset symbol universe to config defaults."""
+    state.kv_set("universe_futures", cfg.futures_symbols)
+    state.kv_set("universe_spot",    cfg.spot_symbols)
+    state.kv_set("universe_stocks",  cfg.stock_symbols)
+    return {"ok": True, "universe": await get_universe()}
+
+
+@app.post("/api/config/risk")
+async def set_risk_config(body: dict):
+    """Update runtime risk parameters. Body: {max_risk_per_trade, daily_loss_limit, max_drawdown, max_leverage, ...}"""
+    allowed_keys = {
+        "max_risk_per_trade", "daily_loss_limit", "max_drawdown",
+        "max_leverage", "kelly_fraction", "max_portfolio_risk",
+        "stop_loss_pct", "take_profit_pct", "max_open_positions",
+    }
+    saved = {}
+    for k, v in body.items():
+        if k in allowed_keys:
+            state.kv_set(f"risk_override_{k}", v)
+            saved[k] = v
+    return {"ok": True, "saved": saved}
+
+
+@app.get("/api/config/risk")
+async def get_risk_config():
+    """Return current risk configuration (config defaults + dashboard overrides)."""
+    keys = [
+        "max_risk_per_trade", "daily_loss_limit", "max_drawdown",
+        "max_leverage", "kelly_fraction", "max_portfolio_risk",
+    ]
+    result = {}
+    for k in keys:
+        default = getattr(cfg, k, None)
+        override = state.kv_get(f"risk_override_{k}", None)
+        result[k] = {"default": default, "override": override, "effective": override if override is not None else default}
+    return {"risk": result}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # REST — Forward Test (Bloch Futuretesting Framework)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1777,6 +1908,130 @@ async def execution_quality():
     }
 
 
+EXEC_LEDGER_PATH = RUNTIME_DIR / "execution_ledger.json"
+
+
+@app.get("/api/execution/ledger")
+async def execution_ledger_api():
+    """All trades from the execution ledger — actual broker fills."""
+    records: list[dict] = []
+    try:
+        raw = read_json(EXEC_LEDGER_PATH, [])
+        if not isinstance(raw, list):
+            raw = []
+    except Exception:
+        raw = []
+    for rec in raw:
+        status = str(rec.get("status", "")).lower()
+        is_filled = "filled" in status
+        for leg in rec.get("legs") or []:
+            sym = str((leg or {}).get("symbol", "")).upper()
+            side_raw = str((leg or {}).get("side", "")).lower()
+            side = "SELL" if "sell" in side_raw else "BUY"
+            records.append({
+                "order_id":    rec.get("order_id"),
+                "symbol":      sym,
+                "side":        side,
+                "qty":         safe_float(rec.get("filled_qty") or rec.get("qty")),
+                "fill_price":  safe_float(rec.get("filled_avg_price")),
+                "filled_at":   rec.get("filled_at_utc") or rec.get("updated_at_utc"),
+                "status":      status,
+                "is_filled":   is_filled,
+                "partial_fill": bool(rec.get("partial_fill")),
+                "exec_score":  safe_float((rec.get("execution_quality") or {}).get("score")),
+                "exec_tier":   (rec.get("execution_quality") or {}).get("tier"),
+                "source":      rec.get("source"),
+            })
+    filled = [r for r in records if r["is_filled"] or r["partial_fill"]]
+    return {
+        "total":     len(records),
+        "filled":    len(filled),
+        "records":   records,
+        "fill_rate": round(len(filled) / max(len(records), 1), 4),
+    }
+
+
+@app.get("/api/equity/analytics")
+async def equity_analytics():
+    """Rolling Sharpe, Calmar, volatility, regime-annotated equity curve."""
+    with _db_conn() as c:
+        rows = c.execute(
+            "SELECT ts, equity, drawdown FROM equity_curve ORDER BY ts ASC LIMIT 5000"
+        ).fetchall()
+    if len(rows) < 10:
+        return {"available": False}
+
+    ts_list = [r["ts"] for r in rows]
+    eq_list = [float(r["equity"]) for r in rows]
+    dd_list = [float(r["drawdown"]) for r in rows]
+
+    eq_arr = np.array(eq_list)
+    rets   = np.diff(eq_arr) / (eq_arr[:-1] + 1e-10)
+
+    # Rolling 50-bar Sharpe (annualised — bars are ~1-min apart)
+    window = min(50, len(rets) - 1)
+    rolling_sharpe: list = []
+    for i in range(len(rets)):
+        start = max(0, i - window)
+        chunk = rets[start : i + 1]
+        if len(chunk) < 5:
+            rolling_sharpe.append(None)
+        else:
+            mean_r = float(np.mean(chunk))
+            std_r  = float(np.std(chunk)) + 1e-10
+            ann    = np.sqrt(252 * 24 * 60)
+            rolling_sharpe.append(round(mean_r / std_r * ann, 3))
+
+    total_ret    = (eq_arr[-1] / eq_arr[0]) - 1 if eq_arr[0] > 0 else 0
+    running_peak = np.maximum.accumulate(eq_arr)
+    dd_arr       = (eq_arr - running_peak) / (running_peak + 1e-10)
+    max_dd       = float(dd_arr.min())
+
+    overall_sharpe = None
+    if len(rets) > 5:
+        m = float(np.mean(rets))
+        s = float(np.std(rets)) + 1e-10
+        overall_sharpe = round(m / s * np.sqrt(252 * 24 * 60), 3)
+
+    calmar = round(total_ret / abs(max_dd), 3) if max_dd < 0 else None
+
+    step       = max(1, len(ts_list) // 500)
+    sampled_ts = ts_list[::step]
+    sampled_eq = [round(v, 2) for v in eq_list[::step]]
+    sampled_dd = [round(v * 100, 3) for v in dd_list[::step]]
+    sampled_rs = (rolling_sharpe + [None])[::step][: len(sampled_ts)]
+
+    return {
+        "available":         True,
+        "total_return_pct":  round(total_ret * 100, 3),
+        "max_drawdown_pct":  round(max_dd * 100, 3),
+        "overall_sharpe":    overall_sharpe,
+        "calmar":            calmar,
+        "start_equity":      round(float(eq_arr[0]), 2),
+        "end_equity":        round(float(eq_arr[-1]), 2),
+        "peak_equity":       round(float(eq_arr.max()), 2),
+        "timestamps":        sampled_ts,
+        "equity":            sampled_eq,
+        "drawdown_pct":      sampled_dd,
+        "rolling_sharpe":    sampled_rs,
+        "n_bars":            len(rows),
+    }
+
+
+@app.get("/api/market/breadth")
+async def market_breadth():
+    """Market breadth, leaders/laggards, and microstructure from research desk cache."""
+    d = build_research_desk(force=False)
+    return {
+        "generated_at_utc": d.get("generated_at_utc"),
+        "stock_breadth":    d.get("stock_breadth", {}),
+        "crypto_breadth":   d.get("crypto_breadth", {}),
+        "stock_leaders":    d.get("stock_leaders", {}),
+        "crypto_leaders":   d.get("crypto_leaders", {}),
+        "microstructure":   d.get("microstructure_board", []),
+    }
+
+
 @app.get("/api/system/health")
 async def system_health():
     """Host resource utilization + automation scheduling state."""
@@ -1847,7 +2102,106 @@ async def trades_analysis():
             return {}
 
     if not rows:
-        return {"total": 0}
+        # Fall back to execution ledger when the trades table is empty
+        try:
+            ledger_raw = read_json(EXEC_LEDGER_PATH, [])
+            if not isinstance(ledger_raw, list):
+                ledger_raw = []
+        except Exception:
+            ledger_raw = []
+
+        if not ledger_raw:
+            return {"total": 0, "ledger_fallback": True}
+
+        # Synthesise P&L proxy: SELL legs = credit (+), BUY legs = debit (-)
+        # Options multiplier × 100; use notional as P&L stand-in
+        synth_rows: list[dict] = []
+        for rec in ledger_raw:
+            status = str(rec.get("status", "")).lower()
+            if "filled" not in status and not rec.get("partial_fill"):
+                continue
+            qty        = safe_float(rec.get("filled_qty") or rec.get("qty")) or 0.0
+            fill_price = safe_float(rec.get("filled_avg_price")) or 0.0
+            for leg in rec.get("legs") or []:
+                sym      = str((leg or {}).get("symbol", "")).upper()
+                side_raw = str((leg or {}).get("side", "")).lower()
+                side     = "SELL" if "sell" in side_raw else "BUY"
+                notional = qty * fill_price * 100  # options contract × 100
+                pnl_proxy = notional if side == "SELL" else -notional
+                synth_rows.append({
+                    "ts":       rec.get("filled_at_utc") or rec.get("updated_at_utc"),
+                    "symbol":   sym,
+                    "market":   "options",
+                    "side":     side,
+                    "quantity": qty,
+                    "price":    fill_price,
+                    "strategy": rec.get("source", "broker_reconciliation"),
+                    "pnl":      pnl_proxy,
+                    "status":   status,
+                })
+
+        if not synth_rows:
+            return {"total": 0, "ledger_fallback": True}
+
+        pnls  = [r["pnl"] for r in synth_rows]
+        wins  = [p for p in pnls if p > 0]
+        losses = [p for p in pnls if p < 0]
+        flat   = [p for p in pnls if p == 0]
+
+        by_market: dict[str, dict] = {}
+        by_symbol: dict[str, dict] = {}
+        for r in synth_rows:
+            m  = r["market"]
+            p  = r["pnl"]
+            by_market.setdefault(m, {"trades": 0, "total_pnl": 0.0, "wins": 0})
+            by_market[m]["trades"]    += 1
+            by_market[m]["total_pnl"] += p
+            if p > 0:
+                by_market[m]["wins"] += 1
+
+            sym = r["symbol"]
+            by_symbol.setdefault(sym, {"trades": 0, "total_pnl": 0.0, "wins": 0})
+            by_symbol[sym]["trades"]    += 1
+            by_symbol[sym]["total_pnl"] += p
+            if p > 0:
+                by_symbol[sym]["wins"] += 1
+
+        top_symbols = sorted(by_symbol.items(), key=lambda x: abs(x[1]["total_pnl"]), reverse=True)[:20]
+        total   = len(pnls)
+        win_rate = len(wins) / total * 100 if total else 0
+        avg_win  = float(np.mean(wins))   if wins   else 0.0
+        avg_loss = float(np.mean(losses)) if losses else 0.0
+        expectancy = (win_rate / 100 * avg_win) + ((1 - win_rate / 100) * avg_loss) if total else 0
+
+        if pnls:
+            counts, edges = np.histogram(pnls, bins=min(30, total))
+            pnl_hist = {
+                "bins":   ((np.array(edges[:-1]) + np.array(edges[1:])) / 2).tolist(),
+                "counts": counts.tolist(),
+            }
+        else:
+            pnl_hist = {"bins": [], "counts": []}
+
+        return {
+            "total_trades":    total,
+            "win_count":       len(wins),
+            "loss_count":      len(losses),
+            "flat_count":      len(flat),
+            "win_rate_pct":    round(win_rate, 2),
+            "total_pnl":       round(sum(pnls), 2),
+            "avg_win":         round(avg_win, 4),
+            "avg_loss":        round(avg_loss, 4),
+            "profit_factor":   round(sum(wins) / abs(sum(losses)), 3) if losses else None,
+            "expectancy":      round(expectancy, 4),
+            "max_win_streak":  0,
+            "max_loss_streak": 0,
+            "largest_win":     round(max(wins), 4)  if wins   else 0,
+            "largest_loss":    round(min(losses), 4) if losses else 0,
+            "by_market":       {k: {**v, "win_rate_pct": round(v["wins"] / max(v["trades"], 1) * 100, 1)} for k, v in by_market.items()},
+            "top_symbols":     [{"symbol": s, **d, "win_rate_pct": round(d["wins"] / max(d["trades"], 1) * 100, 1)} for s, d in top_symbols],
+            "pnl_hist":        pnl_hist,
+            "ledger_fallback": True,
+        }
 
     pnls      = [float(r["pnl"] or 0) for r in rows]
     wins      = [p for p in pnls if p > 0]
@@ -1925,6 +2279,363 @@ async def trades_analysis():
         "top_symbols":     [{"symbol": s, **d, "win_rate_pct": round(d["wins"]/max(d["trades"],1)*100,1)} for s,d in top_symbols],
         "pnl_hist":        pnl_hist,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST — Master Recalibration Pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+
+_recal_job: dict = {}
+
+RECAL_SCRIPTS = [
+    ("weekend_training",        "Full pipeline: data download + all models"),
+    ("train_hmm",               "HMM macro regime"),
+    ("train_correlation_alpha", "Correlation alpha models"),
+    ("train_xgb_alpha",         "XGBoost alpha engine"),
+    ("weekend_recalibration",   "Strategy parameter recalibration"),
+]
+
+
+@app.post("/api/system/master_recalibrate")
+async def master_recalibrate(body: dict):
+    """
+    Trigger the full data download + model retrain + recalibration pipeline.
+    Body: { scripts: ["weekend_training", ...] }  (default = all)
+    """
+    global _recal_job
+    if _recal_job.get("status") == "RUNNING":
+        return {"ok": False, "error": "A recalibration job is already running", "job": _recal_job}
+
+    requested = body.get("scripts") or [s for s, _ in RECAL_SCRIPTS]
+    valid = {s for s, _ in RECAL_SCRIPTS}
+    scripts = [s for s in requested if s in valid]
+    if not scripts:
+        raise HTTPException(400, "No valid scripts specified")
+
+    job_id = str(uuid.uuid4())[:8]
+    _recal_job = {
+        "job_id": job_id,
+        "status": "RUNNING",
+        "scripts": scripts,
+        "current": None,
+        "completed": [],
+        "failed": [],
+        "log": [],
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+    }
+
+    def _run():
+        for script_name in scripts:
+            _recal_job["current"] = script_name
+            _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Starting {script_name}…")
+            try:
+                import subprocess, sys
+                result = subprocess.run(
+                    [sys.executable, "-m", f"scripts.{script_name}"],
+                    capture_output=True, text=True,
+                    cwd=str(ROOT), timeout=3600,
+                )
+                if result.returncode == 0:
+                    _recal_job["completed"].append(script_name)
+                    _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✓ {script_name} done")
+                else:
+                    _recal_job["failed"].append(script_name)
+                    err = (result.stderr or result.stdout or "")[:400]
+                    _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {script_name} failed: {err}")
+            except Exception as exc:
+                _recal_job["failed"].append(script_name)
+                _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {script_name} exception: {exc}")
+
+        _recal_job["current"] = None
+        _recal_job["status"] = "DONE" if not _recal_job["failed"] else "PARTIAL"
+        _recal_job["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"ok": True, "job_id": job_id, "scripts": scripts}
+
+
+@app.get("/api/system/master_recalibrate")
+async def master_recalibrate_status():
+    """Current status of the master recalibration pipeline."""
+    return _recal_job if _recal_job else {"status": "IDLE"}
+
+
+@app.get("/api/system/recal_scripts")
+async def recal_scripts_list():
+    return {"scripts": [{"id": s, "description": d} for s, d in RECAL_SCRIPTS]}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GS QUANT ANALYTICS ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _gs_load_data(symbol: str, lookback_days: int = 365):
+    """Load OHLCV for a symbol via the backtester data loader."""
+    try:
+        import datetime
+        from backtester.data_loader import load_multi
+        start = (datetime.datetime.utcnow() - datetime.timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        df_dict = load_multi([symbol], interval="1h", start=start, end=None)
+        return df_dict.get(symbol)
+    except Exception as e:
+        log.warning("gs_load_data failed for %s: %s", symbol, e)
+        return None
+
+
+def _gs_load_multi(symbols: list, lookback_days: int = 365):
+    try:
+        import datetime
+        from backtester.data_loader import load_multi
+        start = (datetime.datetime.utcnow() - datetime.timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        df_dict = load_multi(symbols, interval="1h", start=start, end=None)
+        return {s: df for s, df in df_dict.items() if df is not None and len(df) > 50}
+    except Exception as e:
+        log.warning("gs_load_multi failed: %s", e)
+        return {}
+
+
+@app.get("/api/gsquant/timeseries/{symbol}")
+async def gs_timeseries(symbol: str, lookback: int = Query(365, ge=30, le=1000)):
+    """Full gs-quant timeseries analytics for a symbol."""
+    from ml.gs_analytics import compute_timeseries_analytics
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 30:
+        return {"available": False, "error": "insufficient data"}
+    return compute_timeseries_analytics(df, symbol=symbol.upper())
+
+
+@app.get("/api/gsquant/technical/{symbol}")
+async def gs_technical(symbol: str, lookback: int = Query(365, ge=30, le=1000)):
+    """Technical signals: RSI, MACD, Bollinger Bands, EMA crossovers."""
+    from ml.gs_analytics import compute_technical_signals
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 30:
+        return {"available": False, "error": "insufficient data"}
+    return compute_technical_signals(df, symbol=symbol.upper())
+
+
+@app.get("/api/gsquant/risk/{symbol}")
+async def gs_risk(symbol: str, confidence: float = Query(0.95, ge=0.8, le=0.999),
+                   lookback: int = Query(365, ge=30, le=1000)):
+    """Risk analytics: VaR, CVaR, drawdown stats, stress scenarios."""
+    from ml.gs_analytics import compute_risk_analytics
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 30:
+        return {"available": False, "error": "insufficient data"}
+    return compute_risk_analytics(df, symbol=symbol.upper(), confidence=confidence)
+
+
+@app.get("/api/gsquant/vol_cone/{symbol}")
+async def gs_vol_cone(symbol: str, lookback: int = Query(365, ge=63, le=1000)):
+    """Realized volatility cone at multiple windows."""
+    from ml.gs_analytics import compute_vol_cone
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 63:
+        return {"available": False, "error": "insufficient data"}
+    cone = compute_vol_cone(df)
+    return {"available": True, "symbol": symbol.upper(), "cone": cone}
+
+
+@app.get("/api/gsquant/zscore/{symbol}")
+async def gs_zscore(symbol: str, lookback: int = Query(500, ge=63, le=1000)):
+    """Multi-window z-score regime signals."""
+    from ml.gs_analytics import compute_zscore_regime
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 63:
+        return {"available": False, "error": "insufficient data"}
+    return compute_zscore_regime(df, symbol=symbol.upper())
+
+
+@app.get("/api/gsquant/correlation")
+async def gs_correlation(
+    symbols: str = Query("SPY,QQQ,AAPL,MSFT,NVDA,BTCUSDT,ETHUSDT"),
+    lookback: int = Query(252, ge=30, le=1000)
+):
+    """Rolling 63-day correlation matrix across universe."""
+    from ml.gs_analytics import compute_correlation_matrix
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()][:15]
+    df_dict = _gs_load_multi(sym_list, lookback)
+    if len(df_dict) < 2:
+        return {"available": False, "error": "need at least 2 symbols with data"}
+    return compute_correlation_matrix(df_dict)
+
+
+@app.get("/api/gsquant/beta/{symbol}")
+async def gs_beta(symbol: str, benchmark: str = Query("SPY"),
+                   window: int = Query(63, ge=10, le=252),
+                   lookback: int = Query(365, ge=30, le=1000)):
+    """Rolling beta to benchmark."""
+    from ml.gs_analytics import compute_rolling_beta
+    df   = _gs_load_data(symbol.upper(), lookback)
+    bdf  = _gs_load_data(benchmark.upper(), lookback)
+    if df is None or bdf is None or len(df) < window or len(bdf) < window:
+        return {"available": False, "error": "insufficient data"}
+    return compute_rolling_beta(df, bdf, symbol=symbol.upper(), window=window)
+
+
+@app.get("/api/gsquant/factors")
+async def gs_factors(
+    symbols: str = Query("SPY,QQQ,AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,BTCUSDT,ETHUSDT"),
+    lookback: int = Query(365, ge=63, le=1000)
+):
+    """Cross-sectional factor analytics: momentum, mean-reversion, vol factors."""
+    from ml.gs_analytics import compute_factor_analytics
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()][:20]
+    df_dict = _gs_load_multi(sym_list, lookback)
+    return compute_factor_analytics(df_dict)
+
+
+@app.get("/api/gsquant/portfolio")
+async def gs_portfolio(
+    symbols: str = Query("SPY,QQQ,AAPL,MSFT"),
+    weights: str = Query(""),
+    lookback: int = Query(365, ge=30, le=1000)
+):
+    """Portfolio-level analytics with configurable weights."""
+    from ml.gs_analytics import compute_portfolio_analytics
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()][:15]
+    w = None
+    if weights:
+        try:
+            parts = weights.split(",")
+            wvals = [float(p) for p in parts]
+            if len(wvals) == len(sym_list):
+                w = dict(zip(sym_list, wvals))
+        except Exception:
+            pass
+    df_dict = _gs_load_multi(sym_list, lookback)
+    return compute_portfolio_analytics(df_dict, weights=w)
+
+
+@app.post("/api/gsquant/pricer")
+async def gs_pricer(body: dict):
+    """
+    Full Black-Scholes options pricer with complete Greeks suite.
+    Body: {S, K, dte, sigma, option_type, r, q}
+    """
+    from strategies.options_pricer import price_option
+    try:
+        S           = float(body.get("S", 100))
+        K           = float(body.get("K", 100))
+        dte         = float(body.get("dte", 30))
+        sigma       = float(body.get("sigma", 0.25))
+        option_type = str(body.get("option_type", "Call"))
+        r           = float(body.get("r", 0.05))
+        q           = float(body.get("q", 0.0))
+        return price_option(S=S, K=K, dte=dte, sigma=sigma,
+                            option_type=option_type, r=r, q=q)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/gsquant/iv_solver")
+async def gs_iv_solver(body: dict):
+    """Newton-Raphson implied vol solver."""
+    from strategies.options_pricer import BlackScholesEngine, OptionType
+    try:
+        market_price = float(body["market_price"])
+        S            = float(body["S"])
+        K            = float(body["K"])
+        dte          = float(body["dte"])
+        T            = max(dte / 365.0, 1e-6)
+        r            = float(body.get("r", 0.05))
+        q            = float(body.get("q", 0.0))
+        option_type  = OptionType(body.get("option_type", "Call"))
+        iv = BlackScholesEngine.implied_vol(market_price, S, K, T, r, option_type, q)
+        if iv is None:
+            return {"error": "IV solver did not converge", "iv": None}
+        return {"iv": round(iv, 6), "iv_pct": round(iv * 100, 4)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/gsquant/scenario_grid")
+async def gs_scenario_grid(body: dict):
+    """2D scenario P&L grid (spot × vol shocks) for heatmap."""
+    from strategies.options_pricer import BlackScholesEngine, OptionType, full_scenario_grid
+    try:
+        S           = float(body.get("S", 100))
+        K           = float(body.get("K", 100))
+        dte         = float(body.get("dte", 30))
+        sigma       = float(body.get("sigma", 0.25))
+        option_type = OptionType(body.get("option_type", "Call"))
+        r           = float(body.get("r", 0.05))
+        T           = max(dte / 365.0, 1e-6)
+        result = BlackScholesEngine.calc(S, K, T, r, sigma, option_type)
+        grid = full_scenario_grid(result)
+        return {"available": True, "grid": grid, "base_price": round(result.price, 4)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/gsquant/vol_surface/{symbol}")
+async def gs_vol_surface(symbol: str, lookback: int = Query(180, ge=30, le=500)):
+    """
+    Construct a SABR vol surface from ATM IV + skew estimation.
+    Falls back to a demo surface built from realized vol.
+    """
+    from ml.gs_analytics import compute_timeseries_analytics
+    from strategies.vol_surface import build_demo_surface, VolSurface
+    df = _gs_load_data(symbol.upper(), lookback)
+    if df is None or len(df) < 30:
+        return {"available": False, "error": "insufficient data"}
+
+    analytics = compute_timeseries_analytics(df, symbol=symbol.upper())
+    close = float(df["close"].iloc[-1]) if "close" in df.columns else float(df.iloc[-1, -1])
+    atm_iv = analytics.get("annualized_vol_21") or 0.25
+    skew   = -0.04
+
+    surface = build_demo_surface(spot=close, atm_vol=atm_iv, skew=skew)
+    term_ts = surface.term_structure()
+    grid    = surface.surface_grid()
+    skew_r  = surface.skew_report()
+
+    # Vol regime signal
+    rv21 = analytics.get("realized_vol_21") or analytics.get("annualized_vol_21") or atm_iv
+    from strategies.vol_surface import vol_regime_analytics
+    regime = vol_regime_analytics(atm_iv, rv21, term_ts)
+
+    return {
+        "available":      True,
+        "symbol":         symbol.upper(),
+        "spot":           round(close, 4),
+        "atm_iv":         round(atm_iv, 6),
+        "term_structure": term_ts,
+        "surface_grid":   grid,
+        "skew_report":    skew_r,
+        "vol_regime":     regime,
+    }
+
+
+@app.get("/api/gsquant/summary")
+async def gs_summary():
+    """Summary dashboard: key analytics across the standard universe."""
+    from bot.config import cfg
+    symbols = (cfg.model_symbols or ["SPY", "QQQ", "AAPL", "BTCUSDT"])[:10]
+    results = {}
+    for sym in symbols:
+        try:
+            df = _gs_load_data(sym, 252)
+            if df is None or len(df) < 30:
+                continue
+            from ml.gs_analytics import compute_timeseries_analytics, compute_risk_analytics
+            ts  = compute_timeseries_analytics(df, symbol=sym)
+            risk = compute_risk_analytics(df, symbol=sym)
+            results[sym] = {
+                "sharpe":     ts.get("sharpe_ratio"),
+                "max_dd":     ts.get("max_drawdown"),
+                "vol_21":     ts.get("annualized_vol_21"),
+                "rsi_14":     ts.get("rsi_14"),
+                "var_1d":     risk.get("var_1d_pct"),
+                "zscore_1m":  None,
+            }
+            from ml.gs_analytics import compute_zscore_regime
+            zs = compute_zscore_regime(df, symbol=sym)
+            results[sym]["zscore_1m"] = zs.get("zscore_1m")
+        except Exception as e:
+            log.debug("gs_summary failed for %s: %s", sym, e)
+    return {"available": bool(results), "symbols": results}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

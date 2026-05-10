@@ -106,6 +106,19 @@ def build_registry() -> list[BaseStrategy]:
         from strategies.pullback_confluence import PullbackConfluenceStrategy
         strategies.append(PullbackConfluenceStrategy())
 
+    # ── High-alpha quantitative strategies (Avellaneda-Stoikov, Taleb, Gatheral) ──
+    if cfg.enable_market_making:
+        from strategies.market_making import MarketMakingStrategy
+        strategies.append(MarketMakingStrategy())
+
+    if cfg.enable_gamma_scalping:
+        from strategies.gamma_scalping import GammaScalpingStrategy
+        strategies.append(GammaScalpingStrategy())
+
+    if cfg.enable_vol_surface_arb:
+        from strategies.vol_surface_arb import VolSurfaceArbStrategy
+        strategies.append(VolSurfaceArbStrategy())
+
     log.info("Strategy registry: %d strategies active — %s",
              len(strategies), [s.name for s in strategies])
     return strategies
