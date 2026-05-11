@@ -34,6 +34,7 @@ from core.delay_aware_options import (
 )
 from core.manager import release_cash_from_sweep
 from core.quant_models import LongOptionTailSnapshot, analyze_long_option_tail
+from core.trade_decision_tape import record_trade_decision
 from .strategy import filter_underlying, filter_options, score_options, select_options
 from models.contract import Contract
 import numpy as np
@@ -41,6 +42,13 @@ import numpy as np
 from core.notifications import send_alert  # <-- THE NEW DISCORD WEBHOOK
 
 logger = logging.getLogger(f"strategy.{__name__}")
+
+
+def _record_decision_safe(**kwargs) -> None:
+    try:
+        record_trade_decision(**kwargs)
+    except Exception as exc:
+        logger.debug("trade decision tape write failed: %s", exc)
 
 
 @dataclass(frozen=True)
@@ -234,6 +242,16 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
             
             max_risk = round(abs(short_strike - long_strike) * 100, 2)
             if not is_condor and (max_risk > max_risk_limit or buying_power < max_risk): 
+                _record_decision_safe(
+                    status="REJECTED",
+                    strategy="put_credit_spread",
+                    symbol=root,
+                    action="sell_put_spread",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason="Spread risk exceeds cycle cap or available buying power.",
+                    details={"short_leg": p.symbol, "long_leg": long_symbol, "spread_risk": max_risk},
+                )
                 continue 
 
             short_contract = priced_contract_map.get(p.symbol)
@@ -244,6 +262,22 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
                 float(short_contract.pricing_confidence or 0.0),
                 float(long_contract.pricing_confidence or 0.0),
             ) < OPTION_DELAY_MIN_PRICING_CONFIDENCE:
+                _record_decision_safe(
+                    status="REJECTED",
+                    strategy="put_credit_spread",
+                    symbol=root,
+                    action="sell_put_spread",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason="Option quote confidence below delay-aware execution threshold.",
+                    details={
+                        "short_leg": p.symbol,
+                        "long_leg": long_symbol,
+                        "short_confidence": float(short_contract.pricing_confidence or 0.0),
+                        "long_confidence": float(long_contract.pricing_confidence or 0.0),
+                        "min_required_confidence": OPTION_DELAY_MIN_PRICING_CONFIDENCE,
+                    },
+                )
                 continue
 
             sb, sa = effective_bid_price(short_contract), effective_ask_price(short_contract)
@@ -270,6 +304,16 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
             logger.info(f"Executing Put Wing: SELL {p.symbol} & BUY {long_symbol} | Credit: ${abs(limit_price)}")
             try:
                 client.execute_credit_spread(p.symbol, long_symbol, limit_price)
+                _record_decision_safe(
+                    status="EXECUTED",
+                    strategy="condor_put_wing" if is_condor else "put_credit_spread",
+                    symbol=root,
+                    action="sell_put_spread",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason="Submitted put credit spread to broker.",
+                    details={"short_leg": p.symbol, "long_leg": long_symbol, "credit": abs(limit_price), "spread_risk": max_risk},
+                )
                 buying_power -= max_risk 
                 
                 # --- DISCORD ALERT ---
@@ -278,6 +322,16 @@ def sell_puts(client, allowed_symbols, buying_power, max_risk_limit, strat_logge
                 
             except Exception as e:
                 logger.error(f"Failed Put Wing: {e}")
+                _record_decision_safe(
+                    status="REJECTED",
+                    strategy="condor_put_wing" if is_condor else "put_credit_spread",
+                    symbol=root,
+                    action="sell_put_spread",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason=f"Broker submission failed: {e}",
+                    details={"short_leg": p.symbol, "long_leg": long_symbol, "credit": abs(limit_price), "spread_risk": max_risk},
+                )
 
 
 def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0, max_risk_limit=300.0, strat_logger=None, is_condor=False, override_expiry=None):
@@ -322,7 +376,18 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
                 long_strike, long_symbol = possible_longs[0]
                 max_risk = round(abs(long_strike - short_strike) * 100, 2)
                 
-                if not is_condor and (max_risk > max_risk_limit or buying_power < max_risk): continue
+                if not is_condor and (max_risk > max_risk_limit or buying_power < max_risk):
+                    _record_decision_safe(
+                        status="REJECTED",
+                        strategy="call_credit_spread",
+                        symbol=root,
+                        action="sell_call_spread",
+                        risk_cap=max_risk_limit,
+                        buying_power=buying_power,
+                        reason="Spread risk exceeds cycle cap or available buying power.",
+                        details={"short_leg": p.symbol, "long_leg": long_symbol, "spread_risk": max_risk},
+                    )
+                    continue
 
                 short_contract = priced_contract_map.get(p.symbol)
                 long_contract = priced_contract_map.get(long_symbol)
@@ -332,6 +397,22 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
                     float(short_contract.pricing_confidence or 0.0),
                     float(long_contract.pricing_confidence or 0.0),
                 ) < OPTION_DELAY_MIN_PRICING_CONFIDENCE:
+                    _record_decision_safe(
+                        status="REJECTED",
+                        strategy="call_credit_spread",
+                        symbol=root,
+                        action="sell_call_spread",
+                        risk_cap=max_risk_limit,
+                        buying_power=buying_power,
+                        reason="Option quote confidence below delay-aware execution threshold.",
+                        details={
+                            "short_leg": p.symbol,
+                            "long_leg": long_symbol,
+                            "short_confidence": float(short_contract.pricing_confidence or 0.0),
+                            "long_confidence": float(long_contract.pricing_confidence or 0.0),
+                            "min_required_confidence": OPTION_DELAY_MIN_PRICING_CONFIDENCE,
+                        },
+                    )
                     continue
 
                 sb, sa = effective_bid_price(short_contract), effective_ask_price(short_contract)
@@ -358,6 +439,16 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
                 logger.info(f"Executing Call Wing: SELL {p.symbol} & BUY {long_symbol} | Credit: ${abs(limit_price)}")
                 try:
                     client.execute_credit_spread(p.symbol, long_symbol, limit_price)
+                    _record_decision_safe(
+                        status="EXECUTED",
+                        strategy="condor_call_wing" if is_condor else "call_credit_spread",
+                        symbol=root,
+                        action="sell_call_spread",
+                        risk_cap=max_risk_limit,
+                        buying_power=buying_power,
+                        reason="Submitted call credit spread to broker.",
+                        details={"short_leg": p.symbol, "long_leg": long_symbol, "credit": abs(limit_price), "spread_risk": max_risk},
+                    )
                     buying_power -= max_risk
                     
                     # --- DISCORD ALERT ---
@@ -366,6 +457,16 @@ def sell_calls(client, symbols, purchase_price=None, stock_qty=0, buying_power=0
 
                 except Exception as e:
                     logger.error(f"Failed Call Wing: {e}")
+                    _record_decision_safe(
+                        status="REJECTED",
+                        strategy="condor_call_wing" if is_condor else "call_credit_spread",
+                        symbol=root,
+                        action="sell_call_spread",
+                        risk_cap=max_risk_limit,
+                        buying_power=buying_power,
+                        reason=f"Broker submission failed: {e}",
+                        details={"short_leg": p.symbol, "long_leg": long_symbol, "credit": abs(limit_price), "spread_risk": max_risk},
+                    )
             elif purchase_price is not None:
                 try:
                     client.market_sell(p.symbol, order_label=f"Covered call {p.symbol}")
@@ -432,7 +533,42 @@ def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_mana
             natural_debit = ca + pa
             mid_debit = effective_mid_price(call_contract) + effective_mid_price(put_contract)
             max_risk = round(natural_debit * 100, 2)
-            if max_risk > max_risk_limit or buying_power < max_risk: continue
+            if max_risk > max_risk_limit:
+                logger.info(
+                    "Skipping Vega straddle on %s: debit risk $%.2f exceeds cycle risk cap $%.2f.",
+                    symbol,
+                    max_risk,
+                    max_risk_limit,
+                )
+                _record_decision_safe(
+                    status="REJECTED",
+                    strategy="vega_sniper",
+                    symbol=symbol,
+                    action="buy_straddle",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason="Debit risk exceeds cycle risk cap.",
+                    details={"call_leg": best_call, "put_leg": best_put, "debit_risk": max_risk},
+                )
+                continue
+            if buying_power < max_risk:
+                logger.info(
+                    "Skipping Vega straddle on %s: debit risk $%.2f exceeds available buying power $%.2f.",
+                    symbol,
+                    max_risk,
+                    buying_power,
+                )
+                _record_decision_safe(
+                    status="REJECTED",
+                    strategy="vega_sniper",
+                    symbol=symbol,
+                    action="buy_straddle",
+                    risk_cap=max_risk_limit,
+                    buying_power=buying_power,
+                    reason="Debit risk exceeds available buying power.",
+                    details={"call_leg": best_call, "put_leg": best_put, "debit_risk": max_risk},
+                )
+                continue
                 
             dynamic_fill_factor = max(0.0, min(1.0, 0.50 * SLIPPAGE_ALLOWANCE))
             limit_price = round(natural_debit - ((natural_debit - mid_debit) * dynamic_fill_factor), 2)
@@ -440,6 +576,16 @@ def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_mana
             logger.info(f"🎯 Executing Long Straddle on {symbol}: BUY {best_call} & BUY {best_put} | Target Debit: ${limit_price}")
             release_cash_from_sweep(client, required_cash=max_risk, reason=f"Vega straddle {symbol}")
             client.execute_debit_spread(best_call, best_put, limit_price)
+            _record_decision_safe(
+                status="EXECUTED",
+                strategy="vega_sniper",
+                symbol=symbol,
+                action="buy_straddle",
+                risk_cap=max_risk_limit,
+                buying_power=buying_power,
+                reason="Submitted long straddle to broker.",
+                details={"call_leg": best_call, "put_leg": best_put, "target_debit": limit_price, "debit_risk": max_risk},
+            )
             buying_power -= max_risk
             
             # --- DISCORD ALERT ---
@@ -449,6 +595,15 @@ def buy_straddles(client, symbols_list, buying_power, max_risk_limit, state_mana
                 state_manager.register_straddle(symbol, best_call, best_put, "TBD")
         except Exception as e:
             logger.error(f"Failed to execute straddle for {symbol}: {e}")
+            _record_decision_safe(
+                status="REJECTED",
+                strategy="vega_sniper",
+                symbol=symbol,
+                action="buy_straddle",
+                risk_cap=max_risk_limit,
+                buying_power=buying_power,
+                reason=f"Execution path failed: {e}",
+            )
 
     return buying_power
 

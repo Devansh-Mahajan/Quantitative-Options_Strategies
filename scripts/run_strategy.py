@@ -58,6 +58,33 @@ from core.strategy_regime import synthesize_live_controls
 from core.system_preflight import DEFAULT_STATE_PATH, run_preflight
 from core.system_telemetry import DEFAULT_RISK_SNAPSHOT_PATH, write_risk_snapshot
 from core.terminal_ui import ProgressTracker
+from core.trade_decision_tape import record_trade_decision
+
+DEFAULT_LIVE_SYMBOL_LIMIT = 120
+BLOCKED_LIVE_SYMBOLS = {"STKS"}
+
+
+def _live_symbol_limit() -> int:
+    raw = str(os.getenv("LIVE_STRATEGY_SYMBOL_LIMIT", DEFAULT_LIVE_SYMBOL_LIMIT)).strip()
+    if "#" in raw:
+        raw = raw.split("#", 1)[0].strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return DEFAULT_LIVE_SYMBOL_LIMIT
+
+
+def _prepare_live_symbols(symbols: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for symbol in symbols:
+        sym = str(symbol or "").strip().upper()
+        if not sym or sym in BLOCKED_LIVE_SYMBOLS or sym in seen:
+            continue
+        cleaned.append(sym)
+        seen.add(sym)
+    limit = _live_symbol_limit()
+    return cleaned[:limit] if limit else cleaned
 
 
 def _validate_date(date_str):
@@ -221,7 +248,13 @@ def main():
     weekend_symbols_file = Path(__file__).parent.parent / "config" / "volatile_symbols.txt"
     chosen_file = weekend_symbols_file if weekend_symbols_file.exists() else symbols_file
     with open(chosen_file, 'r') as file:
-        SYMBOLS = [line.strip() for line in file.readlines() if line.strip()]
+        SYMBOLS = _prepare_live_symbols([line.strip() for line in file.readlines() if line.strip()])
+    logger.info(
+        "Live execution universe: %d symbols from %s (limit=%s)",
+        len(SYMBOLS),
+        chosen_file.name,
+        _live_symbol_limit() or "all",
+    )
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
     try:
@@ -290,9 +323,14 @@ def main():
         else:
             logger.info(f"Skipping {sym}: Maximum allocation ({MAX_SPREADS_PER_SYMBOL} spread) reached.")
 
-    # Hedge-fund flow proxy: prioritize candidates with persistent momentum + volume surprise
-    flow_map = estimate_institutional_flow(allowed_symbols) if allowed_symbols else {}
-    allowed_symbols = sorted(allowed_symbols, key=lambda s: flow_map.get(s, 0.0), reverse=True)
+    # Hedge-fund flow proxy: prioritize candidates with persistent momentum + volume surprise.
+    # Manage-only cycles must stay light; they run for pre-open/risk checks and should not
+    # hold the automation execution lock while downloading/scoring the full universe.
+    if args.manage_only:
+        flow_map = {}
+    else:
+        flow_map = estimate_institutional_flow(allowed_symbols) if allowed_symbols else {}
+        allowed_symbols = sorted(allowed_symbols, key=lambda s: flow_map.get(s, 0.0), reverse=True)
 
     account = client.trade_client.get_account()
     total_equity = float(account.portfolio_value)
@@ -313,10 +351,15 @@ def main():
 
     # Grab VIX early so we can scale risk and print it on the dashboard
     current_vix = get_vix_level()
-    predictor_universe = allowed_symbols[:predictor_cap] if allowed_symbols else SYMBOLS[:predictor_cap]
-    movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
-    alpha_universe = allowed_symbols[: max(12, min(len(allowed_symbols), predictor_cap * 2))] if allowed_symbols else SYMBOLS[: max(12, predictor_cap)]
-    alpha_signals = live_alpha_signal_map(alpha_universe)
+    if args.manage_only:
+        predictor_universe = []
+        movement_signals = []
+        alpha_signals = {}
+    else:
+        predictor_universe = allowed_symbols[:predictor_cap] if allowed_symbols else SYMBOLS[:predictor_cap]
+        movement_signals = aggregate_movement_signals(predictor_universe, lookback="5y")
+        alpha_universe = allowed_symbols[: max(12, min(len(allowed_symbols), predictor_cap * 2))] if allowed_symbols else SYMBOLS[: max(12, predictor_cap)]
+        alpha_signals = live_alpha_signal_map(alpha_universe)
     runtime_policy_mode = "weekend_policy" if _runtime_policy_has_live_controls(runtime_calibration) else "synthetic_live_policy"
     progress.advance("Scoring live market signals")
 
@@ -553,6 +596,19 @@ def main():
                     runtime_min_signal_confidence,
                     (1.0 - LOW_CONFIDENCE_RISK_MULTIPLIER) * 100.0,
                 )
+                record_trade_decision(
+                    status="GATED",
+                    strategy="risk_sizer",
+                    action="risk_throttle",
+                    confidence=signal_confidence,
+                    risk_cap=dynamic_max_risk,
+                    buying_power=buying_power,
+                    reason="Signal confidence below runtime minimum; cutting risk and fresh deployment.",
+                    details={
+                        "min_signal_confidence": runtime_min_signal_confidence,
+                        "risk_multiplier": LOW_CONFIDENCE_RISK_MULTIPLIER,
+                    },
+                )
 
             logger.info(f"Step 2: Hunting for new setups with ${buying_power:.2f} BP (Total Equity: ${total_equity:.2f})...")
             progress.advance("Routing candidate trades across strategy buckets")
@@ -641,7 +697,6 @@ def main():
                 len(bull_candidates),
                 len(bear_candidates),
             )
-
             if PLATINUM_MODE:
                 pair_confidence = estimate_pair_overlay_confidence(pair_overlay_cache.get("signals", []))
                 deploy_fraction = recommend_deployment_fraction(
@@ -699,6 +754,32 @@ def main():
             bear_candidates = bear_candidates[: bucket_caps["BEAR"]]
             
             logger.info(f"📊 NEURAL TARGETS ALIGNED WITH RISK: Theta(Condors): {len(theta_candidates)} | Vega(Straddles): {len(vega_candidates)} | Bull(Puts): {len(bull_candidates)} | Bear(Calls): {len(bear_candidates)}")
+            for bucket, strategy_name, candidates in (
+                ("THETA", "theta_condor", theta_candidates),
+                ("VEGA", "vega_sniper", vega_candidates),
+                ("BULL", "bull_put_credit", bull_candidates),
+                ("BEAR", "bear_call_credit", bear_candidates),
+            ):
+                for candidate in candidates:
+                    symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                    record_trade_decision(
+                        status="SUGGESTED",
+                        strategy=strategy_name,
+                        symbol=symbol,
+                        action=f"route_{bucket.lower()}",
+                        confidence=routing_plan.consensus_score,
+                        risk_cap=dynamic_max_risk,
+                        buying_power=buying_power,
+                        reason="Candidate survived routing, sizing, and throttle caps.",
+                        details={
+                            "bucket": bucket,
+                            "macro_strategy": brain_strategy,
+                            "macro_confidence": macro_confidence,
+                            "movement_bias": greek_targets.movement_bias,
+                            "bucket_cap": bucket_caps.get(bucket),
+                            "raw_candidate": candidate,
+                        },
+                    )
 
             # --- 0B. ASYMMETRIC / CONVEXITY BETS (The Lottery Tickets) ---
             # Feed the most stable/range-bound (THETA) candidates to asymmetric generator
@@ -722,20 +803,69 @@ def main():
                 )
             else:
                 logger.info("Step 2A: No Vega (Straddle) opportunities met the AI confidence threshold.")
+                record_trade_decision(
+                    status="REJECTED",
+                    strategy="vega_sniper",
+                    action="candidate_scan",
+                    confidence=routing_plan.consensus_score,
+                    risk_cap=dynamic_max_risk,
+                    buying_power=buying_power,
+                    reason="No Vega straddle candidates met confidence/routing thresholds.",
+                    details={"target_vega": greek_targets.target_vega, "vega_enabled": runtime_calibration.vega_enabled},
+                )
 
             # --- 2B. DEPLOY THETA ENGINE (Iron Condors) ---
             if theta_candidates and buying_power >= 100:
                 # 🛑 MACRO GATEKEEPER CHECK FOR CREDIT STRATEGIES 🛑
                 if brain_strategy == "TAIL_HEDGE":
                     logger.warning("🚨 MACRO AI SAYS TAIL_HEDGE: Market crash probability high. Iron Condors DEACTIVATED.")
+                    for candidate in theta_candidates:
+                        symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                        record_trade_decision(
+                            status="GATED",
+                            strategy="theta_condor",
+                            symbol=symbol,
+                            action="sell_iron_condor",
+                            confidence=macro_confidence,
+                            risk_cap=dynamic_max_risk,
+                            buying_power=buying_power,
+                            reason="Macro regime TAIL_HEDGE disables short premium.",
+                            details={"macro_strategy": brain_strategy, "vix": current_vix},
+                        )
                 elif brain_strategy == "VEGA_SNIPER":
                     logger.warning("🟡 MACRO AI SAYS VEGA_SNIPER: Volatility expanding. Iron Condors DEACTIVATED to prevent blowouts.")
+                    for candidate in theta_candidates:
+                        symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                        record_trade_decision(
+                            status="GATED",
+                            strategy="theta_condor",
+                            symbol=symbol,
+                            action="sell_iron_condor",
+                            confidence=macro_confidence,
+                            risk_cap=dynamic_max_risk,
+                            buying_power=buying_power,
+                            reason="Macro regime VEGA_SNIPER disables iron condors.",
+                            details={"macro_strategy": brain_strategy, "vix": current_vix},
+                        )
                 elif current_vix > runtime_calibration.max_vix_for_short_premium:
                     logger.warning(
                         "🛑 Regime policy capped short premium at VIX %.2f. Current VIX %.2f. Iron Condors DEACTIVATED.",
                         runtime_calibration.max_vix_for_short_premium,
                         current_vix,
                     )
+                    for candidate in theta_candidates:
+                        symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                        record_trade_decision(
+                            status="GATED",
+                            strategy="theta_condor",
+                            symbol=symbol,
+                            action="sell_iron_condor",
+                            confidence=macro_confidence,
+                            risk_cap=dynamic_max_risk,
+                            buying_power=buying_power,
+                            reason="Current VIX exceeds short-premium policy cap.",
+                            details={"vix": current_vix, "max_vix_for_short_premium": runtime_calibration.max_vix_for_short_premium},
+                        )
                 else:
                     logger.info(f"Step 2B: Launching AI Theta Engine (Iron Condors) on {len(theta_candidates)} targets.")
                     buying_power = sell_iron_condors(
@@ -758,13 +888,55 @@ def main():
 
                 if brain_strategy == "TAIL_HEDGE" or brain_strategy == "VEGA_SNIPER":
                     logger.warning("🟡 MACRO AI GATE: Market is too volatile for directional short premium. Skipping Put/Call Spreads.")
+                    for side_name, candidates in (("bull_put_credit", bull_candidates), ("bear_call_credit", bear_candidates)):
+                        for candidate in candidates:
+                            symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                            record_trade_decision(
+                                status="GATED",
+                                strategy=side_name,
+                                symbol=symbol,
+                                action="directional_credit_spread",
+                                confidence=macro_confidence,
+                                risk_cap=dynamic_max_risk,
+                                buying_power=buying_power,
+                                reason="Macro regime disables directional short premium.",
+                                details={"macro_strategy": brain_strategy, "vix": current_vix},
+                            )
                 elif not runtime_calibration.directional_enabled:
                     logger.info("🧯 Runtime regime policy disabled directional short premium for this market state.")
+                    for side_name, candidates in (("bull_put_credit", bull_candidates), ("bear_call_credit", bear_candidates)):
+                        for candidate in candidates:
+                            symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                            record_trade_decision(
+                                status="GATED",
+                                strategy=side_name,
+                                symbol=symbol,
+                                action="directional_credit_spread",
+                                confidence=routing_plan.consensus_score,
+                                risk_cap=dynamic_max_risk,
+                                buying_power=buying_power,
+                                reason="Runtime calibration disabled directional short premium.",
+                                details={"runtime_regime": runtime_calibration.current_regime},
+                            )
                 elif current_vix > runtime_calibration.max_vix_for_short_premium:
                     logger.info(
                         "🧯 Runtime regime policy capped short premium at VIX %.2f. Holding fire on directional spreads.",
                         runtime_calibration.max_vix_for_short_premium,
                     )
+                    for side_name, candidates in (("bull_put_credit", bull_candidates), ("bear_call_credit", bear_candidates)):
+                        for candidate in candidates:
+                            symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                            record_trade_decision(
+                                status="GATED",
+                                strategy=side_name,
+                                symbol=symbol,
+                                action="directional_credit_spread",
+                                confidence=routing_plan.consensus_score,
+                                risk_cap=dynamic_max_risk,
+                                buying_power=buying_power,
+                                reason="Current VIX exceeds directional short-premium cap.",
+                                details={"vix": current_vix, "max_vix_for_short_premium": runtime_calibration.max_vix_for_short_premium},
+                            )
                 elif current_vix >= min_vix_for_directional_credit:
                     half_bp = buying_power / 2.0
                     
@@ -782,8 +954,31 @@ def main():
                         min_vix_for_directional_credit,
                         buying_power,
                     )
+                    for side_name, candidates in (("bull_put_credit", bull_candidates), ("bear_call_credit", bear_candidates)):
+                        for candidate in candidates:
+                            symbol = candidate.get("symbol") if isinstance(candidate, dict) else candidate
+                            record_trade_decision(
+                                status="GATED",
+                                strategy=side_name,
+                                symbol=symbol,
+                                action="directional_credit_spread",
+                                confidence=routing_plan.consensus_score,
+                                risk_cap=dynamic_max_risk,
+                                buying_power=buying_power,
+                                reason="VIX below minimum needed for directional credit spread compensation.",
+                                details={"vix": current_vix, "min_vix_for_directional_credit": min_vix_for_directional_credit},
+                            )
             elif buying_power < 50:
                 logger.info(f"Remaining BP (${buying_power:.2f}) exhausted. Skipping Directional Bets.")
+                record_trade_decision(
+                    status="GATED",
+                    strategy="risk_sizer",
+                    action="skip_directional",
+                    risk_cap=dynamic_max_risk,
+                    buying_power=buying_power,
+                    reason="Remaining buying power below directional deployment floor.",
+                    details={"min_buying_power": 50.0},
+                )
                 
         else:
             if buying_power == 0 and dynamic_max_risk == 0:

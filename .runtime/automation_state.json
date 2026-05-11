@@ -1,11 +1,11 @@
 {
-  "pre_open_self_check": "2026-05-08",
+  "pre_open_self_check": "2026-05-11",
   "daily_maintenance": "2026-05-08",
   "regime_signature": {
-    "macro_strategy": "THETA_ENGINE",
+    "macro_strategy": "TAIL_HEDGE",
     "runtime_regime": "TRANSITION",
     "runtime_market_state": "transition",
     "runtime_profile": "all_weather"
   },
-  "market_open_dispatch": "2026-04-15"
+  "market_open_dispatch": "2026-05-11"
 }

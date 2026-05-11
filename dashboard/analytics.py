@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_DIR = ROOT / ".runtime"
 REPORTS_DIR = ROOT / "reports"
 LATEST_BACKTEST_REPORT = REPORTS_DIR / "latest_backtest_report.json"
+STOCK_UNIVERSE_RESEARCH = REPORTS_DIR / "stock_universe_research.json"
 UNIVERSE_REPORT = REPORTS_DIR / "universe_validation_report.json"
 RISK_SNAPSHOT_PATH = RUNTIME_DIR / "risk_snapshot.json"
 PORTFOLIO_GUARD_PATH = RUNTIME_DIR / "portfolio_risk_guard.json"
@@ -2050,20 +2051,32 @@ def _aggregate_stock_research(movement_results: list[dict[str, Any]]) -> list[di
 def build_stocks_overview() -> dict[str, Any]:
     universe_report = read_json(UNIVERSE_REPORT, {})
     backtest_report = read_json(LATEST_BACKTEST_REPORT, {})
+    stock_research_report = read_json(STOCK_UNIVERSE_RESEARCH, {})
     movement_results = ((backtest_report.get("movement_suite") or {}).get("results") or [])
     ml_summary = ((backtest_report.get("ml_alpha_suite") or {}).get("summary") or {})
 
     research_rows = _aggregate_stock_research(movement_results)
+    full_universe_rows = stock_research_report.get("rows") if isinstance(stock_research_report.get("rows"), list) else []
     preferred_lookback, pair_results, top_pairs, pairs_summary = _preferred_pairs_lookup(backtest_report)
     universe_symbols = [str(symbol).upper() for symbol in (universe_report.get("valid_symbols") or []) if symbol]
+    if not universe_symbols and full_universe_rows:
+        universe_symbols = [str(row.get("symbol")).upper() for row in full_universe_rows if row.get("symbol")]
     universe_size = safe_int(universe_report.get("symbols_valid")) or len(universe_symbols)
     research_by_symbol = {str(row.get("symbol")).upper(): row for row in research_rows if row.get("symbol")}
+    full_research_by_symbol = {str(row.get("symbol")).upper(): row for row in full_universe_rows if row.get("symbol")}
     researched_symbols = 0
+    price_ready_symbols = 0
     positive_alpha_symbols = 0
     universe_rows: list[dict[str, Any]] = []
     for rank, symbol in enumerate(universe_symbols, start=1):
-        base = research_by_symbol.get(symbol) or {}
-        has_research = bool(base)
+        movement_base = research_by_symbol.get(symbol) or {}
+        universe_base = full_research_by_symbol.get(symbol) or {}
+        base = movement_base or universe_base
+        has_research = bool(base and (movement_base or universe_base.get("has_research")))
+        has_movement_research = bool(movement_base)
+        data_status = str(universe_base.get("data_status") or ("ready" if has_movement_research else "pending"))
+        if data_status == "ready":
+            price_ready_symbols += 1
         if has_research:
             researched_symbols += 1
             if (safe_float(base.get("alpha_daily")) or 0.0) > 0:
@@ -2073,13 +2086,27 @@ def build_stocks_overview() -> dict[str, Any]:
                 "rank": rank,
                 "symbol": symbol,
                 "has_research": has_research,
-                "lookback": base.get("lookback"),
-                "accuracy": safe_float(base.get("accuracy")),
-                "hit_ratio": safe_float(base.get("hit_ratio")),
+                "has_movement_research": has_movement_research,
+                "research_source": base.get("research_source") or ("movement_suite" if has_movement_research else None),
+                "data_status": data_status,
+                "data_rows": safe_int(universe_base.get("data_rows")),
+                "last_price": safe_float(universe_base.get("last_price")),
+                "last_date": universe_base.get("last_date"),
+                "lookback": movement_base.get("lookback") or stock_research_report.get("period"),
+                "accuracy": safe_float(movement_base.get("accuracy")),
+                "hit_ratio": safe_float(movement_base.get("hit_ratio")),
                 "alpha_daily": safe_float(base.get("alpha_daily")),
-                "strategy_return": safe_float(base.get("strategy_return")),
-                "buy_hold_return": safe_float(base.get("buy_hold_return")),
-                "meets_targets": bool(base.get("meets_targets")) if has_research else False,
+                "strategy_return": safe_float(movement_base.get("strategy_return")),
+                "buy_hold_return": safe_float(movement_base.get("buy_hold_return")) or safe_float(universe_base.get("momentum_12m")),
+                "volatility_annualized": safe_float(universe_base.get("volatility_annualized")),
+                "sharpe_proxy": safe_float(universe_base.get("sharpe_proxy")),
+                "max_drawdown": safe_float(universe_base.get("max_drawdown")),
+                "beta_spy": safe_float(universe_base.get("beta_spy")),
+                "corr_spy": safe_float(universe_base.get("corr_spy")),
+                "momentum_1m": safe_float(universe_base.get("momentum_1m")),
+                "momentum_3m": safe_float(universe_base.get("momentum_3m")),
+                "momentum_12m": safe_float(universe_base.get("momentum_12m")),
+                "meets_targets": bool(movement_base.get("meets_targets")) if has_movement_research else False,
             }
         )
 
@@ -2100,8 +2127,19 @@ def build_stocks_overview() -> dict[str, Any]:
         "research_leaders": research_rows,
         "universe_rows": universe_rows,
         "research_coverage_pct": round((researched_symbols / max(universe_size, 1)) * 100.0, 2),
+        "price_data_coverage_pct": round((price_ready_symbols / max(universe_size, 1)) * 100.0, 2),
+        "price_ready_symbols": price_ready_symbols,
         "researched_symbols": researched_symbols,
         "positive_alpha_symbols": positive_alpha_symbols,
+        "stock_universe_research": {
+            "generated_at_utc": stock_research_report.get("generated_at_utc"),
+            "period": stock_research_report.get("period"),
+            "symbols_with_price_data": stock_research_report.get("symbols_with_price_data"),
+            "ready_symbols": stock_research_report.get("ready_symbols"),
+            "thin_symbols": stock_research_report.get("thin_symbols"),
+            "missing_symbols": stock_research_report.get("missing_symbols"),
+            "cache_path": stock_research_report.get("cache_path"),
+        },
         "pairs": {
             "lookback": preferred_lookback,
             "summary": pairs_summary,

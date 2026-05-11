@@ -1,0 +1,51 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
+@import "ag-grid-community/styles/ag-grid.css";
+@import "ag-grid-community/styles/ag-theme-quartz.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+*::before,
+*::after {
+  transition: none !important;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #0a0a0a;
+  color: #e5e7eb;
+  font-family: "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+.panel {
+  @apply border border-terminal-grid bg-terminal-panel;
+}
+
+.panel-title {
+  @apply flex h-8 items-center justify-between border-b border-terminal-grid px-2 text-[10px] font-black uppercase tracking-[0.18em] text-terminal-muted;
+}
+
+.metric-cell {
+  @apply border-r border-terminal-grid px-2 py-1.5 last:border-r-0;
+}
+
+.ag-theme-quartz-dark {
+  --ag-background-color: #0a0a0a;
+  --ag-foreground-color: #e5e7eb;
+  --ag-border-color: #1a1a1a;
+  --ag-header-background-color: #0f0f0f;
+  --ag-odd-row-background-color: rgba(255, 255, 255, 0.018);
+  --ag-row-hover-color: rgba(0, 229, 255, 0.08);
+  --ag-font-family: "JetBrains Mono", monospace;
+  --ag-font-size: 10px;
+}

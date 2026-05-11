@@ -1,11 +1,11 @@
 {
   "weekend_recalibration": {
-    "timestamp_utc": "2026-05-10T18:02:26.728275+00:00",
-    "symbols_input": 497,
-    "symbols_retained": 497,
+    "timestamp_utc": "2026-05-11T03:59:20.476179+00:00",
+    "symbols_input": 494,
+    "symbols_retained": 494,
     "symbols_removed": 0,
     "top_n_requested": 0,
-    "top_n_applied": 497,
+    "top_n_applied": 494,
     "volatile_symbols_file": "config/volatile_symbols.txt",
     "target_daily_return": 0.002,
     "target_accuracy": 0.56,
@@ -33,7 +33,7 @@
     "note": "Weekend recalibration prepares the stack automatically, but targets remain optimization objectives, not guarantees."
   },
   "quant_research_foundry": {
-    "timestamp_utc": "2026-05-08T21:27:40.344720+00:00",
+    "timestamp_utc": "2026-05-11T13:27:06.172273+00:00",
     "mode": "weekend-calibrate",
     "pack_path": "config/quant_strategy_pack.json",
     "report_path": "reports/quant_foundry_report.json",
@@ -48,7 +48,6 @@
       "XOM",
       "MCK",
       "JPM",
-      "COST",
       "COR",
       "CI",
       "MSFT",
@@ -76,7 +75,8 @@
       "FMCC",
       "HUM",
       "MS",
-      "TGT"
+      "TGT",
+      "SNEX"
     ],
     "note": "Research pack for fine-tuning and staged paper-trading rollout."
   }

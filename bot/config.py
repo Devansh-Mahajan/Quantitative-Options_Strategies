@@ -11,20 +11,38 @@ _ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(_ROOT / ".env", override=False)
 
 
+def _env(key: str, default: object) -> str:
+    """
+    Read environment values defensively.
+
+    systemd EnvironmentFile does not treat inline ``#`` text as a comment, so a
+    line like ``INITIAL_CAPITAL=10000  # note`` arrives as the literal string
+    ``"10000  # note"``. Strip that tail here so both python-dotenv and
+    systemd-loaded configs behave the same way.
+    """
+    raw = os.getenv(key)
+    if raw is None:
+        return str(default)
+    value = raw.strip()
+    if "#" in value:
+        value = value.split("#", 1)[0].strip()
+    return value.strip("\"'")
+
+
 def _bool(key: str, default: bool = False) -> bool:
-    return os.getenv(key, str(default)).lower() in ("1", "true", "yes")
+    return _env(key, default).lower() in ("1", "true", "yes")
 
 
 def _float(key: str, default: float) -> float:
-    return float(os.getenv(key, default))
+    return float(_env(key, default))
 
 
 def _int(key: str, default: int) -> int:
-    return int(os.getenv(key, default))
+    return int(_env(key, default))
 
 
 def _list(key: str, default: str = "") -> list[str]:
-    raw = os.getenv(key, default)
+    raw = _env(key, default)
     return [s.strip() for s in raw.split(",") if s.strip()]
 
 
@@ -56,16 +74,16 @@ def _interleave(primary: list[str], secondary: list[str], total_limit: int | Non
 @dataclass
 class Config:
     # --- Broker selection ---
-    broker: str = field(default_factory=lambda: os.getenv("BROKER", "alpaca").lower())
+    broker: str = field(default_factory=lambda: _env("BROKER", "alpaca").lower())
 
     # --- Alpaca credentials ---
-    alpaca_api_key: str = field(default_factory=lambda: os.getenv("ALPACA_API_KEY", ""))
-    alpaca_api_secret: str = field(default_factory=lambda: os.getenv("ALPACA_API_SECRET", ""))
+    alpaca_api_key: str = field(default_factory=lambda: _env("ALPACA_API_KEY", ""))
+    alpaca_api_secret: str = field(default_factory=lambda: _env("ALPACA_API_SECRET", ""))
     alpaca_paper: bool = field(default_factory=lambda: _bool("ALPACA_PAPER", True))
 
     # --- Binance credentials ---
-    api_key: str = field(default_factory=lambda: os.getenv("BINANCE_API_KEY", ""))
-    api_secret: str = field(default_factory=lambda: os.getenv("BINANCE_API_SECRET", ""))
+    api_key: str = field(default_factory=lambda: _env("BINANCE_API_KEY", ""))
+    api_secret: str = field(default_factory=lambda: _env("BINANCE_API_SECRET", ""))
     testnet: bool = field(default_factory=lambda: _bool("BINANCE_TESTNET", False))
 
     # --- Capital ---
@@ -133,13 +151,13 @@ class Config:
     options_underlying: list[str] = field(
         default_factory=lambda: _list("OPTIONS_UNDERLYING", "BTC,ETH")
     )
-    regime_anchor_symbol: str = field(default_factory=lambda: os.getenv("REGIME_ANCHOR_SYMBOL", "").strip().upper())
-    benchmark_symbol: str = field(default_factory=lambda: os.getenv("BENCHMARK_SYMBOL", "").strip().upper())
+    regime_anchor_symbol: str = field(default_factory=lambda: _env("REGIME_ANCHOR_SYMBOL", "").strip().upper())
+    benchmark_symbol: str = field(default_factory=lambda: _env("BENCHMARK_SYMBOL", "").strip().upper())
 
     # --- ML ---
-    device: str = field(default_factory=lambda: os.getenv("DEVICE", "cuda"))
-    model_dir: Path = field(default_factory=lambda: Path(os.getenv("MODEL_DIR", str(_ROOT / "models" / "live"))))
-    training_dir: Path = field(default_factory=lambda: Path(os.getenv("TRAINING_DIR", str(_ROOT / "models" / "training"))))
+    device: str = field(default_factory=lambda: _env("DEVICE", "cuda"))
+    model_dir: Path = field(default_factory=lambda: Path(_env("MODEL_DIR", str(_ROOT / "models" / "live"))))
+    training_dir: Path = field(default_factory=lambda: Path(_env("TRAINING_DIR", str(_ROOT / "models" / "training"))))
     retrain_lookback_days: int = field(default_factory=lambda: _int("RETRAIN_LOOKBACK_DAYS", 90))
     lstm_lookback: int = field(default_factory=lambda: _int("LSTM_LOOKBACK", 50))
     hmm_states: int = field(default_factory=lambda: _int("HMM_STATES", 4))
@@ -153,13 +171,13 @@ class Config:
     min_notional: float = field(default_factory=lambda: _float("MIN_NOTIONAL", 10.0))
 
     # --- Notifications ---
-    discord_webhook_url: str = field(default_factory=lambda: os.getenv("DISCORD_WEBHOOK_URL", ""))
-    telegram_bot_token: str = field(default_factory=lambda: os.getenv("TELEGRAM_BOT_TOKEN", ""))
-    telegram_chat_id: str = field(default_factory=lambda: os.getenv("TELEGRAM_CHAT_ID", ""))
+    discord_webhook_url: str = field(default_factory=lambda: _env("DISCORD_WEBHOOK_URL", ""))
+    telegram_bot_token: str = field(default_factory=lambda: _env("TELEGRAM_BOT_TOKEN", ""))
+    telegram_chat_id: str = field(default_factory=lambda: _env("TELEGRAM_CHAT_ID", ""))
 
     # --- Logging ---
-    log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
-    log_dir: Path = field(default_factory=lambda: Path(os.getenv("LOG_DIR", str(_ROOT / "logging"))))
+    log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
+    log_dir: Path = field(default_factory=lambda: Path(_env("LOG_DIR", str(_ROOT / "logging"))))
 
     @property
     def is_alpaca(self) -> bool:

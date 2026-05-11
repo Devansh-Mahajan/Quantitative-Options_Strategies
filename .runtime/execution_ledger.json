@@ -243,5 +243,320 @@
       "limit_edge_bps": null,
       "reference_edge_bps": null
     }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T14:53:41.025072+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "ae0dad81-5fc5-4229-9b04-9008bcb2d67a",
+    "order_label": "c1c778ed-4b9a-46d9-a972-bd63ba039fcd",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 41.984057797,
+    "qty": 41.984057797,
+    "limit_price": null,
+    "filled_avg_price": 95.051371056,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T12:38:23.103261+00:00",
+    "updated_at_utc": "2026-05-11T12:38:23.110230+00:00",
+    "filled_at_utc": "2026-05-11T12:38:23.106479+00:00",
+    "legs": [
+      {
+        "symbol": "SOL/USD",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T14:53:41.025047+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "a4aa9996-7587-4a93-a417-6440900a3309",
+    "order_label": "075b54b8-08d4-470b-9812-f227b3cd1a7e",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 92.193441742,
+    "qty": 92.193441742,
+    "limit_price": null,
+    "filled_avg_price": 10.117,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T12:38:25.079674+00:00",
+    "updated_at_utc": "2026-05-11T12:38:25.110118+00:00",
+    "filled_at_utc": "2026-05-11T12:38:25.082814+00:00",
+    "legs": [
+      {
+        "symbol": "AVAX/USD",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T14:53:41.025017+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "40f3103e-814d-43f2-9900-7098f11a7cd7",
+    "order_label": "f0e7e202-5ddf-496b-9a11-edc46d184b71",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 78.529354575,
+    "qty": 78.529354575,
+    "limit_price": null,
+    "filled_avg_price": 1.4619,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T12:38:27.628514+00:00",
+    "updated_at_utc": "2026-05-11T12:38:27.660201+00:00",
+    "filled_at_utc": "2026-05-11T12:38:27.631072+00:00",
+    "legs": [
+      {
+        "symbol": "XRP/USD",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T14:53:41.024941+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "b89c409b-a628-4d1c-9d40-41687e8022bd",
+    "order_label": "541906f3-e536-4a1a-acca-ea3293137996",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 41.742177015,
+    "qty": 41.742177015,
+    "limit_price": null,
+    "filled_avg_price": 10.57,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T12:38:29.138492+00:00",
+    "updated_at_utc": "2026-05-11T12:38:29.160282+00:00",
+    "filled_at_utc": "2026-05-11T12:38:29.141279+00:00",
+    "legs": [
+      {
+        "symbol": "LINK/USD",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T14:55:31.476621+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "77c70331-11de-432a-ab9c-1a7ba818b509",
+    "order_label": "662b634c-8138-4345-9993-233ff514f16c",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 90.0,
+    "qty": 90.0,
+    "limit_price": null,
+    "filled_avg_price": 100.49,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T14:55:25.694475+00:00",
+    "updated_at_utc": "2026-05-11T14:55:26.311665+00:00",
+    "filled_at_utc": "2026-05-11T14:55:26.309624+00:00",
+    "legs": [
+      {
+        "symbol": "SGOV",
+        "side": "orderside.buy"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T15:29:01.033468+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "f279ace8-14c3-4bc4-97bb-aa9b3aa50392",
+    "order_label": "51a7a4b8-cc2e-4fe2-b3e5-09d56ae5336d",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 90.0,
+    "qty": 90.0,
+    "limit_price": null,
+    "filled_avg_price": 100.48,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T15:25:52.309714+00:00",
+    "updated_at_utc": "2026-05-11T15:25:52.888970+00:00",
+    "filled_at_utc": "2026-05-11T15:25:52.886570+00:00",
+    "legs": [
+      {
+        "symbol": "SGOV",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T15:30:46.769753+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "31cd8087-d6f4-4870-8ec3-418f13b37a06",
+    "order_label": "40dfae5b-6258-4bea-bcb9-70f240b9a32a",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 90.0,
+    "qty": 90.0,
+    "limit_price": null,
+    "filled_avg_price": 100.49,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T15:29:04.413161+00:00",
+    "updated_at_utc": "2026-05-11T15:29:06.225096+00:00",
+    "filled_at_utc": "2026-05-11T15:29:06.223193+00:00",
+    "legs": [
+      {
+        "symbol": "SGOV",
+        "side": "orderside.buy"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T16:26:08.372801+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "c675c903-c49f-44d0-90b0-f23e7861e6ab",
+    "order_label": "ddf83759-d8db-4c55-af25-f9376f5cefe1",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 90.0,
+    "qty": 90.0,
+    "limit_price": null,
+    "filled_avg_price": 100.48,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T16:25:09.680901+00:00",
+    "updated_at_utc": "2026-05-11T16:25:12.266334+00:00",
+    "filled_at_utc": "2026-05-11T16:25:12.264212+00:00",
+    "legs": [
+      {
+        "symbol": "SGOV",
+        "side": "orderside.sell"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
+  },
+  {
+    "recorded_at_utc": "2026-05-11T16:29:17.649620+00:00",
+    "source": "broker_reconciliation",
+    "order_id": "a6c9353b-9ce2-4f0c-9dc3-9540a32d94ac",
+    "order_label": "c7390daf-13a3-45f5-bf6a-2d4f7c2b5440",
+    "status": "orderstatus.filled",
+    "filled": false,
+    "partial_fill": true,
+    "filled_qty": 90.0,
+    "qty": 90.0,
+    "limit_price": null,
+    "filled_avg_price": 100.49,
+    "fill_source": "broker_reported",
+    "is_credit": false,
+    "reprices": 0,
+    "submitted_at_utc": "2026-05-11T16:26:11.828955+00:00",
+    "updated_at_utc": "2026-05-11T16:26:12.203025+00:00",
+    "filled_at_utc": "2026-05-11T16:26:12.200717+00:00",
+    "legs": [
+      {
+        "symbol": "SGOV",
+        "side": "orderside.buy"
+      }
+    ],
+    "pricing_snapshot": null,
+    "execution_quality": {
+      "score": 0.72,
+      "tier": "acceptable",
+      "fill_ratio": 1.0,
+      "fill_source": "broker_reported",
+      "broker_fill_observed": true,
+      "limit_edge_bps": null,
+      "reference_edge_bps": null
+    }
   }
 ]

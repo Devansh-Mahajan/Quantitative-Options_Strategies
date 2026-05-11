@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-05-08T21:33:42.150705+00:00",
-  "records": 7,
-  "fill_events": 7,
+  "generated_at_utc": "2026-05-11T17:25:58.875922+00:00",
+  "records": 16,
+  "fill_events": 16,
   "full_fills": 0,
-  "partial_fills": 7,
+  "partial_fills": 16,
   "fill_rate": 1.0,
   "full_fill_rate": 0.0,
   "broker_fill_price_coverage": 1.0,
@@ -14,10 +14,10 @@
   "avg_staleness_pct": null,
   "degraded_execution_count": 0,
   "tier_counts": {
-    "acceptable": 7
+    "acceptable": 16
   },
   "adaptive_reprice_factor": 1.0,
-  "latest_fill_at_utc": "2026-05-08T19:58:33.840846+00:00",
-  "latest_order_id": "b9251a7c-3b29-4422-9848-d78245b9ae69",
+  "latest_fill_at_utc": "2026-05-11T16:26:12.200717+00:00",
+  "latest_order_id": "a6c9353b-9ce2-4f0c-9dc3-9540a32d94ac",
   "note": "Execution summary blends broker-reported fills with delay-aware pricing references. Lower-confidence records are penalized conservatively."
 }

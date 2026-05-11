@@ -193,13 +193,13 @@ def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest:
     f["skewness_20"] = lr.rolling(20).skew().fillna(0)
     f["kurtosis_20"] = lr.rolling(20).kurt().fillna(0)
 
-    # ── Hurst exponent proxy (Peters 1994 R/S analysis approximation) ─────────
-    # Uses variance-ratio shortcut: Var[k-period ret] / k*Var[1-period ret]
-    # H > 0.5 = trending, H < 0.5 = mean-reverting
-    var1  = lr.rolling(20).var()
-    var5  = lr.rolling(5).apply(lambda x: float(pd.Series(x).sum()), raw=False)
-    var5s = var5.rolling(16).var()
-    f["hurst_proxy"] = (var5s / (5 * var1 + 1e-10)).clip(0, 2).fillna(1.0)
+    # ── Hurst exponent proxy (Lo & MacKinlay 1988 variance-ratio test) ───────
+    # VR(k) = Var[k-period return] / (k * Var[1-period return])
+    # VR > 1 → trending (H > 0.5), VR < 1 → mean-reverting (H < 0.5)
+    lr_5  = np.log(c / c.shift(5))       # 5-period log return (correct scale)
+    var1  = lr.rolling(20).var()         # rolling variance of 1-bar log-ret
+    var5  = lr_5.rolling(20).var()       # rolling variance of 5-bar log-ret
+    f["hurst_proxy"] = (var5 / (5 * var1 + 1e-10)).clip(0, 2).fillna(1.0)
 
     # ── Amihud (2002) illiquidity: |ret| / volume (Kyle lambda proxy) ─────────
     abs_ret = lr.abs()

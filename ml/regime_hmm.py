@@ -88,9 +88,11 @@ class RegimeHMM:
             return {r: 0.25 for r in REGIME_LABELS.values()}
         X = self._build_obs(df)
         X_scaled = self.scaler.transform(X)
-        log_proba = self.model.predict_proba(X_scaled)[-1]
-        proba = np.exp(log_proba - log_proba.max())
-        proba /= proba.sum()
+        # hmmlearn predict_proba returns actual posteriors (already sum to 1)
+        proba = self.model.predict_proba(X_scaled)[-1]
+        total = proba.sum()
+        if total > 1e-10:
+            proba = proba / total
         return {self._state_map.get(i, f"s{i}"): float(proba[i]) for i in range(self.n_states)}
 
     def predict_sequence(self, df: pd.DataFrame) -> list[str]:

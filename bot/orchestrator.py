@@ -23,12 +23,13 @@ from ml.rl_allocator import RLAllocator, load_or_init_allocator
 from ml.vol_model import GARCHVolModel, IVSurface
 from ml.features import compute_features
 from risk.portfolio_risk import PortfolioRiskEngine
-from risk.position_sizer import PositionSizer
+from risk.position_sizer import PositionSizer, SizingContext
 from risk.risk_guard import RiskGuard
 from execution.order_manager import OrderManager
 from execution.position_manager import PositionManager
 from strategies.registry import build_registry
 from strategies.base import Signal
+from core.trade_decision_tape import record_trade_decision
 
 log = logging.getLogger("bot.orchestrator")
 
@@ -194,6 +195,16 @@ class Orchestrator:
         # --- 8. Collect strategy signals ---
         raw_signals = self._collect_signals(regime, predictions)
         log.info("Raw signals: %d", len(raw_signals))
+        for sig in raw_signals:
+            record_trade_decision(
+                status="SUGGESTED",
+                strategy=sig.strategy,
+                symbol=sig.symbol,
+                action=f"{sig.side.lower()}_{sig.market}",
+                confidence=sig.confidence,
+                reason="Strategy generated raw signal.",
+                details={"market": sig.market, "quantity": sig.quantity, "price": sig.price, "regime": regime, "meta": sig.meta},
+            )
 
         # --- 9. Apply RL allocator weights ---
         signals = self._apply_rl_weights(raw_signals, equity, regime)
@@ -216,6 +227,19 @@ class Orchestrator:
             regime=regime,
         )
         log.info("Approved signals after risk filter: %d", len(approved))
+        approved_keys = {(s.symbol, s.market, s.side, s.strategy, round(float(s.quantity or 0), 10)) for s in approved}
+        for sig in sized:
+            key = (sig.symbol, sig.market, sig.side, sig.strategy, round(float(sig.quantity or 0), 10))
+            if key not in approved_keys:
+                record_trade_decision(
+                    status="GATED",
+                    strategy=sig.strategy,
+                    symbol=sig.symbol,
+                    action=f"{sig.side.lower()}_{sig.market}",
+                    confidence=sig.confidence,
+                    reason="Risk guard filtered the sized signal before execution.",
+                    details={"market": sig.market, "quantity": sig.quantity, "price": sig.price, "regime": regime, "meta": sig.meta},
+                )
 
         # --- 12. Execute orders ---
         for sig in approved:
@@ -224,7 +248,28 @@ class Orchestrator:
                 vol_model.current_vol,
                 regime,
             )
-            await self.order_manager.execute(sig, leverage=leverage)
+            try:
+                await self.order_manager.execute(sig, leverage=leverage)
+                record_trade_decision(
+                    status="EXECUTED",
+                    strategy=sig.strategy,
+                    symbol=sig.symbol,
+                    action=f"{sig.side.lower()}_{sig.market}",
+                    confidence=sig.confidence,
+                    reason="Order manager accepted approved signal for execution.",
+                    details={"market": sig.market, "quantity": sig.quantity, "price": sig.price, "leverage": leverage, "regime": regime, "meta": sig.meta},
+                )
+            except Exception as exc:
+                record_trade_decision(
+                    status="REJECTED",
+                    strategy=sig.strategy,
+                    symbol=sig.symbol,
+                    action=f"{sig.side.lower()}_{sig.market}",
+                    confidence=sig.confidence,
+                    reason=f"Order manager execution failed: {exc}",
+                    details={"market": sig.market, "quantity": sig.quantity, "price": sig.price, "leverage": leverage, "regime": regime, "meta": sig.meta},
+                )
+                raise
 
         # --- 13. Log snapshot ---
         self._log_snapshot(equity, regime, len(approved))
@@ -259,10 +304,22 @@ class Orchestrator:
     # ------------------------------------------------------------------ #
 
     async def _handle_exits(self) -> None:
-        exiting = self.position_manager.positions_needing_exit(
-            stop_loss_pct=0.05, take_profit_pct=0.10
-        )
-        for pos in exiting:
+        for pos in self.position_manager.all_positions():
+            vol_model = self.vol_models.get(pos.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
+            regime = self._get_regime(pos.symbol)
+            plan = self.sizer.exit_plan(
+                realised_vol=vol_model.current_vol or 0.5,
+                regime=regime,
+                confidence=0.55,
+            )
+            exit_reason = ""
+            if pos.pnl_pct <= -plan.stop_loss_pct:
+                exit_reason = f"dynamic_stop_loss:{plan.stop_loss_pct:.2%}"
+            elif pos.pnl_pct >= plan.take_profit_pct:
+                exit_reason = f"dynamic_take_profit:{plan.take_profit_pct:.2%}"
+            if not exit_reason:
+                continue
+
             close_side = "SELL" if pos.side == "LONG" else "BUY"
             exit_sig = Signal(
                 symbol=pos.symbol,
@@ -272,9 +329,19 @@ class Orchestrator:
                 price=0,     # market order for exits
                 confidence=1.0,
                 strategy="exit_manager",
+                meta={"exit_reason": exit_reason, "exit_plan": plan.as_dict()},
             )
             await self.order_manager.execute(exit_sig)
-            log.info("Exiting %s %s pnl=%.2f%%", pos.symbol, pos.side, pos.pnl_pct * 100)
+            log.info(
+                "Exiting %s %s pnl=%.2f%% reason=%s stop=%.2f%% take=%.2f%% regime=%s",
+                pos.symbol,
+                pos.side,
+                pos.pnl_pct * 100,
+                exit_reason,
+                plan.stop_loss_pct * 100,
+                plan.take_profit_pct * 100,
+                regime,
+            )
 
     # ------------------------------------------------------------------ #
     # ML helpers
@@ -360,17 +427,72 @@ class Orchestrator:
 
     def _size_signals(self, signals: list[Signal], equity: float, regime: str) -> list[Signal]:
         sized = []
+        positions = self.position_manager.all_positions()
+        gross_exposure = self.position_manager.gross_notional()
+        peak_equity = state.get_peak_equity() or equity
+        daily_start_equity = self.guard.daily_start_equity or equity
+        open_positions = len(positions)
+
         for sig in signals:
             vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
-            notional, qty = self.sizer.size_from_signal(
-                signal_confidence=sig.confidence,
-                equity=equity,
-                price=sig.price or 1.0,
-                realised_vol=vol_model.current_vol or 0.5,
-                regime=regime,
+            meta = dict(sig.meta or {})
+            symbol_exposure = sum(p.notional for p in positions if p.symbol == sig.symbol)
+            decision = self.sizer.size_signal(
+                SizingContext(
+                    signal_confidence=sig.confidence,
+                    equity=equity,
+                    price=sig.price or 1.0,
+                    realised_vol=vol_model.current_vol or 0.5,
+                    regime=regime,
+                    side=sig.side,
+                    market=sig.market,
+                    strategy=sig.strategy,
+                    current_gross_exposure=gross_exposure,
+                    symbol_exposure=symbol_exposure,
+                    open_positions=open_positions,
+                    daily_start_equity=daily_start_equity,
+                    peak_equity=peak_equity,
+                    stop_loss_pct=meta.get("stop_loss_pct"),
+                    take_profit_pct=meta.get("take_profit_pct"),
+                    liquidity_score=meta.get("liquidity_score", 1.0),
+                    execution_quality=meta.get("execution_quality", 1.0),
+                )
             )
-            if qty > 0:
-                sized.append(sig._replace(quantity=qty))
+            if decision.quantity > 0:
+                meta["sizing"] = decision.as_dict()
+                meta["stop_loss_pct"] = decision.stop_loss_pct
+                meta["take_profit_pct"] = decision.take_profit_pct
+                sized.append(sig._replace(quantity=decision.quantity, meta=meta))
+                log.info(
+                    "Sized %s %s strategy=%s notional=%.2f qty=%.8f risk=%.2f stop=%.2f%% take=%.2f%% bind=%s",
+                    sig.symbol,
+                    sig.side,
+                    sig.strategy,
+                    decision.notional,
+                    decision.quantity,
+                    decision.risk_dollars,
+                    decision.stop_loss_pct * 100,
+                    decision.take_profit_pct * 100,
+                    decision.binding_constraint,
+                )
+            else:
+                log.info(
+                    "Sizing blocked %s %s strategy=%s reason=%s confidence=%.3f",
+                    sig.symbol,
+                    sig.side,
+                    sig.strategy,
+                    decision.reason,
+                    sig.confidence,
+                )
+                record_trade_decision(
+                    status="REJECTED",
+                    strategy=sig.strategy,
+                    symbol=sig.symbol,
+                    action=f"{sig.side.lower()}_{sig.market}",
+                    confidence=sig.confidence,
+                    reason=f"Position sizing blocked signal: {decision.reason}",
+                    details={"market": sig.market, "price": sig.price, "regime": regime, "sizing": decision.as_dict(), "meta": meta},
+                )
         return sized
 
     # ------------------------------------------------------------------ #

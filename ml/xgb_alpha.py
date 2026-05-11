@@ -365,7 +365,6 @@ class XGBAlphaEngine:
             colsample_bytree=COL_SAMPLE,
             reg_alpha=REG_ALPHA,
             reg_lambda=REG_LAMBDA,
-            use_label_encoder=False,
             eval_metric="logloss",
             tree_method="hist",
             n_jobs=-1,

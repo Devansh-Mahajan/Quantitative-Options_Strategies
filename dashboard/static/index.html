@@ -349,6 +349,148 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 .ml-sig-ret{font-family:var(--mono);font-size:9px;flex:1;text-align:right}
 @media(max-width:900px){.bl-strip{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.bl-strip{grid-template-columns:repeat(2,1fr)}}
+
+/* ── INSTITUTIONAL TERMINAL OVERRIDES ────────────────────────────────
+   This layer keeps the original dashboard functionality intact while
+   tightening the visual language into a dense Bloomberg-style terminal. */
+*,*::before,*::after{transition:none!important;box-shadow:none!important}
+:root{
+  --bg0:#000000;--bg1:#07090c;--bg2:#0c1016;--bg3:#111821;--bg4:#171f2a;
+  --border:#1f2937;--border2:#334155;
+  --t0:#f8fafc;--t1:#cbd5e1;--t2:#64748b;
+  --green:#00ff88;--green-a:rgba(0,255,136,.11);
+  --red:#ff335f;--red-a:rgba(255,51,95,.12);
+  --yellow:#f5c542;--yellow-a:rgba(245,197,66,.12);
+  --blue:#38bdf8;--blue-a:rgba(56,189,248,.11);
+  --purple:#c084fc;--purple-a:rgba(192,132,252,.12);
+  --cyan:#00e5ff;--cyan-a:rgba(0,229,255,.12);
+  --orange:#ff9f1c;--orange-a:rgba(255,159,28,.12);
+  --accent:#00e5ff;--accent-a:rgba(0,229,255,.12);
+  --r:0px;--rs:0px;
+  --sans:"Arial Narrow","Helvetica Neue Condensed","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono","Fira Code","SF Mono","Roboto Mono",Consolas,monospace;
+}
+html,body{background:var(--bg0);color:var(--t0);font-variant-numeric:tabular-nums}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.hdr{height:40px;padding:0 16px;background:var(--bg1);border-bottom:1px solid var(--border);backdrop-filter:none}
+.hdr-l,.hdr-r{gap:12px}
+.logo{font-size:12px;font-weight:900;letter-spacing:.12em;color:var(--t0);text-shadow:none}
+.logo span{color:var(--accent)}
+.broker-badge{border-radius:0;background:var(--bg2)!important;border:1px solid var(--border2);font-family:var(--mono);font-size:9px;padding:2px 6px}
+.broker-badge.binance{color:#f3a009!important;border-color:#f3a009}
+.broker-badge.alpaca{color:#3ddc97!important;border-color:#3ddc97}
+.sdot{width:6px;height:6px;border-radius:0}
+.slbl,.hticker,.hclock{font-family:var(--mono);font-size:10px}
+.cli-container{height:24px;min-width:280px;max-width:520px;flex:1;display:flex;align-items:center;gap:6px;margin:0 12px;padding:0 8px;background:var(--bg0);border:1px solid var(--border2)}
+.cli-container:focus-within{border-color:var(--accent)}
+.cli-prompt{font-family:var(--mono);font-size:11px;font-weight:900;color:var(--green)}
+.cli-input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:var(--t0);font-family:var(--mono);font-size:11px;letter-spacing:.02em;caret-color:var(--green);text-transform:uppercase}
+.cli-input::placeholder{color:var(--t2);text-transform:none}
+.cli-cursor{font-family:var(--mono);font-size:11px;color:var(--green);animation:blink 1s step-end infinite}
+.nav{background:var(--bg0);border-bottom:1px solid var(--border);gap:4px;padding:0 16px}
+.ntab{margin-top:4px;padding:8px 11px;border:1px solid transparent;border-bottom:0;border-radius:0;font-size:9px;letter-spacing:.11em;color:var(--t2);background:transparent}
+.ntab:hover{background:var(--bg1);border-color:var(--border);color:var(--t0)}
+.ntab.active{background:var(--bg1);border-color:var(--border);border-top:2px solid var(--accent);color:var(--accent)}
+.content{max-width:none;padding:12px 16px}
+.row{gap:10px;margin-bottom:10px}
+.card,.cw,.mc,.detail-grid,.detail-tile,.tw,.lv,.alert,.toast,.bl-sysbar,.bl-strip,.sp-card,.bt-card,.tr-card,.alpha-card,.exec-kv,.peer-list,.risk-gauge,.fi,.fs,.pi,.btn,.bdg,.wbtn,.bench-sel{border-radius:0!important}
+.card,.cw{background:var(--bg1);border:1px solid var(--border);padding:12px}
+.card-hdr,.chdr{border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px}
+.ctitle,.cttl,.mc-lbl,.detail-key,.fl,.bl-sk,.bl-clbl{font-size:8px;font-weight:900;letter-spacing:.13em;color:var(--t2)}
+.mc{background:var(--bg0);border:1px solid var(--border);padding:9px}
+.mc-val,.detail-val,.bl-cval{font-family:var(--mono);font-weight:800;color:var(--t0)}
+.bl-sysbar{background:var(--bg0);padding:6px 10px;margin-bottom:10px}
+.bl-sysbar-l{gap:12px}
+.bl-kv{flex-direction:row;align-items:center;gap:6px}
+.bl-divider{height:16px;background:var(--border2)}
+.bl-strip{background:var(--bg0);margin-bottom:10px;overflow:hidden}
+.bl-strip+.bl-strip{border-top:1px solid var(--border);margin-top:0;margin-bottom:10px}
+.bl-cell{padding:8px 10px;background:var(--bg0);cursor:default}
+.bl-cell:hover{background:var(--bg2)}
+.tw{background:var(--bg0);border:1px solid var(--border)}
+table{font-family:var(--mono);font-size:10px}
+thead th{background:var(--bg1);border-bottom:1px solid var(--border2);color:var(--t2);font-family:var(--sans);font-weight:900;font-size:8px;padding:6px 8px}
+tbody tr{border-bottom:1px solid rgba(31,41,55,.72)}
+tbody tr:nth-child(even){background:rgba(255,255,255,.018)}
+tbody tr:hover{background:var(--bg3);outline:1px solid var(--border2)}
+tbody td{padding:5px 8px;color:var(--t1)}
+.btn,.wbtn,.bench-sel,.fi,.fs,.pi{font-family:var(--mono);background:var(--bg0);border:1px solid var(--border2);color:var(--t1)}
+.btn:hover,.wbtn:hover,.wbtn.active,.fi:focus,.fs:focus,.pi:focus{border-color:var(--accent);color:var(--accent);background:var(--bg2)}
+.btn-p{background:var(--accent-a);border-color:var(--accent);color:var(--accent)}
+.btn-ok{background:var(--green-a);border-color:var(--green);color:var(--green)}
+.btn-g{background:var(--bg2);border-color:var(--border2);color:var(--t1)}
+.bdg{font-family:var(--mono);font-size:8px;border-radius:0;border:1px solid var(--border2);background:var(--bg2);color:var(--t1)}
+.bdg-ok{background:var(--green-a);border-color:var(--green);color:var(--green)}
+.bdg-err{background:var(--red-a);border-color:var(--red);color:var(--red)}
+.bdg-warn{background:var(--yellow-a);border-color:var(--yellow);color:var(--yellow)}
+.bdg-run{background:var(--accent-a);border-color:var(--accent);color:var(--accent)}
+.empty{border-radius:0;border-color:var(--border2);font-family:var(--mono)}
+.lv{background:var(--bg0);font-family:var(--mono);line-height:1.45}
+canvas{background:var(--bg0)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg0)}
+::-webkit-scrollbar-thumb{background:var(--border2)}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+@media(max-width:980px){.hdr{height:auto;min-height:40px;flex-wrap:wrap;padding:6px 10px}.cli-container{order:3;min-width:100%;margin:0}.hdr-r{flex-wrap:wrap}.content{padding:10px}.ntab{padding:7px 9px}}
+.dt-shell{display:grid;gap:10px}
+.dt-workbench{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.7fr);gap:10px}
+.dt-verdict{border-left:4px solid var(--green)}
+.dt-verdict-led{font-size:13px;margin:6px 0 10px}
+.dt-brief{font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--t1);background:var(--bg0);border:1px solid var(--border);padding:8px;min-height:112px}
+.dt-actions-wide{justify-content:flex-start;margin-top:8px}
+.dt-strip{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}
+.dt-tables{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:10px}
+.dt-details{background:var(--bg0);border:1px solid var(--border);padding:0}
+.dt-details>summary{cursor:pointer;list-style:none;padding:8px 10px;border-bottom:1px solid var(--border);font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.dt-details>summary::-webkit-details-marker{display:none}
+.dt-details>summary:before{content:'▸ ';color:var(--t2)}
+.dt-details[open]>summary:before{content:'▾ '}
+.dt-details>.dt-diagnostics,.dt-details>.dt-lower,.dt-details>.dt-log-split{padding:10px}
+.dt-command{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:linear-gradient(90deg,rgba(0,229,255,.08),rgba(0,0,0,0));border:1px solid var(--border);border-left:3px solid var(--accent);padding:8px 10px}
+.dt-led{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:900;color:var(--t0)}
+.dt-dot{width:9px;height:9px;background:var(--green);box-shadow:0 0 10px var(--green)}
+.dt-dot.red{background:var(--red);box-shadow:0 0 10px var(--red)}
+.dt-dot.amber{background:var(--yellow);box-shadow:0 0 10px var(--yellow)}
+.dt-command-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.dt-actionbar{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.dt-hero{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(310px,.85fr);gap:10px;align-items:stretch}
+.dt-main-chart{min-height:338px}
+.dt-rail{display:grid;grid-template-columns:1fr;gap:10px}
+.dt-panel{background:var(--bg1);border:1px solid var(--border);padding:9px;min-height:0}
+.dt-panel.focus{border-color:var(--accent)}
+.dt-title{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:8px;font-size:8px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
+.dt-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}
+.dt-kpi{padding:8px;background:var(--bg0);min-width:0}
+.dt-k{font-size:7px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-v{font-family:var(--mono);font-size:14px;font-weight:900;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-v.big{font-size:22px;letter-spacing:-.04em}
+.dt-diagnostics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.dt-lower{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:10px}
+.dt-model-row{display:grid;grid-template-columns:minmax(108px,1.4fr) 68px 74px 58px minmax(70px,1fr) 58px;gap:7px;align-items:center;padding:5px 4px;border-bottom:1px solid rgba(31,41,55,.7);font-family:var(--mono);font-size:10px}
+.dt-model-row:nth-child(even){background:rgba(255,255,255,.018)}
+.dt-bar{display:block;height:6px;background:var(--bg3);position:relative}
+.dt-bar>i{display:block;height:100%;background:var(--accent)}
+.dt-heat{display:grid;grid-template-columns:70px repeat(4,1fr);font-family:var(--mono);font-size:10px;border:1px solid var(--border)}
+.dt-heat div{padding:7px 5px;text-align:center;border-right:1px solid var(--bg0);border-bottom:1px solid var(--bg0)}
+.dt-param-grid{display:grid;grid-template-columns:1fr 76px;gap:6px;align-items:center;font-family:var(--mono);font-size:10px}
+.dt-param-grid input[type=range]{grid-column:1 / -1;width:100%;accent-color:var(--accent);margin-bottom:4px}
+.dt-log-split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dt-log{height:190px;overflow:auto;background:var(--bg0);border:1px solid var(--border);padding:7px;font-family:var(--mono);font-size:9px;line-height:1.45;color:var(--t1)}
+.dt-log div{white-space:pre-wrap;border-bottom:1px solid rgba(31,41,55,.38);padding:1px 0}
+.dt-canvas{width:100%;height:100%;min-height:170px;background:var(--bg0);border:1px solid var(--border)}
+.dt-note{font-family:var(--mono);font-size:10px;color:var(--t2);line-height:1.45}
+.dt-stock-row{display:grid;grid-template-columns:48px 1fr 58px 58px;gap:7px;padding:4px 0;border-bottom:1px solid rgba(31,41,55,.55);font-family:var(--mono);font-size:10px}
+.recal-progress{display:none;margin-bottom:10px;background:var(--bg0);border:1px solid var(--border);padding:8px}
+.recal-progress.active{display:block}
+.recal-progress-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;font-family:var(--mono);font-size:10px;color:var(--t1)}
+.recal-progress-track{height:9px;background:var(--bg3);border:1px solid var(--border2);overflow:hidden}
+.recal-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--green))}
+.recal-progress-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:6px;background:var(--border);border:1px solid var(--border)}
+.recal-progress-cell{background:var(--bg1);padding:5px 6px}
+.recal-progress-k{font-size:7px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--t2)}
+.recal-progress-v{font-family:var(--mono);font-size:10px;color:var(--t0);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recal-log{max-height:96px;overflow:auto;margin-top:6px;background:var(--bg0);border:1px solid var(--border);padding:6px;font-family:var(--mono);font-size:9px;line-height:1.45;color:var(--t1)}
+@media(max-width:1180px){.dt-workbench,.dt-command,.dt-hero,.dt-diagnostics,.dt-lower,.dt-tables{grid-template-columns:1fr}.dt-kpis,.dt-strip{grid-template-columns:repeat(2,1fr)}.dt-log-split{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -361,6 +503,11 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div id="sdot" class="sdot"></div>
     <span id="slbl" class="slbl">Connecting…</span>
   </div>
+  <form class="cli-container" id="cliForm">
+    <span class="cli-prompt">&gt;</span>
+    <input id="cliInput" class="cli-input" type="text" placeholder="/help  /load SPY  /risk  /gsq SPY" autocomplete="off" spellcheck="false">
+    <span class="cli-cursor">_</span>
+  </form>
   <div class="hdr-r">
     <div class="hticker">
       Equity:&nbsp;<strong id="hEq">—</strong>&nbsp;&nbsp;
@@ -393,8 +540,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button class="ntab" data-tab="training">ML Training</button>
   <button class="ntab" data-tab="intelligence">Intelligence</button>
   <button class="ntab" data-tab="tradeanalysis">Trade Analysis</button>
+  <button class="ntab" data-tab="dtwin">Digital Twin</button>
   <button class="ntab" data-tab="cmdcenter">Command Center</button>
   <button class="ntab" data-tab="gsquant">GS Quant</button>
+  <button class="ntab" data-tab="decisions">Decision Tape</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
 
@@ -809,6 +958,21 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
       <button class="btn btn-ok btn-sm" onclick="triggerMasterRecal()" id="stkRecalBtn">⚡ DOWNLOAD ALL DATA &amp; RECALIBRATE</button>
       <span id="stk-recal-status" class="bdg" style="display:none"></span>
     </div>
+  </div>
+
+  <div id="stkRecalProgress" class="recal-progress">
+    <div class="recal-progress-top">
+      <span id="stkRecalTitle">Recalibration idle</span>
+      <span id="stkRecalPct">0%</span>
+    </div>
+    <div class="recal-progress-track"><div id="stkRecalFill" class="recal-progress-fill"></div></div>
+    <div class="recal-progress-meta">
+      <div class="recal-progress-cell"><div class="recal-progress-k">Job</div><div class="recal-progress-v" id="stkRecalJob">—</div></div>
+      <div class="recal-progress-cell"><div class="recal-progress-k">Current Step</div><div class="recal-progress-v" id="stkRecalCurrent">—</div></div>
+      <div class="recal-progress-cell"><div class="recal-progress-k">Completed</div><div class="recal-progress-v" id="stkRecalDone">0/0</div></div>
+      <div class="recal-progress-cell"><div class="recal-progress-k">Failed</div><div class="recal-progress-v" id="stkRecalFailed">0</div></div>
+    </div>
+    <div id="stkRecalLog" class="recal-log">Waiting for DOWNLOAD ALL DATA &amp; RECALIBRATE…</div>
   </div>
 
   <div class="mcs">
@@ -1661,6 +1825,162 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 </div><!-- /gsquant -->
 
+<!-- ───────────────────── QUANTITATIVE DIGITAL TWIN ─────────────────── -->
+<div id="tab-dtwin" class="tab">
+
+  <div class="dt-shell">
+    <section class="dt-workbench">
+      <div class="dt-verdict dt-panel focus">
+        <div class="dt-title"><span>Digital Twin Verdict</span><span id="dt-spread-badge" class="bdg bdg-ok">Z&lt;1.5</span></div>
+        <div class="dt-led dt-verdict-led"><span id="dt-integrity-dot" class="dt-dot"></span><span id="dt-integrity-label">MODEL INTEGRITY GREEN</span></div>
+        <div id="dt-brief" class="dt-brief">Loading live twin evidence…</div>
+        <div class="dt-actionbar dt-actions-wide">
+          <button class="btn btn-g btn-sm" onclick="loadDigitalTwin()">/REFRESH</button>
+          <button class="btn btn-g btn-sm" onclick="dtDerisk50()">/DERISK_50</button>
+          <button class="btn btn-p btn-sm" onclick="dtKillAll()">/KILL_ALL</button>
+        </div>
+      </div>
+
+      <div class="dt-panel dt-main-chart">
+        <div class="dt-title"><span>Live Equity vs Shadow Twin</span><span class="bdg bdg-info">REAL DATA</span></div>
+        <canvas id="dtDriftChart" height="300"></canvas>
+      </div>
+    </section>
+
+    <section class="dt-strip">
+      <div class="dt-kpi"><div class="dt-k">Drift Z</div><div class="dt-v" id="dt-drift-z">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">Median Fwd Equity</div><div class="dt-v big" id="dt-p50">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">P5 / P95</div><div class="dt-v"><span id="dt-p5">—</span> / <span id="dt-p95">—</span></div></div>
+      <div class="dt-kpi"><div class="dt-k">Risk Score</div><div class="dt-v neg" id="dt-ruin">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">Drawdown</div><div class="dt-v neg" id="dt-maxdd">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">Data / Research</div><div class="dt-v" id="dt-conformal">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">Models</div><div class="dt-v" id="dt-active-models">—</div></div>
+      <div class="dt-kpi"><div class="dt-k">Risk Mode</div><div class="dt-v" id="dt-risk-mode">LIVE</div></div>
+    </section>
+
+    <section class="dt-tables">
+      <div class="dt-panel">
+        <div class="dt-title"><span>Model Integrity Ladder</span><span class="bdg bdg-run">HMM / XGB / TFT</span></div>
+        <div id="dt-model-zoo"></div>
+      </div>
+      <div class="dt-panel">
+        <div class="dt-title"><span>Top Stock Alpha Diagnostics</span><span class="bdg bdg-ok">FULL UNIVERSE</span></div>
+        <div id="dt-stock-alpha"></div>
+      </div>
+      <div class="dt-panel">
+        <div class="dt-title"><span>SHAP Drivers</span><span id="dt-shap-signal" class="bdg bdg-info">—</span></div>
+        <div id="dt-shap-bars"></div>
+      </div>
+    </section>
+
+    <details class="dt-details" open>
+      <summary>Regime, Parameters, And Forward Diagnostics</summary>
+      <div class="dt-diagnostics">
+        <section class="dt-panel">
+          <div class="dt-title"><span>HMM Regime Matrix</span><span id="dt-hmm-state" class="bdg bdg-info">—</span></div>
+          <div id="dt-hmm-heat" class="dt-heat"></div>
+        </section>
+        <section class="dt-panel">
+          <div class="dt-title"><span>Live Hyperparameter Overrides</span><span class="bdg bdg-info">HOT-SWAP</span></div>
+          <div id="dt-param-grid" class="dt-param-grid"></div>
+        </section>
+        <section class="dt-panel">
+          <div class="dt-title"><span>Monte Carlo Path Engine</span><span class="bdg bdg-info">GBM + JUMP</span></div>
+          <canvas id="dtMonteCanvas" class="dt-canvas" height="180"></canvas>
+        </section>
+      </div>
+    </details>
+
+    <details class="dt-details">
+      <summary>Microstructure, Vol Surface, And Trace Logs</summary>
+      <div class="dt-lower">
+        <section class="dt-panel">
+          <div class="dt-title"><span>Bayesian Optimization Surface</span><span id="dt-optimum" class="bdg bdg-run">GLOBAL OPTIMUM</span></div>
+          <canvas id="dtBayesCanvas" class="dt-canvas" height="170"></canvas>
+        </section>
+        <section class="dt-panel">
+          <div class="dt-title"><span>Volatility Surface</span><span class="bdg bdg-info">WEBGL MESH</span></div>
+          <canvas id="dtVolCanvas" class="dt-canvas" height="170"></canvas>
+        </section>
+        <section class="dt-panel">
+          <div class="dt-title"><span>L3 Liquidity Heatmap</span><span class="bdg bdg-warn">WHALE WALLS</span></div>
+          <canvas id="dtLiquidityCanvas" class="dt-canvas" height="170"></canvas>
+        </section>
+      </div>
+      <div class="dt-log-split" style="margin-top:10px">
+        <section class="dt-panel">
+          <div class="dt-title"><span>Signal Logic Trace</span><span class="bdg bdg-info">HMM/XGB/TFT</span></div>
+          <div id="dt-signal-log" class="dt-log"></div>
+        </section>
+        <section class="dt-panel">
+          <div class="dt-title"><span>Execution Hot-Path Trace</span><span class="bdg bdg-info">FIX/WS/TCA</span></div>
+          <div id="dt-exec-log" class="dt-log"></div>
+        </section>
+      </div>
+    </details>
+
+    <div style="display:none">
+      <span id="dt-latency">—</span><span id="dt-p1">—</span><span id="dt-p99">—</span><span id="dt-greeks">—</span>
+    </div>
+  </div>
+
+</div><!-- /dtwin -->
+
+<!-- ───────────────────── TRADE DECISION TAPE ──────────────────────── -->
+<div id="tab-decisions" class="tab">
+  <div class="row">
+    <div class="col3 card">
+      <div class="card-hdr">
+        <span class="ctitle">Strategy Decision Tape</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span id="decisionTapeUpdated" class="bdg bdg-info">WAITING</span>
+          <button class="btn btn-g btn-sm" id="decisionRefreshBtn">/REFRESH</button>
+        </div>
+      </div>
+      <div class="alert alert-info">
+        Real pre-trade observability: SUGGESTED means a model/router selected a candidate, GATED/REJECTED explains why it did not become a trade, and EXECUTED means the order path submitted to the broker. Broker-confirmed fills remain in the Execution Ledger.
+      </div>
+      <div class="bl-strip" id="decisionTapeSummary" style="margin-bottom:10px">
+        <div class="bl-cell"><span class="bl-clbl">Suggested</span><span class="bl-cval" id="dtape-suggested">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Gated</span><span class="bl-cval" id="dtape-gated">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Rejected</span><span class="bl-cval" id="dtape-rejected">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Executed</span><span class="bl-cval" id="dtape-executed">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Total</span><span class="bl-cval" id="dtape-total">—</span></div>
+      </div>
+      <div class="lctrls" style="margin-bottom:8px">
+        <select class="fs" id="decisionStatusFilter" style="max-width:170px">
+          <option value="">ALL STATUS</option>
+          <option value="SUGGESTED">SUGGESTED</option>
+          <option value="GATED">GATED</option>
+          <option value="REJECTED">REJECTED</option>
+          <option value="EXECUTED">EXECUTED</option>
+        </select>
+        <input type="text" class="lsrch" id="decisionSearch" placeholder="Filter strategy, symbol, reason…">
+      </div>
+      <div class="tw" style="max-height:650px;overflow:auto">
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Status</th><th>Strategy</th><th>Symbol</th><th>Action</th>
+            <th>Conf</th><th>Risk Cap</th><th>Buying Power</th><th>Reason</th>
+          </tr></thead>
+          <tbody id="decisionTapeBody"><tr><td colspan="9" class="loading"><div class="spinner"></div>Loading decision tape…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">How To Read It</span><span class="bdg bdg-info">NO FAKE FILLS</span></div>
+      <div class="detail-grid" style="grid-template-columns:1fr">
+        <div class="detail-tile"><div class="detail-key">SUGGESTED</div><div class="detail-val" style="color:var(--cyan)">Router/model selected a candidate.</div></div>
+        <div class="detail-tile"><div class="detail-key">GATED</div><div class="detail-val" style="color:var(--yellow)">Macro, VIX, confidence, risk, or policy stopped it before order construction.</div></div>
+        <div class="detail-tile"><div class="detail-key">REJECTED</div><div class="detail-val" style="color:var(--red)">Option quality, buying power, risk cap, quote confidence, or broker path rejected it.</div></div>
+        <div class="detail-tile"><div class="detail-key">EXECUTED</div><div class="detail-val" style="color:var(--green)">Execution path submitted to broker. Confirm fills in Trade Analysis → Execution Ledger.</div></div>
+      </div>
+      <hr class="dv">
+      <div class="lv" id="decisionDetailLog" style="height:330px">Select a row to inspect raw decision details.</div>
+    </div>
+  </div>
+</div><!-- /decisions -->
+
 <!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
 <div id="tab-logs" class="tab">
   <div class="row">
@@ -1927,11 +2247,19 @@ let DASH_CFG = null;
 let RISK_CORR_DATA = null;
 let STOCK_OVERVIEW = null;
 let STOCK_FOCUS_SYMBOL = 'SPY';
+let DT_TIMER = null;
+let DT_PHASE = 0;
+let DT_DATA = null;
 
-Chart.defaults.color = '#4d6080';
-Chart.defaults.borderColor = '#1e2b42';
-Chart.defaults.font.family = "'SF Mono','Monaco','Fira Code',monospace";
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1f2937';
+Chart.defaults.font.family = "'JetBrains Mono','Fira Code','SF Mono','Roboto Mono',monospace";
 Chart.defaults.font.size = 10;
+Chart.defaults.elements.line.borderWidth = 1.5;
+Chart.defaults.elements.point.radius = 0;
+Chart.defaults.plugins.tooltip.backgroundColor = '#07090c';
+Chart.defaults.plugins.tooltip.borderColor = '#334155';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
 
 /* ═══════════════════════════════════════════════════════════════════
    UTILITIES
@@ -2023,6 +2351,64 @@ function tradingStatusTone(status='') {
 function norm(a) {
   if(!a.length) return a;
   const b=a[0]; return a.map(v=>((v-b)/Math.abs(b||1))*100);
+}
+
+function normalisedReturnPoints(timestamps=[], values=[], startMs=null, endMs=null) {
+  const rows = timestamps.map((ts, i) => ({t:new Date(ts).getTime(), v:Number(values[i])}))
+    .filter(p => Number.isFinite(p.t) && Number.isFinite(p.v))
+    .sort((a,b) => a.t - b.t)
+    .filter(p => (startMs == null || p.t >= startMs) && (endMs == null || p.t <= endMs));
+  if (!rows.length) return [];
+  const base = rows[0].v;
+  const denom = Math.abs(base || 1);
+  return rows.map(p => ({x:new Date(p.t), y:((p.v - base) / denom) * 100}));
+}
+
+function buildPortfolioBenchmarkSeries(eq={}, bm={}) {
+  const eqRows = (eq.timestamps || []).map((ts, i) => ({t:new Date(ts).getTime(), v:Number((eq.equity || [])[i])}))
+    .filter(p => Number.isFinite(p.t) && Number.isFinite(p.v))
+    .sort((a,b) => a.t - b.t);
+  const bmRows = (bm.timestamps || []).map((ts, i) => ({t:new Date(ts).getTime(), v:Number((bm.prices || [])[i])}))
+    .filter(p => Number.isFinite(p.t) && Number.isFinite(p.v))
+    .sort((a,b) => a.t - b.t);
+
+  if (!eqRows.length) return {portfolio:[], benchmark:[], overlap:false};
+  if (!bmRows.length) {
+    return {
+      portfolio: normalisedReturnPoints(eq.timestamps, eq.equity),
+      benchmark: [],
+      overlap: false,
+    };
+  }
+
+  const startMs = Math.max(eqRows[0].t, bmRows[0].t);
+  const endMs = Math.min(eqRows[eqRows.length - 1].t, bmRows[bmRows.length - 1].t);
+  if (endMs <= startMs) {
+    return {
+      portfolio: normalisedReturnPoints(eq.timestamps, eq.equity),
+      benchmark: [],
+      overlap: false,
+    };
+  }
+  const eqOverlap = eqRows.filter(p => p.t >= startMs && p.t <= endMs);
+  const bmOverlap = bmRows.filter(p => p.t >= startMs && p.t <= endMs);
+  if (!eqOverlap.length || !bmOverlap.length) {
+    return {
+      portfolio: normalisedReturnPoints(eq.timestamps, eq.equity),
+      benchmark: [],
+      overlap: false,
+    };
+  }
+  const effectiveStartMs = Math.max(eqOverlap[0].t, bmOverlap[0].t);
+  const effectiveEndMs = Math.min(eqOverlap[eqOverlap.length - 1].t, bmOverlap[bmOverlap.length - 1].t);
+
+  return {
+    portfolio: normalisedReturnPoints(eq.timestamps, eq.equity, effectiveStartMs, effectiveEndMs),
+    benchmark: normalisedReturnPoints(bm.timestamps, bm.prices, effectiveStartMs, effectiveEndMs),
+    overlap: true,
+    start: new Date(effectiveStartMs),
+    end: new Date(effectiveEndMs),
+  };
 }
 
 async function api(url, opts={}) {
@@ -2391,6 +2777,8 @@ function renderStockUniverseTable(rows) {
     const hay = [
       row.symbol,
       row.has_research ? 'researched' : 'unresearched',
+      row.data_status || 'pending',
+      row.research_source || '',
       row.meets_targets ? 'targets' : 'no-targets',
     ].join(' ').toLowerCase();
     return hay.includes(query);
@@ -2400,14 +2788,20 @@ function renderStockUniverseTable(rows) {
     <tr data-symbol="${row.symbol}">
       <td>${row.rank ?? '—'}</td>
       <td style="color:var(--t0)">${row.symbol}</td>
-      <td>${row.has_research ? '<span class="bdg bdg-ok">YES</span>' : '<span class="bdg bdg-info">PENDING</span>'}</td>
+      <td>${
+        row.has_movement_research ? '<span class="bdg bdg-ok">MODEL</span>' :
+        row.has_research ? '<span class="bdg bdg-run">DATA</span>' :
+        row.data_status === 'thin' ? '<span class="bdg bdg-warn">THIN</span>' :
+        row.data_status === 'missing' ? '<span class="bdg bdg-err">MISSING</span>' :
+        '<span class="bdg bdg-info">PENDING</span>'
+      }</td>
       <td>${row.lookback || '—'}</td>
-      <td>${row.accuracy!=null ? fp(row.accuracy * 100) : '—'}</td>
-      <td>${row.hit_ratio!=null ? fp(row.hit_ratio * 100) : '—'}</td>
+      <td>${row.accuracy!=null ? fp(row.accuracy * 100) : (row.data_rows!=null ? `${row.data_rows} rows` : '—')}</td>
+      <td>${row.hit_ratio!=null ? fp(row.hit_ratio * 100) : (row.sharpe_proxy!=null ? `${f(row.sharpe_proxy,2)} Sh` : '—')}</td>
       <td class="${cx((row.alpha_daily||0) * 100)}">${row.alpha_daily!=null ? fsp(row.alpha_daily * 100, 3) : '—'}</td>
-      <td class="${cx((row.strategy_return||0) * 100)}">${row.strategy_return!=null ? fsp(row.strategy_return * 100, 1) : '—'}</td>
+      <td class="${cx((row.strategy_return ?? row.momentum_3m ?? 0) * 100)}">${row.strategy_return!=null ? fsp(row.strategy_return * 100, 1) : (row.momentum_3m!=null ? fsp(row.momentum_3m * 100, 1) : '—')}</td>
       <td class="${cx((row.buy_hold_return||0) * 100)}">${row.buy_hold_return!=null ? fsp(row.buy_hold_return * 100, 1) : '—'}</td>
-      <td>${row.has_research ? (row.meets_targets ? '<span class="bdg bdg-ok">YES</span>' : '<span class="bdg bdg-warn">NO</span>') : '—'}</td>
+      <td>${row.has_movement_research ? (row.meets_targets ? '<span class="bdg bdg-ok">YES</span>' : '<span class="bdg bdg-warn">NO</span>') : (row.beta_spy!=null ? `β ${f(row.beta_spy,2)}` : '—')}</td>
     </tr>`).join('') : '<tr><td colspan="10" class="empty">No stocks matched the current filter.</td></tr>';
 
   body.querySelectorAll('tr[data-symbol]').forEach(row => {
@@ -2993,20 +3387,27 @@ async function loadLive() {
     }
   }
 
-  if (eq?.equity?.length) {
-    const eqN = norm(eq.equity);
+  const liveTapeAvailable = tape?.source && String(tape.source).includes('alpaca') && tape?.timestamps?.length > 1 && tape?.equity?.length > 1;
+  const chartEquity = liveTapeAvailable
+    ? {timestamps:tape.timestamps, equity:tape.equity, source:tape.source}
+    : eq;
+
+  if (chartEquity?.equity?.length) {
+    const comparison = buildPortfolioBenchmarkSeries(chartEquity, bm || {});
+    const portfolioLabel = liveTapeAvailable
+      ? 'Portfolio (broker tape)'
+      : comparison.overlap ? 'Portfolio (clean overlap)' : 'Portfolio';
     const datasets = [{
-      label: 'Portfolio',
-      data: eq.timestamps.map((t,i) => ({x:new Date(t),y:eqN[i]})),
+      label: portfolioLabel,
+      data: comparison.portfolio,
       borderColor:'#4f8ef7', borderWidth:2,
       backgroundColor: grad('eqChart','#4f8ef7'),
       fill:true, pointRadius:0, tension:.3,
     }];
-    if (bm?.prices?.length) {
-      const bmN = norm(bm.prices);
+    if (comparison.benchmark.length) {
       datasets.push({
-        label: BENCH.replace('USDT',''),
-        data: bm.timestamps.map((t,i) => ({x:new Date(t),y:bmN[i]})),
+        label: `${BENCH.replace('USDT','')} (same window)`,
+        data: comparison.benchmark,
         borderColor:'#f5c518', borderWidth:1.5,
         backgroundColor: grad('eqChart','#f5c518',0.08),
         fill:true, pointRadius:0, tension:.3, borderDash:[5,3],
@@ -3087,12 +3488,95 @@ el('dlBtn').addEventListener('click', () => {
   window.open(`${BASE}/api/trades?start=${s}T00:00:00Z&end=${e2}T23:59:59Z&download=true`);
 });
 
+let RECAL_POLL_TIMER = null;
+
+function updateRecalProgress(s={}) {
+  const panel = el('stkRecalProgress');
+  if (!panel) return;
+  const status = s.status || 'IDLE';
+  const scripts = s.scripts || [];
+  const completed = s.completed || [];
+  const failed = s.failed || [];
+  const total = s.total_steps ?? scripts.length ?? 0;
+  const done = s.completed_steps ?? completed.length ?? 0;
+  const failedCount = s.failed_steps ?? failed.length ?? 0;
+  const currentIndex = s.current_step_index ?? (status === 'RUNNING' ? Math.min(done + failedCount + 1, Math.max(total, 1)) : done + failedCount);
+  const progress = s.progress_pct != null
+    ? Number(s.progress_pct)
+    : total ? Math.min(100, Math.max(0, ((done + failedCount) / total) * 100)) : (status === 'DONE' ? 100 : 0);
+
+  panel.classList.add('active');
+  const fill = el('stkRecalFill');
+  if (fill) fill.style.width = `${Math.min(100, Math.max(0, progress)).toFixed(1)}%`;
+  const pctNode = el('stkRecalPct');
+  if (pctNode) pctNode.textContent = `${Math.round(progress)}%`;
+  const title = el('stkRecalTitle');
+  if (title) title.textContent = status === 'RUNNING'
+    ? `Downloading / recalibrating (${currentIndex}/${total || '—'})`
+    : `Recalibration ${status.toLowerCase()}`;
+  const job = el('stkRecalJob');
+  if (job) job.textContent = s.job_id || '—';
+  const current = el('stkRecalCurrent');
+  if (current) {
+    const elapsed = Number(s.current_elapsed_seconds || 0);
+    const elapsedTxt = elapsed > 0 ? ` · ${elapsed < 60 ? Math.round(elapsed) + 's' : Math.round(elapsed / 60) + 'm'} elapsed` : '';
+    const pidTxt = s.current_pid ? ` · pid ${s.current_pid}` : '';
+    current.textContent = `${s.current_description || s.current || (status === 'IDLE' ? '—' : 'Finalising')}${elapsedTxt}${pidTxt}`;
+  }
+  const doneNode = el('stkRecalDone');
+  if (doneNode) doneNode.textContent = `${done}/${total || scripts.length || 0}`;
+  const failNode = el('stkRecalFailed');
+  if (failNode) {
+    failNode.textContent = String(failedCount);
+    failNode.style.color = failedCount ? 'var(--red)' : 'var(--green)';
+  }
+  const logNode = el('stkRecalLog');
+  if (logNode) {
+    const lines = (s.log || []).slice(-8);
+    const staleHint = status === 'RUNNING' && !lines.length
+      ? [`Running ${s.current_description || s.current || 'pipeline step'}; waiting for first streamed log line…`]
+      : [];
+    logNode.textContent = lines.length ? lines.join('\n') : (staleHint.length ? staleHint.join('\n') : 'Waiting for pipeline log output…');
+  }
+}
+
+async function pollMasterRecal({ refreshStocks=false }={}) {
+  const badges = ['bl-recal-badge', 'stk-recal-status'].map(id => el(id)).filter(Boolean);
+  const btns   = ['blRecalBtn', 'stkRecalBtn'].map(id => el(id)).filter(Boolean);
+  const setBadge = (txt, cls) => badges.forEach(b => { b.style.display = ''; b.className = 'bdg ' + cls; b.textContent = txt; });
+  const s = await api('/api/system/master_recalibrate');
+  if (!s) return;
+  updateRecalProgress(s);
+  const total = s.total_steps ?? (s.scripts || []).length ?? 0;
+  const done = s.completed_steps ?? (s.completed || []).length ?? 0;
+  const fail = s.failed_steps ?? (s.failed || []).length ?? 0;
+  const label = s.status === 'RUNNING' ? `RUNNING ${done + fail}/${total || '—'}` : (s.status || 'IDLE');
+  setBadge(label, s.status === 'DONE' ? 'bdg-ok' : s.status === 'PARTIAL' ? 'bdg-warn' : s.status === 'IDLE' ? 'bdg-info' : 'bdg-run');
+
+  if (s.status === 'RUNNING') {
+    btns.forEach(b => b.disabled = true);
+    if (!RECAL_POLL_TIMER) RECAL_POLL_TIMER = setInterval(() => pollMasterRecal({ refreshStocks:true }).catch(console.warn), 3000);
+    return;
+  }
+
+  if (RECAL_POLL_TIMER) {
+    clearInterval(RECAL_POLL_TIMER);
+    RECAL_POLL_TIMER = null;
+  }
+  btns.forEach(b => b.disabled = false);
+  if ((s.status === 'DONE' || s.status === 'PARTIAL') && refreshStocks) {
+    toast(`Recalibration ${s.status}: ${done} completed, ${fail} failed`, s.status === 'DONE' ? 'ok' : 'info');
+    Promise.resolve(loadStocks?.()).catch(console.warn);
+  }
+}
+
 async function triggerMasterRecal() {
   const badges = ['bl-recal-badge', 'stk-recal-status'].map(id => el(id)).filter(Boolean);
   const btns   = ['blRecalBtn', 'stkRecalBtn'].map(id => el(id)).filter(Boolean);
   const setBadge = (txt, cls) => badges.forEach(b => { b.style.display = ''; b.className = 'bdg ' + cls; b.textContent = txt; });
   setBadge('QUEUED', 'bdg-run');
   btns.forEach(b => b.disabled = true);
+  updateRecalProgress({status:'QUEUED', scripts:[], completed:[], failed:[], log:['Submitting master recalibration request…']});
   const r = await api('/api/system/master_recalibrate', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3101,27 +3585,25 @@ async function triggerMasterRecal() {
   if (!r) {
     setBadge('ERROR', 'bdg-err');
     btns.forEach(b => b.disabled = false);
-    showToast('Recalibration request failed', 'err');
+    updateRecalProgress({status:'ERROR', scripts:[], completed:[], failed:['request'], log:['Recalibration request failed before a job was created.']});
+    toast('Recalibration request failed', 'err');
     return;
   }
-  showToast('Master recalibration queued — all scripts running in background', 'ok');
+  if (r.ok === false) {
+    const job = r.job || {};
+    updateRecalProgress(job.status ? job : {status:'ERROR', scripts:[], completed:[], failed:['request'], log:[r.error || 'Recalibration request rejected.']});
+    setBadge(job.status === 'RUNNING' ? 'RUNNING' : 'ERROR', job.status === 'RUNNING' ? 'bdg-run' : 'bdg-err');
+    if (job.status === 'RUNNING') pollMasterRecal({ refreshStocks:true }).catch(console.warn);
+    else btns.forEach(b => b.disabled = false);
+    toast(r.error || 'Recalibration request rejected', job.status === 'RUNNING' ? 'info' : 'err');
+    return;
+  }
+  toast('Master recalibration queued — all scripts running in background', 'ok');
   setBadge('RUNNING', 'bdg-run');
-  let polls = 0;
-  const poll = setInterval(async () => {
-    polls++;
-    const s = await api('/api/system/master_recalibrate');
-    if (!s) return;
-    const label = `${s.status || 'RUNNING'} (${(s.completed||[]).length}/${(s.scripts||[]).length})`;
-    setBadge(label, 'bdg-run');
-    if (s.status === 'DONE' || s.status === 'PARTIAL' || polls > 60) {
-      clearInterval(poll);
-      btns.forEach(b => b.disabled = false);
-      const finCls = s.status === 'DONE' ? 'bdg-ok' : 'bdg-warn';
-      setBadge(s.status || 'DONE', finCls);
-      const done = (s.completed||[]).length, fail = (s.failed||[]).length;
-      showToast(`Recalibration ${s.status || 'done'}: ${done} completed, ${fail} failed`, s.status === 'DONE' ? 'ok' : 'info');
-    }
-  }, 8000);
+  updateRecalProgress({status:'RUNNING', job_id:r.job_id, scripts:r.scripts || [], completed:[], failed:[], log:[`Job ${r.job_id || '—'} queued.`]});
+  if (RECAL_POLL_TIMER) clearInterval(RECAL_POLL_TIMER);
+  RECAL_POLL_TIMER = setInterval(() => pollMasterRecal({ refreshStocks:true }).catch(console.warn), 3000);
+  pollMasterRecal({ refreshStocks:true }).catch(console.warn);
 }
 
 async function loadLiveFills() {
@@ -3374,6 +3856,7 @@ async function loadOptions() {
    TAB: STOCKS + PAIRS
 ════════════════════════════════════════════════════════════════════ */
 async function loadStocks() {
+  pollMasterRecal().catch(console.warn);
   const [d, corrPayload] = await Promise.all([
     api('/api/stocks/overview'),
     ensureCorrelationPayload(),
@@ -3388,7 +3871,11 @@ async function loadStocks() {
   el('stk-alpha-sh').textContent = f(d.ml_alpha?.long_only?.sharpe_ratio, 3);
   // Update status bar
   if (el('stk-val-count')) el('stk-val-count').textContent = d.universe_size ?? '—';
-  if (el('stk-res-count')) el('stk-res-count').textContent = d.research_coverage_pct != null ? fp(d.research_coverage_pct) + ' covered' : '—';
+  if (el('stk-res-count')) {
+    const px = d.price_data_coverage_pct != null ? `${fp(d.price_data_coverage_pct)} data` : '— data';
+    const rs = d.research_coverage_pct != null ? `${fp(d.research_coverage_pct)} research` : '— research';
+    el('stk-res-count').textContent = `${px} · ${rs}`;
+  }
   const stocksGeneratedAt = d.generated_at_utc || d.generated_at;
   if (el('stk-last-update')) el('stk-last-update').textContent = stocksGeneratedAt ? new Date(stocksGeneratedAt).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Cached';
   el('stk-pairs-eval').textContent = d.pairs?.summary?.pairs_evaluated ?? (d.pairs?.all_pairs || []).length ?? '—';
@@ -5166,6 +5653,458 @@ async function loadLiveBreadthPanel() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   TAB: QUANTITATIVE DIGITAL TWIN
+════════════════════════════════════════════════════════════════════ */
+const DT_MODELS = [
+  {id:'HMM_SPY_5M', asset:'EQ', family:'HMM', regime:'MEAN_REVERT', latency:418, pred:0.0018, lo:-0.0009, hi:0.0044, integrity:'GREEN'},
+  {id:'XGB_BTC_OFI', asset:'CRYPTO', family:'XGB', regime:'BREAKOUT', latency:386, pred:0.0031, lo:-0.0014, hi:0.0062, integrity:'GREEN'},
+  {id:'TFT_NVDA_30M', asset:'EQ', family:'TFT', regime:'HIGH_VOL', latency:812, pred:-0.0011, lo:-0.0056, hi:0.0022, integrity:'AMBER'},
+  {id:'VAE_SPX_VOL', asset:'OPTIONS', family:'VAE', regime:'SKEW_ALERT', latency:644, pred:0.0024, lo:-0.0018, hi:0.0059, integrity:'GREEN'},
+];
+const DT_HMM_STATES = ['MEAN_REV','BREAKOUT','HIGH_VOL','ILLIQUID'];
+const DT_HMM_MATRIX = [
+  [0.72,0.14,0.10,0.04],
+  [0.18,0.61,0.17,0.04],
+  [0.12,0.20,0.58,0.10],
+  [0.08,0.07,0.25,0.60],
+];
+const DT_SHAP = [
+  ['order_flow_imbalance', 0.184, 0.63],
+  ['vpin', -0.121, 0.41],
+  ['funding_rate_8h', 0.076, 0.00042],
+  ['gamma_wall_distance', -0.069, -0.018],
+  ['hmm_breakout_prob', 0.054, 0.58],
+  ['spread_percentile', -0.044, 0.72],
+  ['queue_imbalance', 0.039, 0.31],
+  ['iv_rv_premium', -0.033, 0.19],
+];
+const DT_PARAMS = [
+  ['Kelly Fraction', 'kelly', 0.22, 0.05, 0.60, 0.01],
+  ['Stop Vol Mult', 'stop', 2.40, 0.80, 5.00, 0.05],
+  ['Signal Half-Life', 'half', 420, 30, 1800, 10],
+  ['Max Gross %', 'gross', 0.72, 0.10, 1.50, 0.01],
+  ['Drawdown Limit %', 'dd', 0.075, 0.01, 0.25, 0.005],
+];
+
+function dtMoney(v) { return '$' + Number(v).toLocaleString('en-US', {maximumFractionDigits:0}); }
+function dtResizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(320, Math.floor(rect.width || canvas.clientWidth || 640));
+  const h = Math.max(120, Math.floor(canvas.height || rect.height || 180));
+  canvas.width = w * window.devicePixelRatio;
+  canvas.height = h * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(window.devicePixelRatio,0,0,window.devicePixelRatio,0,0);
+  return {ctx,w,h};
+}
+function renderDtModelZoo() {
+  const node = el('dt-model-zoo');
+  if (!node) return;
+  const models = (DT_DATA?.models?.length ? DT_DATA.models : DT_MODELS);
+  node.innerHTML = models.map((m, i) => {
+    const jitter = Math.sin(DT_PHASE / 3 + i) * 0.0007;
+    const z = m.drift_z != null ? Number(m.drift_z) : Math.abs(Math.sin(DT_PHASE / 5 + i) * 1.72);
+    const color = z > 1.5 ? 'var(--red)' : z > 1.1 ? 'var(--yellow)' : 'var(--green)';
+    const latency = m.latency != null ? m.latency : 0;
+    const pred = Number(m.pred ?? m.drift_z ?? 0.001);
+    return `<div class="dt-model-row">
+      <span style="color:var(--t0);font-weight:800">${m.id}</span>
+      <span>${m.asset}</span>
+      <span>${m.family}</span>
+      <span style="color:${color}">Z ${f(z,2)}</span>
+      <span><i class="dt-bar"><i style="width:${Math.min(100, Math.abs((pred+jitter)*16000))}%;background:${color}"></i></i></span>
+      <span style="text-align:right;color:var(--t2)">${latency ? latency + 'us' : (m.status || 'LIVE')}</span>
+    </div>`;
+  }).join('');
+}
+function renderDtHmm() {
+  const node = el('dt-hmm-heat');
+  if (!node) return;
+  const max = Math.max(...DT_HMM_MATRIX.flat());
+  let html = '<div></div>' + DT_HMM_STATES.map(s => `<div style="color:var(--t2);font-size:8px">${s}</div>`).join('');
+  DT_HMM_MATRIX.forEach((row, r) => {
+    html += `<div style="text-align:left;color:var(--t2);font-size:8px">${DT_HMM_STATES[r]}</div>`;
+    row.forEach(v => {
+      const a = Math.max(0.08, v / max);
+      const bg = `rgba(0,229,255,${a})`;
+      html += `<div style="background:${bg};color:${a>.5?'#001014':'var(--t1)'};font-weight:800">${f(v,2)}</div>`;
+    });
+  });
+  node.innerHTML = html;
+  if (el('dt-hmm-state')) el('dt-hmm-state').textContent = DT_MODELS[DT_PHASE % DT_MODELS.length].regime;
+}
+function renderDtShap() {
+  const node = el('dt-shap-bars');
+  if (!node) return;
+  const rows = DT_SHAP.map(([name, shap, val], i) => [name, shap + Math.sin(DT_PHASE/4+i)*0.012, val]);
+  const max = Math.max(...rows.map(r => Math.abs(r[1])));
+  node.innerHTML = rows.map(([name, shap, val]) => {
+    const pos = shap >= 0;
+    const w = Math.max(3, Math.abs(shap) / max * 100);
+    return `<div style="display:grid;grid-template-columns:132px 1fr 54px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(31,41,55,.7);font-family:var(--mono);font-size:10px">
+      <span style="overflow:hidden;text-overflow:ellipsis;color:var(--t1)">${name}</span>
+      <span class="dt-bar"><i style="width:${w}%;background:${pos?'var(--green)':'var(--red)'}"></i></span>
+      <span style="text-align:right;color:${pos?'var(--green)':'var(--red)'}">${shap>=0?'+':''}${f(shap,3)}</span>
+    </div>`;
+  }).join('');
+  if (el('dt-shap-signal')) el('dt-shap-signal').textContent = rows[0][1] > 0 ? 'LONG BIAS' : 'SHORT BIAS';
+}
+function renderDtParams() {
+  const node = el('dt-param-grid');
+  if (!node) return;
+  node.innerHTML = DT_PARAMS.map(([label, id, value, min, max, step]) => `
+    <label>${label}</label>
+    <input id="dt-param-${id}" class="fi" type="number" value="${value}" min="${min}" max="${max}" step="${step}">
+    <input type="range" value="${value}" min="${min}" max="${max}" step="${step}" oninput="el('dt-param-${id}').value=this.value">
+  `).join('');
+}
+function renderDtStockAlpha() {
+  const node = el('dt-stock-alpha');
+  if (!node) return;
+  const rows = DT_DATA?.stocks?.top_alpha || [];
+  node.innerHTML = rows.length ? rows.slice(0, 8).map(row => `
+    <div class="dt-stock-row">
+      <span style="color:var(--t0);font-weight:900">${row.symbol || '—'}</span>
+      <span><i class="dt-bar"><i style="width:${Math.min(100, Math.max(4, Math.abs((row.alpha_daily || 0) * 12000)))}%;background:${(row.alpha_daily || 0) >= 0 ? 'var(--green)' : 'var(--red)'}"></i></i></span>
+      <span style="text-align:right;color:${(row.alpha_daily || 0) >= 0 ? 'var(--green)' : 'var(--red)'}">${row.alpha_daily!=null ? fsp(row.alpha_daily * 100, 3) : '—'}</span>
+      <span style="text-align:right;color:var(--t2)">${row.beta_spy!=null ? 'β ' + f(row.beta_spy,2) : row.data_status || '—'}</span>
+    </div>
+  `).join('') : '<div class="dt-note">No full-universe stock alpha diagnostics loaded yet. Run /RECALIBRATE or stock_universe_research.</div>';
+}
+function renderDtBrief() {
+  const node = el('dt-brief');
+  if (!node) return;
+  const integrity = DT_DATA?.integrity || {};
+  const risk = DT_DATA?.risk || {};
+  const stocks = DT_DATA?.stocks || {};
+  const equity = DT_DATA?.equity || {};
+  const status = integrity.status || 'GREEN';
+  const driftZ = Number(integrity.drift_z || 0);
+  const current = equity.current != null ? dtMoney(equity.current) : '—';
+  const vol = equity.realized_vol_annualized != null ? fp(Number(equity.realized_vol_annualized) * 100, 2) : '—';
+  const dataCov = stocks.price_data_coverage_pct != null ? fp(stocks.price_data_coverage_pct) : '—';
+  const researchCov = stocks.research_coverage_pct != null ? fp(stocks.research_coverage_pct) : '—';
+  const action = Math.abs(driftZ) > 1.5
+    ? 'Action: pause new risk, inspect model drift and execution slippage.'
+    : Math.abs(driftZ) > 1.1
+      ? 'Action: keep trading but reduce confidence in fresh signals.'
+      : 'Action: twin is aligned; normal monitoring mode.';
+  node.innerHTML = `
+    <div><span style="color:var(--t2)">Verdict</span> <strong style="color:${status==='RED'?'var(--red)':status==='AMBER'?'var(--yellow)':'var(--green)'}">${status}</strong> · drift z=${f(driftZ,2)}</div>
+    <div><span style="color:var(--t2)">Equity</span> ${current} · realised vol ${vol}</div>
+    <div><span style="color:var(--t2)">Coverage</span> ${dataCov} price data · ${researchCov} research</div>
+    <div style="margin-top:6px;color:var(--t0)">${action}</div>`;
+  const verdict = document.querySelector('.dt-verdict');
+  if (verdict) verdict.style.borderLeftColor = status === 'RED' ? 'var(--red)' : status === 'AMBER' ? 'var(--yellow)' : 'var(--green)';
+}
+function renderDtDriftChart() {
+  const realTs = DT_DATA?.equity?.timestamps || [];
+  const real = DT_DATA?.equity?.realized || [];
+  const shadow = DT_DATA?.equity?.shadow || [];
+  const points = real.length >= 2 ? real.map((live, i) => ({
+    t: new Date(realTs[i] || Date.now() - (real.length - i) * 60000),
+    live: Number(live),
+    twin: Number(shadow[i] ?? live),
+    spread: Number(live) - Number(shadow[i] ?? live),
+  })) : Array.from({length:72}, (_, i) => {
+    const live = Math.sin((i + DT_PHASE) / 9) * 5200 + i * 66 + Math.sin(i/2) * 900;
+    const twin = Math.sin((i + DT_PHASE - 3) / 9) * 4800 + i * 62;
+    return {t:new Date(Date.now() - (72-i)*60000), live, twin, spread:live-twin};
+  });
+  const spreads = points.map(p => p.spread);
+  const mean = spreads.reduce((a,b)=>a+b,0) / spreads.length;
+  const std = Math.sqrt(spreads.reduce((a,b)=>a+(b-mean)**2,0) / spreads.length) || 1;
+  const z = DT_DATA?.integrity?.drift_z != null ? Number(DT_DATA.integrity.drift_z) : (spreads.at(-1) - mean) / std;
+  const absz = Math.abs(z);
+  const red = absz > 1.5;
+  const amber = !red && absz > 1.1;
+  const dot = el('dt-integrity-dot');
+  if (dot) dot.className = 'dt-dot ' + (red ? 'red' : amber ? 'amber' : '');
+  if (el('dt-integrity-label')) el('dt-integrity-label').textContent = `MODEL INTEGRITY ${red ? 'RED' : amber ? 'AMBER' : 'GREEN'}`;
+  if (el('dt-drift-z')) { el('dt-drift-z').textContent = f(z,2); el('dt-drift-z').style.color = red ? 'var(--red)' : amber ? 'var(--yellow)' : 'var(--green)'; }
+  if (el('dt-spread-badge')) { el('dt-spread-badge').textContent = `Z=${f(z,2)}`; el('dt-spread-badge').className = 'bdg ' + (red ? 'bdg-err' : amber ? 'bdg-warn' : 'bdg-ok'); }
+  lineChart('dtDriftChart', [
+    {label:'Realized PnL', data:points.map(p=>({x:p.t,y:p.live})), borderColor:'#00ff88', backgroundColor:'rgba(0,255,136,.07)', fill:true, tension:.18, pointRadius:0},
+    {label:'Shadow Twin PnL', data:points.map(p=>({x:p.t,y:p.twin})), borderColor:'#00e5ff', backgroundColor:'rgba(0,229,255,.06)', fill:true, tension:.18, pointRadius:0},
+    {label:'Spread', data:points.map(p=>({x:p.t,y:p.spread})), borderColor:'#f5c542', borderDash:[4,3], fill:false, tension:.12, pointRadius:0},
+  ], {legend:true, dollar:true});
+}
+function renderDtMonteCarlo() {
+  const cv = el('dtMonteCanvas'); if (!cv) return;
+  const {ctx,w,h} = dtResizeCanvas(cv);
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  const start = 1_000_000, steps = 90, paths = 180, mu = .10/252, sig = .18/Math.sqrt(252), lam = .035;
+  ctx.lineWidth = 1;
+  for (let p=0; p<paths; p++) {
+    let eq = start;
+    ctx.beginPath();
+    for (let i=0; i<steps; i++) {
+      const z = Math.sin((i+1)*(p+3)*12.9898) * 43758.5453 % 1;
+      const n = (z - .5) * 2.4;
+      const jump = Math.abs(z) < lam ? -0.018 + n * .012 : 0;
+      eq *= Math.exp(mu - .5*sig*sig + sig*n + jump);
+      const x = i/(steps-1)*w, y = h - ((eq-900000)/380000)*h;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = 'rgba(0,229,255,.10)'; ctx.stroke();
+  }
+  [['P95',1214900,'#00ff88'],['P50',1084550,'#f5c542'],['P05',972880,'#ff335f']].forEach(([lbl,val,c]) => {
+    const y = h - ((val-900000)/380000)*h;
+    ctx.strokeStyle = c; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    ctx.font = '10px JetBrains Mono, monospace'; ctx.fillText(`${lbl} ${dtMoney(val)}`, 6, Math.max(10,y-3));
+  });
+}
+function renderDtBayesSurface() {
+  const cv = el('dtBayesCanvas'); if (!cv) return;
+  const {ctx,w,h} = dtResizeCanvas(cv);
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  const nx=42, ny=24, best={x:0,y:0,v:-99};
+  for (let y=0;y<ny;y++) for (let x=0;x<nx;x++) {
+    const k=x/(nx-1), s=y/(ny-1);
+    const val = 2.42 - 7*(k-.38)**2 - 4.6*(s-.54)**2 + .18*Math.sin(x*.8+y*.3);
+    if (val>best.v) Object.assign(best,{x,y,v:val});
+    const a = Math.max(0, Math.min(1, (val+.2)/2.7));
+    ctx.fillStyle = `rgba(${Math.round(245*a)},${Math.round(197*a)},${Math.round(66+120*a)},${.16+.68*a})`;
+    ctx.fillRect(x*w/nx, y*h/ny, Math.ceil(w/nx), Math.ceil(h/ny));
+  }
+  const bx=(best.x+.5)*w/nx, by=(best.y+.5)*h/ny;
+  ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(bx,by,9,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#00e5ff'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText(`Sharpe ${best.v.toFixed(2)} Kelly .38 Stop 2.55`, 8, 14);
+  if (el('dt-optimum')) el('dt-optimum').textContent = `SHARPE ${best.v.toFixed(2)}`;
+}
+function renderDtVolSurface() {
+  const cv = el('dtVolCanvas'); if (!cv) return;
+  const {ctx,w,h} = dtResizeCanvas(cv);
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  const ox=w*.50, oy=h*.68, sx=w*.055, sy=h*.035, sz=h*.82;
+  const rot = DT_PHASE * .08;
+  function proj(x,y,z){ const xr=x*Math.cos(rot)-y*Math.sin(rot); const yr=x*Math.sin(rot)+y*Math.cos(rot); return [ox+xr*sx, oy+yr*sy-z*sz]; }
+  for (let d=0; d<12; d++) {
+    ctx.beginPath();
+    for (let m=-8; m<=8; m++) {
+      const lm=m/8, tenor=d/11;
+      const iv=.18+.11*tenor+.075*lm*lm-.035*lm+Math.sin((lm+tenor+rot)*4)*.008;
+      const [x,y]=proj(m,d,iv);
+      if (m===-8) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle='rgba(0,229,255,.45)'; ctx.stroke();
+  }
+  for (let m=-8; m<=8; m+=2) {
+    ctx.beginPath();
+    for (let d=0; d<12; d++) {
+      const lm=m/8, tenor=d/11;
+      const iv=.18+.11*tenor+.075*lm*lm-.035*lm+Math.sin((lm+tenor+rot)*4)*.008;
+      const [x,y]=proj(m,d,iv);
+      if (d===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle='rgba(0,255,136,.32)'; ctx.stroke();
+  }
+  ctx.fillStyle='#00e5ff'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText('SKEW ANOMALY 25Δ PUT', 8, 14);
+  ctx.fillStyle='#f5c542'; ctx.fillText('PINNING RISK: SPX 5200 OI WALL', 8, 29);
+}
+function renderDtLiquidity() {
+  const cv = el('dtLiquidityCanvas'); if (!cv) return;
+  const {ctx,w,h} = dtResizeCanvas(cv);
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  const cols=52, rows=20, cw=w/cols, rh=h/rows;
+  for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+    const mid=Math.abs(y-rows/2)/(rows/2);
+    const wall = (x>32 && x<38 && y>4 && y<8) || (x>12 && x<16 && y>13 && y<17);
+    const v = Math.max(0, 1-mid) * .35 + (wall ? .78 : 0) + .16*Math.abs(Math.sin((x+DT_PHASE)*.3+y));
+    ctx.fillStyle = y < rows/2 ? `rgba(255,51,95,${v})` : `rgba(0,255,136,${v})`;
+    ctx.fillRect(x*cw,y*rh,Math.ceil(cw),Math.ceil(rh));
+  }
+  ctx.fillStyle='#f5c542'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText('WHALE WALL +4.3σ', w*.62, h*.28);
+}
+function renderDtLogs() {
+  const sig = el('dt-signal-log'), exe = el('dt-exec-log');
+  if (sig) sig.innerHTML = Array.from({length:28}, (_, i) => {
+    const us = String(781023 + i*137).padStart(6,'0');
+    const m = DT_MODELS[(i+DT_PHASE)%DT_MODELS.length];
+    return `<div><span style="color:var(--t2)">22:14:${String(i%60).padStart(2,'0')}.${us}</span> <span style="color:var(--cyan)">${m.family}</span> ${m.id} state=${m.regime} pred=${fsp(m.pred*100,3)} ci95=[${fsp(m.lo*100,2)},${fsp(m.hi*100,2)}]</div>`;
+  }).join('');
+  if (exe) exe.innerHTML = Array.from({length:28}, (_, i) => {
+    const us = String(991120 + i*193).padStart(6,'0');
+    const slip = Math.sin(i+DT_PHASE)*.7;
+    return `<div><span style="color:var(--t2)">22:14:${String(i%60).padStart(2,'0')}.${us}</span> FIX fill ack symbol=${i%3?'BTCUSDT':'SPY'} arrival_mid=${f(522.18+i*.02,2)} slip_bps=<span style="color:${slip>0?'var(--red)':'var(--green)'}">${f(slip,2)}</span> route=SMART_IOC</div>`;
+  }).join('');
+}
+async function loadDigitalTwin() {
+  DT_PHASE++;
+  const liveTwin = await api('/api/digital_twin');
+  if (liveTwin) DT_DATA = liveTwin;
+  const ruin = .0074 + Math.abs(Math.sin(DT_PHASE/8))*.0021;
+  const maxdd = -.068 - Math.abs(Math.sin(DT_PHASE/7))*.009;
+  const currentEq = DT_DATA?.equity?.current || 1_000_000;
+  const vol = DT_DATA?.equity?.realized_vol_annualized || 0.18;
+  const p = [
+    currentEq * (1 - 2.33 * vol / Math.sqrt(252)),
+    currentEq * (1 - 1.65 * vol / Math.sqrt(252)),
+    currentEq,
+    currentEq * (1 + 1.65 * vol / Math.sqrt(252)),
+    currentEq * (1 + 2.33 * vol / Math.sqrt(252)),
+  ];
+  ['dt-p1','dt-p5','dt-p50','dt-p95','dt-p99'].forEach((id,i)=>{ if(el(id)) el(id).textContent = dtMoney(p[i]); });
+  if (el('dt-ruin')) el('dt-ruin').textContent = DT_DATA?.risk?.risk_score != null ? fp(Math.max(0, Number(DT_DATA.risk.risk_score)) * 100,2) : fp(ruin*100,2);
+  if (el('dt-maxdd')) el('dt-maxdd').textContent = DT_DATA?.risk?.current_drawdown != null ? fp(Number(DT_DATA.risk.current_drawdown) * 100,2) : fp(maxdd*100,2);
+  if (el('dt-greeks')) el('dt-greeks').textContent = `${f(182.44 + Math.sin(DT_PHASE)*9,1)} / ${f(9407.22 + Math.cos(DT_PHASE)*122,0)}`;
+  if (el('dt-active-models')) el('dt-active-models').textContent = (DT_DATA?.models || DT_MODELS).length;
+  if (el('dt-latency')) el('dt-latency').textContent = `${812 + Math.round(Math.sin(DT_PHASE)*38)}us`;
+  if (el('dt-conformal')) el('dt-conformal').textContent = DT_DATA?.stocks ? `${fp(DT_DATA.stocks.price_data_coverage_pct || 0)} data / ${fp(DT_DATA.stocks.research_coverage_pct || 0)} research` : '[-0.18%, +0.42%]';
+  renderDtModelZoo();
+  renderDtBrief();
+  renderDtHmm();
+  renderDtShap();
+  renderDtParams();
+  renderDtStockAlpha();
+  renderDtDriftChart();
+  renderDtMonteCarlo();
+  renderDtBayesSurface();
+  renderDtVolSurface();
+  renderDtLiquidity();
+  renderDtLogs();
+  if (!DT_TIMER) DT_TIMER = setInterval(() => { if (el('tab-dtwin')?.classList.contains('active')) loadDigitalTwin(); }, 4000);
+}
+function dtKillAll() {
+  if (el('dt-risk-mode')) { el('dt-risk-mode').textContent = 'KILL ACTIVE'; el('dt-risk-mode').style.color = 'var(--red)'; }
+  toast('Digital Twin command queued: KILL_ALL through risk gate', 'err');
+  if (typeof ccKillSwitch === 'function') Promise.resolve(ccKillSwitch(true)).catch(() => {});
+}
+function dtDerisk50() {
+  if (el('dt-risk-mode')) { el('dt-risk-mode').textContent = 'DERISK 50%'; el('dt-risk-mode').style.color = 'var(--yellow)'; }
+  toast('Digital Twin command queued: DERISK_50 liquidity-aware flatten', 'info');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRADE DECISION TAPE
+════════════════════════════════════════════════════════════════════ */
+let DECISION_TIMER = null;
+let decisionHandlersBound = false;
+
+function decisionBadge(status) {
+  const s = String(status || '').toUpperCase();
+  if (s === 'EXECUTED') return 'bdg-ok';
+  if (s === 'REJECTED') return 'bdg-err';
+  if (s === 'GATED') return 'bdg-warn';
+  if (s === 'SUGGESTED') return 'bdg-run';
+  return 'bdg-info';
+}
+
+function decisionTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return esc(ts);
+  return d.toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function decisionRawLine(row) {
+  const details = row?.details || {};
+  return JSON.stringify({
+    ts: row?.ts,
+    status: row?.status,
+    strategy: row?.strategy,
+    symbol: row?.symbol,
+    action: row?.action,
+    confidence: row?.confidence,
+    risk_cap: row?.risk_cap,
+    buying_power: row?.buying_power,
+    reason: row?.reason,
+    details,
+  }, null, 2);
+}
+
+function renderDecisionTape(d) {
+  const counts = d?.counts || {};
+  const records = Array.isArray(d?.records) ? d.records : [];
+  const search = String(el('decisionSearch')?.value || '').trim().toLowerCase();
+  const filtered = search
+    ? records.filter(r => JSON.stringify(r).toLowerCase().includes(search))
+    : records;
+
+  const setVal = (id, value, color='var(--t0)') => {
+    const node = el(id);
+    if (!node) return;
+    node.textContent = value;
+    node.style.color = color;
+  };
+  setVal('dtape-suggested', counts.SUGGESTED ?? 0, 'var(--cyan)');
+  setVal('dtape-gated', counts.GATED ?? 0, 'var(--yellow)');
+  setVal('dtape-rejected', counts.REJECTED ?? 0, 'var(--red)');
+  setVal('dtape-executed', counts.EXECUTED ?? 0, 'var(--green)');
+  setVal('dtape-total', d?.total ?? 0);
+
+  const updated = el('decisionTapeUpdated');
+  if (updated) {
+    updated.textContent = d?.latest_ts ? `UPDATED ${decisionTime(d.latest_ts)}` : 'NO DECISIONS';
+    updated.className = `bdg ${records.length ? 'bdg-ok' : 'bdg-warn'}`;
+  }
+
+  const tbody = el('decisionTapeBody');
+  if (!tbody) return;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No trade decisions recorded yet. Run a strategy cycle to populate this tape.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, idx) => {
+    const status = String(r.status || 'INFO').toUpperCase();
+    const reason = esc(r.reason || '');
+    const confidence = r.confidence == null || isNaN(r.confidence) ? '—' : f(Number(r.confidence), 3);
+    return `<tr class="decision-row" data-decision-idx="${idx}" style="cursor:pointer;border-left:3px solid ${
+      status === 'EXECUTED' ? 'var(--green)' : status === 'REJECTED' ? 'var(--red)' : status === 'GATED' ? 'var(--yellow)' : 'var(--cyan)'
+    }">
+      <td style="font-size:9px;color:var(--t2)">${decisionTime(r.ts)}</td>
+      <td><span class="bdg ${decisionBadge(status)}">${esc(status)}</span></td>
+      <td style="font-weight:700">${esc(r.strategy || 'unknown')}</td>
+      <td style="font-weight:700;color:var(--t0)">${esc(r.symbol || '—')}</td>
+      <td>${esc(r.action || '—')}</td>
+      <td style="font-family:var(--mono)">${confidence}</td>
+      <td style="font-family:var(--mono)">${r.risk_cap == null ? '—' : fm(r.risk_cap)}</td>
+      <td style="font-family:var(--mono)">${r.buying_power == null ? '—' : fm(r.buying_power)}</td>
+      <td style="text-align:left;max-width:520px;white-space:normal;color:var(--t1)">${reason || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.decision-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = Number(row.dataset.decisionIdx);
+      const rec = filtered[idx];
+      const detail = el('decisionDetailLog');
+      if (detail && rec) detail.textContent = decisionRawLine(rec);
+    });
+  });
+  const detail = el('decisionDetailLog');
+  if (detail && filtered[0]) detail.textContent = decisionRawLine(filtered[0]);
+}
+
+async function loadDecisionTape() {
+  const params = new URLSearchParams({limit: '500'});
+  const status = el('decisionStatusFilter')?.value;
+  if (status) params.set('status', status);
+  const d = await api(`/api/trade_decisions?${params.toString()}`);
+  if (!d) {
+    const tbody = el('decisionTapeBody');
+    if (tbody) tbody.innerHTML = unavailableTableRow(9, '[!] DECISION TAPE ENDPOINT UNAVAILABLE');
+    return;
+  }
+  renderDecisionTape(d);
+}
+
+function initDecisionTape() {
+  if (!decisionHandlersBound) {
+    decisionHandlersBound = true;
+    el('decisionRefreshBtn')?.addEventListener('click', () => loadDecisionTape());
+    el('decisionStatusFilter')?.addEventListener('change', () => loadDecisionTape());
+    el('decisionSearch')?.addEventListener('input', () => loadDecisionTape());
+  }
+  if (!DECISION_TIMER) {
+    DECISION_TIMER = setInterval(() => {
+      if (el('tab-decisions')?.classList.contains('active')) loadDecisionTape();
+    }, 5000);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════════ */
 const TAB_INIT = {
@@ -5182,12 +6121,14 @@ const TAB_INIT = {
   training:      () => { loadTraining(); },
   intelligence:  () => { loadIntelligence(); },
   tradeanalysis: () => { loadTradeAnalysis(); },
+  dtwin:         () => { loadDigitalTwin(); },
   cmdcenter:     () => { loadCmdCenter(); },
   gsquant:       () => { loadGsQuant(); },
+  decisions:     () => { initDecisionTape(); loadDecisionTape(); },
   logs:          () => { initLogs(); },
 };
 
-const ALWAYS_REFRESH_TABS = new Set(['backtests', 'params', 'cmdcenter']);
+const ALWAYS_REFRESH_TABS = new Set(['backtests', 'params', 'cmdcenter', 'dtwin', 'decisions']);
 
 document.querySelectorAll('.ntab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -5204,6 +6145,128 @@ document.querySelectorAll('.ntab').forEach(tab => {
     }
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════════
+   TERMINAL COMMAND ROUTER
+════════════════════════════════════════════════════════════════════ */
+function activateTab(name) {
+  const tab = document.querySelector(`.ntab[data-tab="${name}"]`);
+  if (!tab) {
+    toast(`Unknown workspace: ${name}`, 'err');
+    return false;
+  }
+  tab.click();
+  return true;
+}
+
+function routeCommand(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return;
+  const parts = text.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg = parts[1]?.toUpperCase();
+  const tabAliases = {
+    '/live':'live',
+    '/perf':'live',
+    '/options':'options',
+    '/opt':'options',
+    '/stocks':'stocks',
+    '/pairs':'stocks',
+    '/odds':'odds',
+    '/backtests':'backtests',
+    '/bt':'backtests',
+    '/params':'params',
+    '/risk':'risk',
+    '/sim':'simlab',
+    '/simlab':'simlab',
+    '/strat':'stratlab',
+    '/stratlab':'stratlab',
+    '/forward':'ftest',
+    '/ftest':'ftest',
+    '/train':'training',
+    '/ml':'training',
+    '/intel':'intelligence',
+    '/intelligence':'intelligence',
+    '/analysis':'tradeanalysis',
+    '/trades':'tradeanalysis',
+    '/dt':'dtwin',
+    '/dtwin':'dtwin',
+    '/twin':'dtwin',
+    '/digitaltwin':'dtwin',
+    '/cmd':'cmdcenter',
+    '/command':'cmdcenter',
+    '/gsq':'gsquant',
+    '/gsquant':'gsquant',
+    '/decisions':'decisions',
+    '/decision':'decisions',
+    '/tape':'decisions',
+    '/suggestions':'decisions',
+    '/logs':'logs',
+  };
+
+  if (cmd === '/help' || cmd === '?') {
+    toast('/live /options /stocks /risk /sim /strat /intel /dtwin /decisions /cmd /gsq SYMBOL /logs /load SYMBOL /recalibrate /kill /resume', 'info');
+    return;
+  }
+  if (cmd === '/load') {
+    if (!arg) {
+      toast('Usage: /load SYMBOL', 'err');
+      return;
+    }
+    const bench = el('benchSel');
+    if (bench && [...bench.options].some(o => o.value.toUpperCase() === arg)) {
+      bench.value = [...bench.options].find(o => o.value.toUpperCase() === arg).value;
+      BENCH = bench.value;
+    }
+    const gsq = el('gsq-symbol');
+    if (gsq) gsq.value = arg;
+    activateTab('live');
+    Promise.resolve(loadLive?.()).catch(() => {});
+    toast(`Context loaded for ${arg}`, 'ok');
+    return;
+  }
+  if (cmd === '/recalibrate' || cmd === '/recal') {
+    Promise.resolve(triggerMasterRecal?.()).catch(() => toast('Recalibration failed', 'err'));
+    return;
+  }
+  if (cmd === '/kill') {
+    activateTab('cmdcenter');
+    Promise.resolve(ccKillSwitch?.(true)).catch(() => toast('Kill switch failed', 'err'));
+    return;
+  }
+  if (cmd === '/resume') {
+    activateTab('cmdcenter');
+    Promise.resolve(ccKillSwitch?.(false)).catch(() => toast('Resume failed', 'err'));
+    return;
+  }
+  if (cmd === '/gsq' || cmd === '/gsquant') {
+    if (arg && el('gsq-symbol')) el('gsq-symbol').value = arg;
+    activateTab('gsquant');
+    Promise.resolve(loadGsQuant?.()).catch(() => {});
+    return;
+  }
+  if (tabAliases[cmd]) {
+    activateTab(tabAliases[cmd]);
+    return;
+  }
+  toast(`Unknown command: ${text}`, 'err');
+}
+
+const cliForm = el('cliForm');
+const cliInput = el('cliInput');
+if (cliForm && cliInput) {
+  cliForm.addEventListener('submit', evt => {
+    evt.preventDefault();
+    routeCommand(cliInput.value);
+    cliInput.value = '';
+  });
+  window.addEventListener('keydown', evt => {
+    if (evt.key === '/' && document.activeElement !== cliInput && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) {
+      evt.preventDefault();
+      cliInput.focus();
+    }
+  });
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    BOOT

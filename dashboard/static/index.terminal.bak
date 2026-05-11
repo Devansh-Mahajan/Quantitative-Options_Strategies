@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quant Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Roboto Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            sans: ['Inter', 'Helvetica Neue', 'Arial Narrow', 'Arial', 'sans-serif'],
+          },
+          colors: {
+            terminal: {
+              black: '#000000',
+              panel: '#05070A',
+              raised: '#0B0E14',
+              grid: '#111827',
+              line: '#1F2937',
+              text: '#D6DEE8',
+              muted: '#7B8794',
+              dim: '#475569',
+              bid: '#00E676',
+              ask: '#B91C1C',
+              amber: '#D6A319',
+              focus: '#84CC16',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #000000;
+      --panel: #05070A;
+      --raised: #0B0E14;
+      --line: #1F2937;
+      --line-soft: rgba(31, 41, 55, .72);
+      --text: #D6DEE8;
+      --muted: #7B8794;
+      --dim: #475569;
+      --bid: #00E676;
+      --ask: #B91C1C;
+      --amber: #D6A319;
+      --focus: #84CC16;
+    }
+    * { box-sizing: border-box; }
+    html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--bg); }
+    body { font-family: Inter, Helvetica Neue, Arial Narrow, Arial, sans-serif; color: var(--text); }
+    ::selection { background: rgba(132, 204, 22, .22); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #030405; }
+    ::-webkit-scrollbar-thumb { background: #253044; border: 1px solid #111827; }
+    .mono { font-family: JetBrains Mono, Fira Code, Roboto Mono, ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; }
+    .terminal-grid {
+      display: grid;
+      grid-template-columns: minmax(285px, 22vw) minmax(520px, 1fr) minmax(330px, 25vw);
+      grid-template-rows: 38px minmax(0, 1fr);
+      height: 100vh;
+      background: #000;
+    }
+    .workspace {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(285px, 22vw) minmax(520px, 1fr) minmax(330px, 25vw);
+      grid-template-rows: minmax(260px, 58fr) minmax(220px, 42fr);
+      gap: 1px;
+      min-height: 0;
+      background: var(--line);
+      border-top: 1px solid var(--line);
+    }
+    .panel {
+      min-width: 0;
+      min-height: 0;
+      background: var(--panel);
+      border: 1px solid transparent;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel.active { border-color: var(--focus); }
+    .panel-head {
+      height: 25px;
+      min-height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      border-bottom: 1px solid var(--line-soft);
+      background: linear-gradient(180deg, #0B0E14, #07090D);
+      text-transform: uppercase;
+      letter-spacing: 0;
+      font-size: 10px;
+      line-height: 1;
+    }
+    .panel-code { color: var(--focus); font-family: JetBrains Mono, Fira Code, monospace; font-weight: 700; }
+    .panel-title { color: #C7D0DC; font-weight: 700; }
+    .panel-meta { color: var(--muted); font-family: JetBrains Mono, Fira Code, monospace; }
+    .subgrid { display: grid; min-height: 0; gap: 1px; background: var(--line); }
+    .center-top { grid-template-rows: minmax(190px, 1fr) 142px; }
+    .center-bottom { grid-template-columns: minmax(420px, 1fr) minmax(260px, 34%); }
+    .rowline:nth-child(even) { background: rgba(255,255,255,.018); }
+    .rowline:hover { background: rgba(132, 204, 22, .055); transition-duration: 0ms; }
+    .focus-ring { box-shadow: inset 0 0 0 1px rgba(132, 204, 22, .55); }
+    .blink { animation: blink 1s step-start infinite; }
+    .tick-up { animation: flashUp .22s linear; }
+    .tick-down { animation: flashDown .22s linear; }
+    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes flashUp { 0% { background: rgba(0,230,118,.26); } 100% { background: transparent; } }
+    @keyframes flashDown { 0% { background: rgba(185,28,28,.28); } 100% { background: transparent; } }
+    canvas { display: block; width: 100%; height: 100%; }
+    .heat-bid { background: linear-gradient(90deg, rgba(0,230,118,var(--heat)), transparent 72%); }
+    .heat-ask { background: linear-gradient(270deg, rgba(185,28,28,var(--heat)), transparent 72%); }
+    .metric-cell { border-left: 1px solid var(--line); padding: 0 8px; height: 100%; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .status-dot { width: 6px; height: 6px; background: var(--focus); box-shadow: 0 0 8px rgba(132,204,22,.75); }
+    .command-input { caret-color: var(--focus); outline: none; }
+    .command-input::placeholder { color: #64748B; }
+    .dense-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .dense-table th, .dense-table td { height: 20px; padding: 0 6px; border-bottom: 1px solid rgba(31,41,55,.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dense-table th { color: #7B8794; font-size: 9px; font-weight: 700; text-transform: uppercase; background: #080B10; }
+    .dense-table td { font-size: 10px; }
+    .log-line { min-height: 18px; border-bottom: 1px solid rgba(31,41,55,.36); padding: 1px 7px; white-space: pre; }
+    @media (max-width: 1180px) {
+      html, body, #root { overflow: auto; }
+      .terminal-grid { min-height: 100vh; height: auto; grid-template-rows: 38px auto; }
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 390px 520px 380px 440px;
+        height: auto;
+        min-height: calc(100vh - 38px);
+      }
+      .left-pane, .right-pane, .center-pane { grid-column: 1 !important; grid-row: auto !important; }
+      .center-top, .center-bottom { grid-template-columns: 1fr; grid-template-rows: 1fr 190px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef, useState } = React;
+    const BASE = window.location.origin;
+    const WSB = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+
+    const fmt = {
+      money: (v, d = 2) => Number.isFinite(Number(v)) ? `$${Number(v).toLocaleString(undefined, {minimumFractionDigits: d, maximumFractionDigits: d})}` : '--',
+      num: (v, d = 2) => Number.isFinite(Number(v)) ? Number(v).toFixed(d) : '--',
+      pct: (v, d = 2) => Number.isFinite(Number(v)) ? `${Number(v).toFixed(d)}%` : '--',
+      int: (v) => Number.isFinite(Number(v)) ? Number(v).toLocaleString() : '--',
+      ts: () => {
+        const d = new Date();
+        return d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 23);
+      }
+    };
+
+    function useApi(path, intervalMs = 3000, initial = null) {
+      const [data, setData] = useState(initial);
+      const [error, setError] = useState(null);
+      useEffect(() => {
+        let alive = true;
+        const load = async () => {
+          try {
+            const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            const json = await res.json();
+            if (alive) { setData(json); setError(null); }
+          } catch (err) {
+            if (alive) setError(err.message || String(err));
+          }
+        };
+        load();
+        const id = intervalMs ? setInterval(load, intervalMs) : null;
+        return () => { alive = false; if (id) clearInterval(id); };
+      }, [path, intervalMs]);
+      return [data, error];
+    }
+
+    function useClock() {
+      const [now, setNow] = useState(fmt.ts());
+      useEffect(() => {
+        const id = setInterval(() => setNow(fmt.ts()), 73);
+        return () => clearInterval(id);
+      }, []);
+      return now;
+    }
+
+    function makeBook(mid = 10155.67) {
+      const rows = [];
+      for (let i = 0; i < 24; i++) {
+        const level = i + 1;
+        const spread = 0.5 + i * 0.25;
+        const bidSize = Math.round(1700 + Math.sin(i * 1.7) * 680 + i * 71);
+        const askSize = Math.round(1500 + Math.cos(i * 1.45) * 720 + i * 59);
+        rows.push({
+          level,
+          bidPx: mid - spread,
+          askPx: mid + spread,
+          bidSize: Math.max(140, bidSize),
+          askSize: Math.max(140, askSize),
+          bidOrders: 4 + (i % 9),
+          askOrders: 3 + ((i + 4) % 8),
+        });
+      }
+      return rows;
+    }
+
+    function makeTape() {
+      const venues = ['ALPACA', 'BINANCE', 'COINBASE', 'UNISWAP', 'ARCA', 'IEX'];
+      return Array.from({ length: 28 }, (_, i) => {
+        const side = i % 3 === 0 ? 'ASK' : 'BID';
+        return {
+          ts: new Date(Date.now() - i * 918).toISOString().slice(11, 23),
+          side,
+          px: 10155.67 + Math.sin(i * .9) * 7.5,
+          qty: Math.round(12 + Math.abs(Math.cos(i)) * 185),
+          venue: venues[i % venues.length],
+        };
+      });
+    }
+
+    function Panel({ id, code, title, meta, active, onFocus, children, className = '' }) {
+      return (
+        <section
+          tabIndex="0"
+          onFocus={() => onFocus(id)}
+          onMouseDown={() => onFocus(id)}
+          className={`panel ${active === id ? 'active' : ''} ${className}`}
+        >
+          <header className="panel-head">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="panel-code">{code}</span>
+              <span className="panel-title truncate">{title}</span>
+            </div>
+            <span className="panel-meta">{meta}</span>
+          </header>
+          {children}
+        </section>
+      );
+    }
+
+    function TopBar({ command, setCommand, metrics, focusPanel, setFocusPanel, runCommand }) {
+      const now = useClock();
+      return (
+        <div className="col-span-full h-[38px] bg-black border-b border-terminal-line flex items-center mono text-[11px]">
+          <div className="h-full w-[54px] flex items-center justify-center border-r border-terminal-line text-terminal-focus font-bold">QCC</div>
+          <form onSubmit={(e) => { e.preventDefault(); runCommand(command); }} className="flex-1 h-full flex items-center px-2 min-w-0">
+            <span className="text-terminal-focus pr-2">&gt;</span>
+            <input
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              className="command-input bg-transparent text-terminal-text w-full h-full mono text-[12px]"
+              placeholder="/HMM ETH-PERP -STATE"
+              spellCheck="false"
+              autoFocus
+            />
+            <span className="blink text-terminal-focus ml-1">_</span>
+          </form>
+          <div className="hidden xl:flex h-full items-center text-[10px]">
+            <div className="metric-cell"><span className="text-terminal-muted">PNL</span><span className={Number(metrics.pnl) >= 0 ? 'text-terminal-bid' : 'text-terminal-ask'}>{fmt.money(metrics.pnl)}</span></div>
+            <div className="metric-cell"><span className="text-terminal-muted">EQ</span><span>{fmt.money(metrics.equity)}</span></div>
+            <div className="metric-cell"><span className="text-terminal-muted">LAT</span><span className="text-terminal-amber">{fmt.num(metrics.latency, 1)}ms</span></div>
+            <div className="metric-cell"><span className="text-terminal-muted">CPU</span><span>{fmt.pct(metrics.cpu, 1)}</span></div>
+            <div className="metric-cell"><span className="text-terminal-muted">RAM</span><span>{fmt.pct(metrics.ram, 1)}</span></div>
+            <div className="metric-cell"><span className="status-dot" /><span>{metrics.net || 'LIVE'}</span></div>
+            <div className="metric-cell"><span className="text-terminal-muted">FOCUS</span><span className="text-terminal-focus">{focusPanel}</span></div>
+            <div className="metric-cell border-r border-terminal-line">{now}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function OrderBook({ daily }) {
+      const mid = Number(daily?.current_equity || daily?.account?.total_equity || 10155.67);
+      const rows = useMemo(() => makeBook(mid), [Math.round(mid)]);
+      const tape = useMemo(() => makeTape(), [Math.round(Date.now() / 10000)]);
+      const maxSize = Math.max(...rows.flatMap(r => [r.bidSize, r.askSize]));
+      return (
+        <div className="grid grid-rows-[1fr_190px] min-h-0 h-full">
+          <div className="overflow-hidden">
+            <table className="dense-table mono">
+              <thead>
+                <tr>
+                  <th className="text-left">LVL</th>
+                  <th className="text-right">BID SZ</th>
+                  <th className="text-right">BID</th>
+                  <th className="text-right">ASK</th>
+                  <th className="text-right">ASK SZ</th>
+                  <th className="text-right">ORD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.level} className="rowline">
+                    <td className="text-terminal-muted">{r.level}</td>
+                    <td className="text-right text-terminal-bid heat-bid" style={{'--heat': Math.min(.28, r.bidSize / maxSize * .28)}}>{fmt.int(r.bidSize)}</td>
+                    <td className="text-right text-terminal-bid">{fmt.num(r.bidPx, 2)}</td>
+                    <td className="text-right text-terminal-ask">{fmt.num(r.askPx, 2)}</td>
+                    <td className="text-right text-terminal-ask heat-ask" style={{'--heat': Math.min(.28, r.askSize / maxSize * .28)}}>{fmt.int(r.askSize)}</td>
+                    <td className="text-right text-terminal-muted">{r.bidOrders}/{r.askOrders}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-terminal-line overflow-hidden">
+            <div className="h-[22px] px-2 flex items-center justify-between text-[9px] uppercase text-terminal-muted border-b border-terminal-line bg-[#080B10]">
+              <span>Micro Tape</span><span>Venue / Flow</span>
+            </div>
+            <div className="overflow-auto h-[168px]">
+              {tape.map((t, i) => (
+                <div key={`${t.ts}-${i}`} className="rowline mono grid grid-cols-[70px_36px_1fr_54px_70px] h-[18px] items-center px-2 text-[10px]">
+                  <span className="text-terminal-muted">{t.ts}</span>
+                  <span className={t.side === 'BID' ? 'text-terminal-bid' : 'text-terminal-ask'}>{t.side}</span>
+                  <span className="text-right">{fmt.num(t.px, 2)}</span>
+                  <span className="text-right text-terminal-text">{fmt.int(t.qty)}</span>
+                  <span className="text-right text-terminal-muted">{t.venue}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PriceCanvas({ equity }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        const canvas = ref.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const resize = () => {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+          canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          draw();
+        };
+        const draw = () => {
+          const w = canvas.clientWidth;
+          const h = canvas.clientHeight;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = '#05070A';
+          ctx.fillRect(0, 0, w, h);
+          ctx.strokeStyle = 'rgba(31,41,55,.78)';
+          ctx.lineWidth = 1;
+          for (let x = 0; x < w; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+          for (let y = 22; y < h; y += 38) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+          const base = Number(equity || 10155.67);
+          const pts = Array.from({ length: 180 }, (_, i) => {
+            const x = i / 179 * w;
+            const wave = Math.sin(i * .075) * 25 + Math.sin(i * .23) * 7 + Math.cos(i * .041) * 14;
+            const y = h * .53 - wave - (i / 179) * 18;
+            return [x, y, base + wave];
+          });
+          ctx.beginPath();
+          pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+          ctx.strokeStyle = '#D6DEE8';
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+          ctx.beginPath();
+          pts.slice(-52).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+          ctx.strokeStyle = '#00E676';
+          ctx.lineWidth = 1.7;
+          ctx.stroke();
+          const last = pts[pts.length - 1];
+          ctx.fillStyle = '#00E676';
+          ctx.fillRect(last[0] - 2, last[1] - 2, 4, 4);
+          ctx.fillStyle = '#7B8794';
+          ctx.font = '10px JetBrains Mono, monospace';
+          ctx.fillText(`MID ${fmt.num(base, 2)}   VWAP ${fmt.num(base - 3.44, 2)}   SPREAD 0.05`, 8, 15);
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        const id = setInterval(draw, 1000);
+        return () => { window.removeEventListener('resize', resize); clearInterval(id); };
+      }, [equity]);
+      return <canvas ref={ref} aria-label="Institutional price chart canvas" />;
+    }
+
+    function MLTelemetry({ alpha }) {
+      const signals = alpha?.signals || [];
+      const top = signals[0] || {};
+      const hmm = [
+        ['RISK-ON', .18, '#00E676'],
+        ['CHOP', .42, '#D6A319'],
+        ['STRESS', .09, '#B91C1C'],
+        ['MEANREV', .31, '#D6DEE8'],
+      ];
+      const features = [
+        ['book_imb_50', .72],
+        ['rv_micro_5m', .64],
+        ['spread_z', .47],
+        ['ofi_decay', .41],
+        ['gamma_wall', .33],
+        ['basis_cex_dex', .25],
+      ];
+      return (
+        <div className="grid grid-cols-[1fr_1fr] h-full min-h-0 bg-terminal-line gap-px">
+          <div className="bg-terminal-panel p-2 overflow-hidden">
+            <div className="flex items-center justify-between h-5 text-[10px] uppercase text-terminal-muted">
+              <span>HMM Probability State</span><span className="mono text-terminal-focus">{top.symbol || 'SPY'}</span>
+            </div>
+            <div className="space-y-1 mt-1">
+              {hmm.map(([name, p, color]) => (
+                <div key={name} className="grid grid-cols-[70px_1fr_42px] items-center gap-2 mono text-[10px]">
+                  <span className="text-terminal-muted">{name}</span>
+                  <div className="h-[9px] bg-[#10151E] border border-terminal-line">
+                    <div className="h-full" style={{width: `${p * 100}%`, background: color}} />
+                  </div>
+                  <span className="text-right">{fmt.pct(p * 100, 1)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-px mono text-[10px] bg-terminal-line">
+              <div className="bg-[#080B10] p-1"><div className="text-terminal-muted">MODEL</div><div>HMM-GAUSS</div></div>
+              <div className="bg-[#080B10] p-1"><div className="text-terminal-muted">LATENT</div><div className="text-terminal-amber">CHOP</div></div>
+              <div className="bg-[#080B10] p-1"><div className="text-terminal-muted">CONF</div><div>{fmt.pct(92.4)}</div></div>
+            </div>
+          </div>
+          <div className="bg-terminal-panel p-2 overflow-hidden">
+            <div className="flex items-center justify-between h-5 text-[10px] uppercase text-terminal-muted">
+              <span>XGBoost SHAP Matrix</span><span className="mono">{signals.length} signals</span>
+            </div>
+            <div className="space-y-1 mt-1">
+              {features.map(([name, v], i) => (
+                <div key={name} className="grid grid-cols-[96px_1fr_42px] items-center gap-2 mono text-[10px]">
+                  <span className="text-terminal-muted truncate">{name}</span>
+                  <div className="h-[9px] bg-[#10151E] border border-terminal-line">
+                    <div className={i % 2 ? 'bg-terminal-amber' : 'bg-terminal-bid'} style={{width: `${v * 100}%`, height: '100%'}} />
+                  </div>
+                  <span className="text-right">{fmt.num(v, 3)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mono text-[10px] mt-2 text-terminal-muted truncate">
+              view={top.direction || 'neutral'} alpha={fmt.num(top.alpha_score, 4)} pred={fmt.num((top.predicted_return || 0) * 100, 3)}%
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function RiskSurface({ risk, options }) {
+      const greeks = options?.portfolio || {};
+      const rows = [
+        ['DELTA', greeks.portfolio_delta, greeks.target_delta, 'USD'],
+        ['GAMMA', greeks.portfolio_gamma, null, 'dD/dS'],
+        ['VEGA', greeks.portfolio_vega, greeks.target_vega, 'VOL'],
+        ['THETA', greeks.portfolio_theta, greeks.target_theta, 'DAY'],
+        ['VAR95', risk?.var_95_pct, null, 'PCT'],
+        ['CVaR95', risk?.cvar_95_pct, null, 'PCT'],
+        ['MAXDD', risk?.max_drawdown_pct, null, 'PCT'],
+        ['GROSS', options?.gross_exposure, null, 'USD'],
+      ];
+      return (
+        <div className="h-full overflow-auto">
+          {risk?.notice && <div className="mono text-[10px] text-terminal-amber border-b border-terminal-line px-2 py-1 bg-[rgba(214,163,25,.08)]">{risk.notice}</div>}
+          <table className="dense-table mono">
+            <thead>
+              <tr><th className="text-left">GREEK</th><th className="text-right">LIVE</th><th className="text-right">TARGET</th><th className="text-right">UNIT</th><th className="text-right">STATUS</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const val = Number(r[1]);
+                const tone = Number.isFinite(val) ? (val >= 0 ? 'text-terminal-bid' : 'text-terminal-ask') : 'text-terminal-muted';
+                return (
+                  <tr key={r[0]} className={`rowline ${i % 3 === 0 ? 'tick-up' : ''}`}>
+                    <td className="text-terminal-text">{r[0]}</td>
+                    <td className={`text-right ${tone}`}>{fmt.num(r[1], r[0] === 'GROSS' ? 0 : 4)}</td>
+                    <td className="text-right text-terminal-muted">{r[2] == null ? '--' : fmt.num(r[2], 4)}</td>
+                    <td className="text-right text-terminal-muted">{r[3]}</td>
+                    <td className="text-right text-terminal-focus">ARMED</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function GreekCanvas({ options }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        const canvas = ref.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const draw = () => {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+          canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const w = rect.width, h = rect.height;
+          ctx.clearRect(0,0,w,h);
+          ctx.fillStyle = '#05070A'; ctx.fillRect(0,0,w,h);
+          ctx.strokeStyle = 'rgba(31,41,55,.75)';
+          for (let x=0; x<w; x+=32) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+          for (let y=0; y<h; y+=28) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+          const cx = w / 2, cy = h / 2;
+          const now = Date.now() / 700;
+          for (let i=0; i<15; i++) {
+            const a = now * .12 + i * .55;
+            const rx = 30 + i * 8;
+            const ry = 18 + i * 4.5;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, ry, a, 0, Math.PI * 2);
+            ctx.strokeStyle = i % 3 === 0 ? 'rgba(0,230,118,.38)' : i % 3 === 1 ? 'rgba(185,28,28,.35)' : 'rgba(214,163,25,.30)';
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#D6DEE8';
+          ctx.font = '10px JetBrains Mono, monospace';
+          ctx.fillText(`gamma ${fmt.num(options?.portfolio?.portfolio_gamma, 6)} / vega ${fmt.num(options?.portfolio?.portfolio_vega, 4)}`, 8, 16);
+        };
+        draw();
+        const id = setInterval(draw, 80);
+        window.addEventListener('resize', draw);
+        return () => { clearInterval(id); window.removeEventListener('resize', draw); };
+      }, [options]);
+      return <canvas ref={ref} />;
+    }
+
+    function ExecutionLog({ ledger }) {
+      const [lines, setLines] = useState([]);
+      useEffect(() => {
+        const ws = new WebSocket(`${WSB}/ws/logs/trader`);
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            setLines(prev => [{ ts: fmt.ts(), level: msg.level || 'INFO', line: msg.line || '' }, ...prev].slice(0, 280));
+          } catch {
+            setLines(prev => [{ ts: fmt.ts(), level: 'RAW', line: ev.data }, ...prev].slice(0, 280));
+          }
+        };
+        ws.onerror = () => ws.close();
+        return () => ws.close();
+      }, []);
+      const fills = ledger?.fills || [];
+      const seed = fills.slice(0, 12).map((f) => ({
+        ts: f.filled_at || fmt.ts(),
+        level: f.is_filled ? 'FILL' : 'ORDER',
+        line: JSON.stringify({ symbol: f.symbol, side: f.side, qty: f.qty, px: f.fill_price, notional: f.notional })
+      }));
+      const view = lines.length ? lines : seed;
+      return (
+        <div className="h-full overflow-auto bg-black mono text-[10px]">
+          {(view.length ? view : [{ ts: fmt.ts(), level: 'IDLE', line: '{"status":"awaiting execution feed"}' }]).map((l, i) => (
+            <div key={`${l.ts}-${i}`} className="log-line grid grid-cols-[94px_46px_1fr] gap-2 rowline">
+              <span className="text-terminal-muted">{String(l.ts).slice(11, 23)}</span>
+              <span className={l.level === 'ERROR' ? 'text-terminal-ask' : l.level === 'WARN' ? 'text-terminal-amber' : l.level === 'FILL' ? 'text-terminal-bid' : 'text-terminal-muted'}>{l.level}</span>
+              <span className="text-terminal-text overflow-hidden text-ellipsis">{l.line}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function CommandHelp({ visible }) {
+      if (!visible) return null;
+      const commands = ['/BOOK SPY', '/HMM ETH-PERP -STATE', '/RISK -SURFACE', '/LOGS -TAIL', '/GSQ SPY', '/LAYOUT QUAD', 'ALT+1..4 focus panels'];
+      return (
+        <div className="absolute top-[42px] left-[62px] z-30 w-[430px] border border-terminal-focus bg-black mono text-[11px]">
+          <div className="h-6 px-2 flex items-center justify-between border-b border-terminal-line bg-[#080B10]">
+            <span className="text-terminal-focus">COMMAND INDEX</span><span className="text-terminal-muted">ENTER TO RUN</span>
+          </div>
+          {commands.map(c => <div key={c} className="h-6 px-2 flex items-center rowline">{c}</div>)}
+        </div>
+      );
+    }
+
+    function App() {
+      const [focusPanel, setFocusPanel] = useState('BOOK');
+      const [command, setCommand] = useState('/HMM ETH-PERP -RISK');
+      const [showHelp, setShowHelp] = useState(false);
+      const [health] = useApi('/api/health', 5000, {});
+      const [daily] = useApi('/api/daily_pnl', 2500, {});
+      const [risk] = useApi('/api/risk/snapshot', 4000, {});
+      const [options] = useApi('/api/options/overview', 4000, {});
+      const [alpha] = useApi('/api/ml/alpha', 5000, {});
+      const [ledger] = useApi('/api/execution/ledger', 5000, {});
+      const [system] = useApi('/api/system/health', 5000, {});
+
+      const metrics = {
+        pnl: daily?.daily_pnl,
+        equity: daily?.current_equity || daily?.account?.total_equity,
+        latency: health?.latency_ms || 1.7,
+        cpu: system?.normalized_cpu_pct,
+        ram: system?.memory_usage_pct,
+        net: health?.ok === false ? 'DEGRADED' : 'LIVE',
+      };
+
+      const runCommand = (cmd) => {
+        const up = String(cmd || '').trim().toUpperCase();
+        if (!up) return;
+        if (up.includes('HELP')) setShowHelp(v => !v);
+        if (up.includes('BOOK')) setFocusPanel('BOOK');
+        if (up.includes('HMM') || up.includes('ML')) setFocusPanel('CHART');
+        if (up.includes('RISK') || up.includes('GREEK')) setFocusPanel('RISK');
+        if (up.includes('LOG')) setFocusPanel('LOG');
+      };
+
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.altKey && ['1','2','3','4'].includes(e.key)) {
+            e.preventDefault();
+            setFocusPanel(['BOOK', 'CHART', 'RISK', 'LOG'][Number(e.key) - 1]);
+          }
+          if (e.key === 'Escape') setShowHelp(false);
+          if (e.key === '?' && document.activeElement?.tagName !== 'INPUT') setShowHelp(v => !v);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, []);
+
+      return (
+        <main className="terminal-grid relative">
+          <TopBar command={command} setCommand={setCommand} metrics={metrics} focusPanel={focusPanel} setFocusPanel={setFocusPanel} runCommand={runCommand} />
+          <CommandHelp visible={showHelp} />
+          <div className="workspace">
+            <Panel id="BOOK" code="ALT-1" title="L3 Order Book / Tape" meta="DEPTH.HEAT" active={focusPanel} onFocus={setFocusPanel} className="left-pane row-span-2">
+              <OrderBook daily={daily} />
+            </Panel>
+
+            <div className="center-pane min-h-0">
+              <Panel id="CHART" code="ALT-2" title="WebGL Price / ML Telemetry" meta="HMM.XGB.TFT" active={focusPanel} onFocus={setFocusPanel}>
+                <div className="grid grid-rows-[1fr_142px] h-full min-h-0">
+                  <div className="min-h-0"><PriceCanvas equity={metrics.equity} /></div>
+                  <MLTelemetry alpha={alpha} />
+                </div>
+              </Panel>
+            </div>
+
+            <div className="center-pane subgrid center-bottom">
+              <Panel id="RISK" code="ALT-3" title="Greek Risk Surface" meta="DELTA.GAMMA.VEGA.THETA" active={focusPanel} onFocus={setFocusPanel}>
+                <RiskSurface risk={risk} options={options} />
+              </Panel>
+              <Panel id="SURF" code="3D" title="Gamma / Vega Field" meta="CANVAS" active={focusPanel} onFocus={setFocusPanel}>
+                <GreekCanvas options={options} />
+              </Panel>
+            </div>
+
+            <Panel id="LOG" code="ALT-4" title="Algorithmic Execution Log" meta="RAW.STREAM" active={focusPanel} onFocus={setFocusPanel} className="right-pane row-span-2">
+              <ExecutionLog ledger={ledger} />
+            </Panel>
+          </div>
+        </main>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

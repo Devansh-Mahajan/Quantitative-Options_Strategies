@@ -109,3 +109,114 @@
 ══════════════════════════════════════════════════════════[0m
 [32m2026-05-10 00:05:07 | INFO    [0m | [36mscripts.system_check[0m |   ALL CHECKS PASSED — system is ready[0m
 [32m2026-05-10 00:05:07 | INFO    [0m | [36mscripts.system_check[0m | ══════════════════════════════════════════════════════════[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m | ══════════════════════════════════════════════════════════[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m |   SYSTEM PRE-FLIGHT CHECK[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m | ══════════════════════════════════════════════════════════[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [1] Python packages
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] numpy[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] pandas[0m
+[32m2026-05-11 00:05:01 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] scipy[0m
+[32m2026-05-11 00:05:02 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] sklearn[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] torch[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] hmmlearn[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] httpx[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] tqdm[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] optuna[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] pyarrow[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] alpaca[0m
+[32m2026-05-11 00:05:03 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [2] GPU / CUDA
+──────────────────────────────────────────────────────────[0m
+[33m2026-05-11 00:05:04 | WARNING [0m | [36mscripts.system_check[0m |   [WARN] CUDA not available — CPU mode (training will be slower)[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [3] Disk space
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] Disk: 55.5 GB free[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [4] Environment (.env)
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] .env loaded — broker=alpaca  key=your...here[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [5] Internal modules (import check)
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.engine[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.fill_model[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.metrics[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.report[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.walk_forward[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.monte_carlo_bt[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.optimizer[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] backtester.data_loader[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] risk.monte_carlo[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] risk.portfolio_risk[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] execution.position_manager[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] exchange.streams[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] ml.features[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] bot.config[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] bot.state[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] bot.notifications[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [6] Strategy classes (import + instantiate)
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.momentum.MomentumStrategy                  name='momentum'[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.mean_reversion.MeanReversionStrategy       name='mean_reversion'[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.funding_arb.FundingArbStrategy             name='funding_arb'[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.basis_trade.BasisTradeStrategy             name='basis_trade'[0m
+[32m2026-05-11 00:05:04 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.pairs_arb.PairsArbStrategy                 name='pairs_arb'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.options_vol.OptionsVolatilityStrategy      name='options_vol'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.order_flow.OrderFlowStrategy               name='order_flow'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.breakout.BreakoutStrategy                  name='breakout'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.statistical_arb.StatisticalArbStrategy     name='statistical_arb'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.cross_sectional_momentum.CrossSectionalMomentumStrategy  name='cross_sectional_momentum'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.liquidation_cascade.LiquidationCascadeStrategy  name='liquidation_cascade'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.carry_portfolio.CarryPortfolioStrategy     name='carry_portfolio'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.tsmom.TSMomentumStrategy                   name='tsmom'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.quant_factors.QuantFactorsStrategy         name='quant_factors'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.contrarian_oi.ContrarianOIStrategy         name='contrarian_oi'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.rma_strategy.RMAStrategy                   name='rma_strategy'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.vpin_flow.VPINFlowStrategy                 name='vpin_flow'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.knn_predictor.KNNPredictorStrategy         name='knn_predictor'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.pivot_sr.PivotSRStrategy                   name='pivot_sr'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.hp_trend.HPTrendStrategy                   name='hp_trend'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] strategies.momentum_carry_combo.MomentumCarryComboStrategy  name='momentum_carry_combo'[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [7] Backtester — metrics smoke test
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] metrics smoke test  Sharpe=67.671  MaxDD=-0.13%[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [8] Backtester — fill model smoke test
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] fill_model smoke test  fills=0[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [9] Backtester — 200-bar smoke backtest
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:05 | INFO    [0m | [36mbacktester.engine[0m | Backtest starting: 1 symbols × 300 bars (1704067200 to 1705143600)[0m
+Backtesting:   0%|          | 0/240 [00:00<?, ?bar/s]Backtesting:   5%|▌         | 13/240 [00:00<00:01, 127.77bar/s]Backtesting:  12%|█▎        | 30/240 [00:00<00:01, 150.79bar/s]Backtesting:  19%|█▉        | 46/240 [00:00<00:01, 149.35bar/s]Backtesting:  26%|██▌       | 62/240 [00:00<00:01, 151.64bar/s]Backtesting:  33%|███▎      | 79/240 [00:00<00:01, 155.62bar/s]Backtesting:  40%|███▉      | 95/240 [00:00<00:00, 155.66bar/s]Backtesting:  46%|████▋     | 111/240 [00:00<00:00, 156.76bar/s]Backtesting:  53%|█████▎    | 127/240 [00:00<00:00, 157.50bar/s]Backtesting:  60%|█████▉    | 143/240 [00:00<00:00, 157.01bar/s]Backtesting:  66%|██████▋   | 159/240 [00:01<00:00, 156.97bar/s]Backtesting:  73%|███████▎  | 175/240 [00:01<00:00, 156.46bar/s]Backtesting:  80%|███████▉  | 191/240 [00:01<00:00, 153.59bar/s]Backtesting:  86%|████████▋ | 207/240 [00:01<00:00, 152.62bar/s]Backtesting:  93%|█████████▎| 223/240 [00:01<00:00, 146.41bar/s]Backtesting:  99%|█████████▉| 238/240 [00:01<00:00, 142.78bar/s]Backtesting: 100%|██████████| 240/240 [00:01<00:00, 150.72bar/s]
+/home/dash/options-spread/backtester/metrics.py:100: RuntimeWarning: overflow encountered in scalar power
+  ann_ret = (1 + total_ret) ** (1 / max(n_years, 1e-6)) - 1
+/home/dash/options-spread/backtester/metrics.py:100: RuntimeWarning: overflow encountered in scalar power
+  ann_ret = (1 + total_ret) ** (1 / max(n_years, 1e-6)) - 1
+[32m2026-05-11 00:05:06 | INFO    [0m | [36mbacktester.engine[0m | Backtest complete — 0.53% total return, Sharpe=129723.914, MaxDD=-0.49%[0m
+[32m2026-05-11 00:05:06 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] smoke backtest (200 bars)  return=0.53%  trades=1[0m
+[32m2026-05-11 00:05:06 | INFO    [0m | [36mscripts.system_check[0m | 
+──────────────────────────────────────────────────────────
+  [10] ALPACA API connectivity
+──────────────────────────────────────────────────────────[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mexchange.alpaca_client[0m | Alpaca client connected (paper=True) — account=c006ab26-c163-4da8-8b20-67550986783a equity=$10073.96[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mexchange.alpaca_client[0m | Alpaca client closed[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mscripts.system_check[0m |   [PASS] ALPACA API  BTC=80943.70 USD  server_time=1778450707374[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mscripts.system_check[0m | 
+══════════════════════════════════════════════════════════[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mscripts.system_check[0m |   ALL CHECKS PASSED — system is ready[0m
+[32m2026-05-11 00:05:07 | INFO    [0m | [36mscripts.system_check[0m | ══════════════════════════════════════════════════════════[0m

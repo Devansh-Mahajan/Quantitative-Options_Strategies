@@ -60,7 +60,22 @@ def _extract_frame(raw, field: str, requested: list[str]) -> pd.DataFrame:
         else:
             field_frame = field_frame.to_frame()
 
-    return field_frame.dropna(how="all")
+    return _normalise_price_index(field_frame.dropna(how="all"))
+
+
+def _normalise_price_index(frame: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+    """Make Yahoo indexes safe to join across symbols/periods."""
+    if frame is None or getattr(frame, "empty", True):
+        return frame
+    out = frame.copy()
+    if isinstance(out.index, pd.DatetimeIndex):
+        idx = pd.to_datetime(out.index, utc=True, errors="coerce")
+        valid = ~pd.isna(idx)
+        out = out.loc[valid]
+        idx = idx[valid].tz_convert(None)
+        out.index = idx
+        out = out[~out.index.duplicated(keep="last")].sort_index()
+    return out
 
 
 def download_close_matrix(
@@ -90,6 +105,7 @@ def download_close_matrix(
 
     close = _extract_frame(raw, "Close", requested)
     if not close.empty:
+        close = _normalise_price_index(close)
         close = close.rename(columns=resolved_to_canonical)
 
     missing_symbols = [symbol for symbol in canonical_symbols if symbol not in close.columns]
@@ -105,7 +121,7 @@ def download_close_matrix(
             )
             single_close = _extract_frame(single, "Close", [resolved])
             if not single_close.empty:
-                series = single_close.iloc[:, 0]
+                series = _normalise_price_index(single_close.iloc[:, 0])
                 close[symbol] = series
         except Exception as exc:
             logger.debug("Single-symbol download failed for %s (%s): %s", symbol, resolved, exc)
@@ -113,6 +129,7 @@ def download_close_matrix(
     if close.empty:
         return pd.DataFrame()
 
+    close = _normalise_price_index(close)
     close = close.reindex(columns=[symbol for symbol in canonical_symbols if symbol in close.columns])
     return close.dropna(how="all").sort_index()
 

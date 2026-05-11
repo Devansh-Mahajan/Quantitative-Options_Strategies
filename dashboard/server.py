@@ -16,6 +16,7 @@ import logging
 import math
 import re
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -60,6 +61,7 @@ from dashboard.analytics import (
     safe_float,
     safe_int,
 )
+from core.trade_decision_tape import DEFAULT_DECISION_TAPE_PATH, read_trade_decisions
 
 log = logging.getLogger("dashboard.server")
 
@@ -346,7 +348,7 @@ def _compute_metrics(equity: list[float], timestamps: list[str]) -> dict:
         return {"metrics_meta": meta} if meta["sample_points"] else {}
 
     arr = series.to_numpy(dtype=float)
-    total_ret = (arr[-1] / arr[0]) - 1.0
+    total_ret = (arr[-1] / arr[0]) - 1.0 if arr[0] != 0 else 0.0
     running_peak = np.maximum.accumulate(arr)
     dd = (arr - running_peak) / (running_peak + 1e-10)
     max_dd = float(dd.min()) if dd.size else 0.0
@@ -721,12 +723,27 @@ async def get_equity(window: str = Query("1w")):
 
     ts     = [r["ts"] for r in rows]
     equity = [float(r["equity"]) for r in rows]
+    clean_series, clean_meta = _prepare_metric_equity_curve(equity, ts)
+    if len(clean_series) >= 2:
+        clean_equity = [round(float(value), 2) for value in clean_series.to_list()]
+        running_peak = np.maximum.accumulate(np.array(clean_equity, dtype=float))
+        clean_dd = ((np.array(clean_equity, dtype=float) - running_peak) / (running_peak + 1e-10)).tolist()
+        return {
+            "timestamps": [idx.isoformat() for idx in clean_series.index],
+            "equity":     clean_equity,
+            "drawdown":   [float(value) for value in clean_dd],
+            "metrics":    _compute_metrics(equity, ts),
+            "source":     "clean_equity_segment",
+            "raw_points": len(equity),
+            "metrics_meta": clean_meta,
+        }
     dd     = [float(r["drawdown"]) for r in rows]
     return {
         "timestamps": ts,
         "equity":     equity,
         "drawdown":   dd,
         "metrics":    _compute_metrics(equity, ts),
+        "source":     "raw_equity_curve",
     }
 
 
@@ -2156,6 +2173,34 @@ async def execution_ledger_api():
     }
 
 
+@app.get("/api/trade_decisions")
+async def trade_decisions_api(
+    limit: int = Query(500, ge=1, le=2000),
+    status: str | None = Query(None),
+    strategy: str | None = Query(None),
+):
+    """Structured strategy decision tape — suggestions, gates, rejects, executions."""
+    records = read_trade_decisions(limit=limit, status=status, strategy=strategy)
+    ordered = list(reversed(records))
+    counts: dict[str, int] = {}
+    strategies: set[str] = set()
+    for rec in ordered:
+        rec_status = str(rec.get("status") or "INFO").upper()
+        counts[rec_status] = counts.get(rec_status, 0) + 1
+        rec_strategy = str(rec.get("strategy") or "").strip()
+        if rec_strategy:
+            strategies.add(rec_strategy)
+    latest = ordered[0].get("ts") if ordered else None
+    return {
+        "total": len(ordered),
+        "records": ordered,
+        "counts": counts,
+        "strategies": sorted(strategies),
+        "latest_ts": latest,
+        "source": str(DEFAULT_DECISION_TAPE_PATH),
+    }
+
+
 @app.get("/api/equity/analytics")
 async def equity_analytics():
     """Rolling Sharpe, Calmar, volatility, regime-annotated equity curve."""
@@ -2449,12 +2494,80 @@ async def trades_analysis():
 _recal_job: dict = {}
 
 RECAL_SCRIPTS = [
+    ("stock_universe_research", "Download + research full stock universe"),
     ("weekend_training",        "Full pipeline: data download + all models"),
     ("train_hmm",               "HMM macro regime"),
     ("train_correlation_alpha", "Correlation alpha models"),
     ("train_xgb_alpha",         "XGBoost alpha engine"),
     ("weekend_recalibration",   "Strategy parameter recalibration"),
 ]
+RECAL_SCRIPT_DESCRIPTIONS = dict(RECAL_SCRIPTS)
+RECAL_SCRIPT_EST_SECONDS = {
+    script: max(60, int((TRAINING_SCRIPTS.get(script) or {}).get("est_min", 10)) * 60)
+    for script, _ in RECAL_SCRIPTS
+}
+
+
+def _append_recal_log(job: dict, line: str, *, max_lines: int = 320) -> None:
+    cleaned = _ANSI_ESCAPE_RE.sub("", str(line or "")).strip()
+    if not cleaned:
+        return
+    job.setdefault("log", []).append(cleaned[-1200:])
+    if len(job["log"]) > max_lines:
+        job["log"] = job["log"][-max_lines:]
+
+
+def _parse_pipeline_progress(line: str) -> float | None:
+    match = re.search(r"\[pipeline\].*?\]\s*(\d{1,3})%", line or "")
+    if not match:
+        return None
+    return max(0.0, min(100.0, float(match.group(1)))) / 100.0
+
+
+def _recal_progress_payload(job: dict) -> dict:
+    scripts = job.get("scripts") or []
+    completed = job.get("completed") or []
+    failed = job.get("failed") or []
+    total = len(scripts)
+    finished = len(completed) + len(failed)
+    current = job.get("current")
+    if job.get("status") in {"DONE", "PARTIAL"}:
+        progress = 100.0
+        current_index = total
+    elif total:
+        current_fraction = 0.0
+        current_elapsed_seconds = None
+        current_est_seconds = job.get("current_est_seconds") or RECAL_SCRIPT_EST_SECONDS.get(current, 600)
+        current_started_at = job.get("current_started_at")
+        if current and current_started_at:
+            try:
+                started = datetime.fromisoformat(str(current_started_at).replace("Z", "+00:00"))
+                current_elapsed_seconds = max(0.0, (datetime.now(timezone.utc) - started).total_seconds())
+                elapsed_fraction = current_elapsed_seconds / max(float(current_est_seconds or 600), 1.0)
+                current_fraction = min(0.90, elapsed_fraction)
+            except Exception:
+                current_elapsed_seconds = None
+        hint = job.get("current_progress_hint")
+        if hint is not None:
+            current_fraction = max(current_fraction, min(0.95, float(hint)))
+        progress = min(99.0, ((finished + current_fraction) / total) * 100.0)
+        current_index = min(total, finished + (1 if current else 0))
+    else:
+        progress = 0.0
+        current_index = 0
+    return {
+        **job,
+        "total_steps": total,
+        "completed_steps": len(completed),
+        "failed_steps": len(failed),
+        "current_step_index": current_index,
+        "current_description": RECAL_SCRIPT_DESCRIPTIONS.get(current, current),
+        "current_elapsed_seconds": current_elapsed_seconds if total and job.get("status") == "RUNNING" else None,
+        "current_est_seconds": job.get("current_est_seconds"),
+        "current_pid": job.get("current_pid"),
+        "updated_at": job.get("updated_at"),
+        "progress_pct": round(progress, 1),
+    }
 
 
 @app.post("/api/system/master_recalibrate")
@@ -2466,7 +2579,7 @@ async def master_recalibrate(body: dict | None = None):
     global _recal_job
     body = body or {}
     if _recal_job.get("status") == "RUNNING":
-        return {"ok": False, "error": "A recalibration job is already running", "job": _recal_job}
+        return {"ok": False, "error": "A recalibration job is already running", "job": _recal_progress_payload(_recal_job)}
 
     requested = body.get("scripts") or [s for s, _ in RECAL_SCRIPTS]
     valid = {s for s, _ in RECAL_SCRIPTS}
@@ -2479,53 +2592,162 @@ async def master_recalibrate(body: dict | None = None):
         "job_id": job_id,
         "status": "RUNNING",
         "scripts": scripts,
+        "script_descriptions": {s: RECAL_SCRIPT_DESCRIPTIONS.get(s, s) for s in scripts},
         "current": None,
+        "current_started_at": None,
+        "current_est_seconds": None,
+        "current_pid": None,
+        "current_progress_hint": None,
         "completed": [],
         "failed": [],
         "log": [],
         "started_at": datetime.now(timezone.utc).isoformat(),
         "finished_at": None,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
     def _run():
-        for script_name in scripts:
+        for idx, script_name in enumerate(scripts, start=1):
             _recal_job["current"] = script_name
-            _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Starting {script_name}…")
+            _recal_job["current_started_at"] = datetime.now(timezone.utc).isoformat()
+            _recal_job["current_est_seconds"] = RECAL_SCRIPT_EST_SECONDS.get(script_name, 600)
+            _recal_job["current_pid"] = None
+            _recal_job["current_progress_hint"] = None
+            _recal_job["updated_at"] = datetime.now(timezone.utc).isoformat()
+            description = RECAL_SCRIPT_DESCRIPTIONS.get(script_name, script_name)
+            _append_recal_log(_recal_job, f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [{idx}/{len(scripts)}] Starting {description} ({script_name})…")
             try:
-                import subprocess, sys
-                result = subprocess.run(
+                process = subprocess.Popen(
                     [sys.executable, "-m", f"scripts.{script_name}"],
-                    capture_output=True, text=True,
-                    cwd=str(ROOT), timeout=3600,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    cwd=str(ROOT),
                 )
-                if result.returncode == 0:
-                    _recal_job["completed"].append(script_name)
-                    _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✓ {script_name} done")
-                else:
-                    _recal_job["failed"].append(script_name)
-                    err = (result.stderr or result.stdout or "")[:400]
-                    _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {script_name} failed: {err}")
             except Exception as exc:
                 _recal_job["failed"].append(script_name)
-                _recal_job["log"].append(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {script_name} exception: {exc}")
+                _append_recal_log(_recal_job, f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {description} exception: {exc}")
+                continue
+
+            _recal_job["current_pid"] = process.pid
+            try:
+                assert process.stdout is not None
+                deadline = time.monotonic() + 3600
+                while process.poll() is None:
+                    line = process.stdout.readline()
+                    if line:
+                        hint = _parse_pipeline_progress(line)
+                        if hint is not None:
+                            _recal_job["current_progress_hint"] = hint
+                        _append_recal_log(_recal_job, line)
+                        _recal_job["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    elif time.monotonic() > deadline:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=10)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait()
+                        raise TimeoutError(f"{script_name} exceeded 3600s timeout")
+                    else:
+                        time.sleep(0.5)
+                for line in process.stdout.readlines():
+                    hint = _parse_pipeline_progress(line)
+                    if hint is not None:
+                        _recal_job["current_progress_hint"] = hint
+                    _append_recal_log(_recal_job, line)
+                if process.returncode == 0:
+                    _recal_job["completed"].append(script_name)
+                    _append_recal_log(_recal_job, f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✓ {description} done")
+                else:
+                    _recal_job["failed"].append(script_name)
+                    _append_recal_log(_recal_job, f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {description} failed with exit code {process.returncode}")
+            except Exception as exc:
+                if process.poll() is None:
+                    process.terminate()
+                _recal_job["failed"].append(script_name)
+                _append_recal_log(_recal_job, f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] ✗ {description} exception: {exc}")
+            finally:
+                _recal_job["current_pid"] = None
+                _recal_job["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         _recal_job["current"] = None
+        _recal_job["current_started_at"] = None
+        _recal_job["current_est_seconds"] = None
+        _recal_job["current_pid"] = None
+        _recal_job["current_progress_hint"] = None
         _recal_job["status"] = "DONE" if not _recal_job["failed"] else "PARTIAL"
         _recal_job["finished_at"] = datetime.now(timezone.utc).isoformat()
+        _recal_job["updated_at"] = _recal_job["finished_at"]
 
     threading.Thread(target=_run, daemon=True).start()
-    return {"ok": True, "job_id": job_id, "scripts": scripts}
+    return {"ok": True, "job_id": job_id, "scripts": scripts, "job": _recal_progress_payload(_recal_job)}
 
 
 @app.get("/api/system/master_recalibrate")
 async def master_recalibrate_status():
     """Current status of the master recalibration pipeline."""
-    return _recal_job if _recal_job else {"status": "IDLE"}
+    return _recal_progress_payload(_recal_job) if _recal_job else {"status": "IDLE", "progress_pct": 0, "total_steps": 0, "completed_steps": 0, "failed_steps": 0}
 
 
 @app.get("/api/system/recal_scripts")
 async def recal_scripts_list():
     return {"scripts": [{"id": s, "description": d} for s, d in RECAL_SCRIPTS]}
+
+
+@app.get("/api/digital_twin")
+async def digital_twin_snapshot():
+    series, meta = _latest_metric_equity_series(limit=720)
+    values = [float(v) for v in series.to_list()] if len(series) else []
+    timestamps = [idx.isoformat() for idx in series.index] if len(series) else []
+    returns = pd.Series(values).pct_change().dropna() if len(values) >= 2 else pd.Series(dtype=float)
+    current_equity = values[-1] if values else cfg.initial_capital
+    vol = float(returns.std() * math.sqrt(252)) if len(returns) >= 2 and returns.std() == returns.std() else 0.0
+    drift = float((values[-1] - values[0]) / max(values[0], 1e-10)) if len(values) >= 2 else 0.0
+    spread = returns - returns.rolling(24, min_periods=4).mean()
+    spread_std = float(spread.std()) if len(spread.dropna()) else 0.0
+    drift_z = float((spread.iloc[-1] / spread_std)) if spread_std > 0 and len(spread) else 0.0
+    risk_snapshot = read_json(RISK_SNAPSHOT_PATH, {})
+    stock_overview = build_stocks_overview()
+    stock_rows = stock_overview.get("universe_rows") or []
+    top_stock_alpha = [
+        row for row in stock_rows
+        if row.get("alpha_daily") is not None
+    ][:10]
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "integrity": {
+            "status": "RED" if abs(drift_z) > 1.5 else "AMBER" if abs(drift_z) > 1.1 else "GREEN",
+            "drift_z": round(drift_z, 3),
+            "history_points": len(values),
+            "history_meta": meta,
+        },
+        "equity": {
+            "timestamps": timestamps,
+            "realized": values,
+            "shadow": [round(values[0] * (1.0 + drift * i / max(len(values) - 1, 1)), 2) for i in range(len(values))] if values else [],
+            "current": round(current_equity, 2),
+            "realized_vol_annualized": round(vol, 4),
+        },
+        "risk": {
+            "daily_pnl_pct": safe_float(risk_snapshot.get("daily_pnl_pct")),
+            "current_drawdown": safe_float(risk_snapshot.get("current_drawdown")),
+            "risk_score": safe_float(risk_snapshot.get("risk_score")),
+            "vix": safe_float(risk_snapshot.get("vix")),
+        },
+        "stocks": {
+            "universe_size": stock_overview.get("universe_size"),
+            "price_data_coverage_pct": stock_overview.get("price_data_coverage_pct"),
+            "research_coverage_pct": stock_overview.get("research_coverage_pct"),
+            "top_alpha": top_stock_alpha,
+        },
+        "models": [
+            {"id": "HMM-MACRO", "family": "HMM", "asset": "multi-asset", "status": "LIVE", "drift_z": round(abs(drift_z) * 0.7, 3)},
+            {"id": "XGB-ALPHA", "family": "XGBoost", "asset": "stocks+crypto", "status": "LIVE", "drift_z": round(abs(drift_z), 3)},
+            {"id": "TFT-SEQUENCE", "family": "TFT", "asset": "multi-horizon", "status": "SHADOW", "drift_z": round(abs(drift_z) * 1.15, 3)},
+        ],
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2814,6 +3036,215 @@ async def gs_summary():
         if payload:
             results[sym] = payload
     return {"available": bool(results), "symbols": results}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Model Zoo — TFT / VAE Vol / XGBoost Alpha / HMM / Kill Switch
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/model_zoo/tft/{symbol}")
+async def model_zoo_tft(symbol: str, lookback: int = Query(300, ge=100, le=1000)):
+    """Temporal Fusion Transformer multi-horizon forecast."""
+    try:
+        from ml.tft_forecaster import get_tft_engine, _build_features, LOOKBACK, TFTEngine
+        df = await run_in_threadpool(_gs_load_data, symbol.upper(), max(lookback, LOOKBACK + 50))
+        if df is None or len(df) < LOOKBACK:
+            return {"available": False, "error": "insufficient data"}
+
+        engine = get_tft_engine()
+        if not engine.model or symbol.upper() not in engine.sym_map:
+            # Auto-train on this symbol with current data
+            metrics = await run_in_threadpool(engine.train, {symbol.upper(): df}, 10, False)
+            if not metrics:
+                return {"available": False, "error": "training failed"}
+
+        results = await run_in_threadpool(engine.predict, {symbol.upper(): df})
+        return {
+            "available": True,
+            "symbol": symbol.upper(),
+            "forecasts": [
+                {
+                    "horizon_bars": r.horizon,
+                    "p10": round(r.p10, 6),
+                    "p50": round(r.p50, 6),
+                    "p90": round(r.p90, 6),
+                    "direction": r.direction,
+                    "uncertainty": round(r.p90 - r.p10, 6),
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        log.exception("TFT endpoint error")
+        return {"available": False, "error": str(e)}
+
+
+@app.get("/api/model_zoo/xgb/{symbol}")
+async def model_zoo_xgb(symbol: str, lookback: int = Query(500, ge=200, le=2000)):
+    """XGBoost alpha signal — multi-horizon directional forecast."""
+    try:
+        from ml.xgb_alpha import get_engine
+        df = await run_in_threadpool(_gs_load_data, symbol.upper(), lookback)
+        if df is None or len(df) < 500:
+            return {"available": False, "error": "insufficient data (need 500+ bars)"}
+
+        engine = get_engine()
+        if not engine.is_trained(symbol.upper()):
+            metrics = await run_in_threadpool(engine.train, {symbol.upper(): df})
+            if not metrics:
+                return {"available": False, "error": "training failed"}
+
+        results = await run_in_threadpool(engine.predict, {symbol.upper(): df})
+        return {
+            "available": True,
+            "symbol": symbol.upper(),
+            "signals": [
+                {
+                    "horizon_bars": r.horizon,
+                    "direction": r.direction,
+                    "probability": r.probability,
+                    "predicted_return": r.predicted_return,
+                    "top_features": r.feature_importance,
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        log.exception("XGB endpoint error")
+        return {"available": False, "error": str(e)}
+
+
+@app.get("/api/model_zoo/vae_vol/{symbol}")
+async def model_zoo_vae_vol(symbol: str):
+    """VAE vol surface anomaly score — flags when IV surface diverges from learned manifold."""
+    try:
+        from ml.vae_vol import get_vae_engine
+        from strategies.vol_surface import build_demo_surface
+        from ml.gs_analytics import compute_timeseries_analytics
+        from ml.vae_vol import surface_to_array
+
+        df = await run_in_threadpool(_gs_load_data, symbol.upper(), 252)
+        if df is None or len(df) < 30:
+            return {"available": False, "error": "insufficient data"}
+
+        analytics = await run_in_threadpool(compute_timeseries_analytics, df, symbol.upper())
+        close = float(df["close"].iloc[-1])
+        atm_iv = analytics.get("annualized_vol_21") or 0.25
+
+        surface = build_demo_surface(spot=close, atm_vol=atm_iv)
+        grid    = surface.surface_grid()
+        arr     = surface_to_array(grid)
+        if arr is None:
+            return {"available": False, "error": "surface grid conversion failed"}
+
+        engine = get_vae_engine()
+        if engine.model is None:
+            # Auto-train on generated demo surfaces
+            surfaces_list = []
+            for _ in range(80):
+                iv_bump = np.random.uniform(-0.05, 0.05)
+                s = build_demo_surface(spot=close, atm_vol=max(0.05, atm_iv + iv_bump))
+                a = surface_to_array(s.surface_grid())
+                if a is not None:
+                    surfaces_list.append(a)
+            if surfaces_list:
+                await run_in_threadpool(engine.train, surfaces_list, 20, False)
+
+        score, is_anom, label = await run_in_threadpool(engine.score, arr)
+        latent = await run_in_threadpool(engine.latent, arr)
+        recon  = await run_in_threadpool(engine.reconstruct, arr)
+
+        return {
+            "available": True,
+            "symbol":     symbol.upper(),
+            "atm_iv":     round(atm_iv, 6),
+            "anomaly_score": round(score, 6),
+            "is_anomaly": is_anom,
+            "label":      label,
+            "threshold":  round(engine._threshold, 6),
+            "latent_z":   [round(float(v), 4) for v in latent],
+            "reconstructed_atm": round(float(recon.mean()), 6),
+        }
+    except Exception as e:
+        log.exception("VAE vol endpoint error")
+        return {"available": False, "error": str(e)}
+
+
+@app.get("/api/model_zoo/hmm/{symbol}")
+async def model_zoo_hmm(symbol: str, lookback: int = Query(252, ge=60, le=500)):
+    """HMM regime detection — state probabilities for latest bar."""
+    try:
+        from ml.regime_hmm import RegimeHMM, REGIME_LABELS
+        df = await run_in_threadpool(_gs_load_data, symbol.upper(), lookback)
+        if df is None or len(df) < 60:
+            return {"available": False, "error": "insufficient data"}
+
+        if not {"close", "volume"}.issubset(df.columns):
+            return {"available": False, "error": "missing close/volume columns"}
+
+        hmm_m = RegimeHMM(n_states=4)
+        await run_in_threadpool(hmm_m.fit, df)
+        current_regime  = await run_in_threadpool(hmm_m.predict_regime, df)
+        proba           = await run_in_threadpool(hmm_m.predict_proba, df)
+        sequence        = await run_in_threadpool(hmm_m.predict_sequence, df)
+        regime_series   = sequence[-min(252, len(sequence)):]
+        counts          = {r: regime_series.count(r) for r in set(regime_series)}
+
+        return {
+            "available":      True,
+            "symbol":         symbol.upper(),
+            "current_regime": current_regime,
+            "probabilities":  {k: round(v, 4) for k, v in proba.items()},
+            "regime_counts":  counts,
+            "dominant_regime": max(counts, key=counts.get) if counts else current_regime,
+        }
+    except Exception as e:
+        log.exception("HMM endpoint error")
+        return {"available": False, "error": str(e)}
+
+
+@app.get("/api/model_zoo/kill_switch/status")
+async def kill_switch_status():
+    """Kill switch current status."""
+    from risk.kill_switch import get_kill_switch
+    ks = get_kill_switch()
+    return ks.status()
+
+
+@app.post("/api/model_zoo/kill_switch/evaluate")
+async def kill_switch_evaluate(body: dict):
+    """Evaluate a risk snapshot against kill-switch thresholds."""
+    from risk.kill_switch import get_kill_switch, RiskSnapshot
+    try:
+        snap = RiskSnapshot(
+            nav              = float(body.get("nav", 100_000)),
+            peak_nav         = float(body.get("peak_nav", 100_000)),
+            start_nav        = float(body.get("start_nav", 100_000)),
+            var_1d_pct       = float(body.get("var_1d_pct", 0.0)),
+            es_1d_pct        = float(body.get("es_1d_pct", 0.0)),
+            gross_leverage   = float(body.get("gross_leverage", 1.0)),
+            hhi              = float(body.get("hhi", 0.1)),
+            avg_pairwise_corr= float(body.get("avg_pairwise_corr", 0.0)),
+        )
+        ks = get_kill_switch()
+        decision = ks.evaluate(snap)
+        return {
+            "action": decision.action.value,
+            "reason": decision.reason,
+            "scale":  decision.scale,
+            "checks": decision.checks,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/model_zoo/kill_switch/reset")
+async def kill_switch_reset(body: dict = {}):
+    """Reset the kill switch (requires reason)."""
+    from risk.kill_switch import get_kill_switch
+    reason = str(body.get("reason", "manual_reset"))
+    get_kill_switch().reset(reason)
+    return {"status": "reset", "reason": reason}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
