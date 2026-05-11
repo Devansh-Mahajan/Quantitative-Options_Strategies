@@ -43,6 +43,8 @@ MAX_RISK_BASE = 1000.0 # Your standard risk when VIX is normal
 # Avoid forcing full deployment when the directional models disagree or are weak.
 MIN_SIGNAL_CONFIDENCE = 0.18
 LOW_CONFIDENCE_RISK_MULTIPLIER = 0.50
+MIN_EXECUTABLE_TRADE_RISK = 100.0
+MIN_EXECUTABLE_TRADE_RISK_PCT_EQUITY = 0.025
 
 # 5. HMM pairs mean-reversion overlay
 ENABLE_PAIRS_TRADING = True

@@ -41,6 +41,30 @@ def recommend_deployment_fraction(
     return max(0.05, min(1.0, sized))
 
 
+def effective_trade_risk_budget(
+    base_trade_risk: float,
+    deployment_fraction: float,
+    equity: float,
+    minimum_dollars: float = 100.0,
+    minimum_pct_equity: float = 0.025,
+) -> float:
+    """Scale per-trade risk without shrinking below a live-executable floor.
+
+    The deployment fraction still throttles risk aggressively, but the floor
+    prevents viable Alpaca option structures from being rejected solely because
+    the per-trade cap was compressed into single-digit or teen-dollar amounts.
+    The floor is never allowed to exceed the pre-scaled trade budget.
+    """
+    base = max(0.0, float(base_trade_risk))
+    deploy = max(0.0, min(1.0, float(deployment_fraction)))
+    equity = max(0.0, float(equity))
+    if base <= 0.0 or deploy <= 0.0:
+        return 0.0
+
+    floor = min(base, max(float(minimum_dollars), equity * max(0.0, float(minimum_pct_equity))))
+    return max(base * deploy, floor)
+
+
 def estimate_pair_overlay_confidence(signals: list[dict]) -> float:
     if not signals:
         return 0.0

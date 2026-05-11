@@ -30,6 +30,7 @@ CRITICAL_IMPORTS = (
     "core.strategy_regime",
     "core.equity_overlay",
     "scripts.run_strategy",
+    "scripts.run_crypto_bot",
     "scripts.automation_controller",
     "scripts.model_maintenance",
     "scripts.weekend_recalibration",

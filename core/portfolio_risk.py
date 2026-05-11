@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from alpaca.trading.enums import AssetClass
 
+from bot.config import cfg
 from config.params import (
     OPTION_PRICING_RISK_FREE_RATE,
     PORTFOLIO_RISK_CONFIDENCE,
@@ -387,8 +388,14 @@ class PortfolioRiskEngine:
                 )
                 continue
 
-            asset_class = asset_map.get(symbol)
-            if asset_class not in (None, AssetClass.US_EQUITY, "us_equity"):
+            asset_class = _normalize_asset_class(asset_map.get(symbol))
+            if asset_class not in {
+                "",
+                _normalize_asset_class(AssetClass.US_EQUITY),
+                "us_equity",
+                _normalize_asset_class(getattr(AssetClass, "CRYPTO", "crypto")),
+                "crypto",
+            }:
                 continue
             spot = max(0.01, float(spot_map.get(symbol, self._spot_for_underlying(symbol))))
             volatility = 0.03 if cash_equivalent else max(0.08, float(vol_map.get(symbol, 0.25)))
@@ -450,7 +457,12 @@ class PortfolioRiskEngine:
                 payload["qty"] = str(qty)
                 projected.append(type("ProjectedPosition", (), payload)())
             else:
-                asset_class = AssetClass.US_OPTION if try_parse_option_symbol(symbol) is not None else AssetClass.US_EQUITY
+                if try_parse_option_symbol(symbol) is not None:
+                    asset_class = AssetClass.US_OPTION
+                elif cfg.is_crypto_symbol(symbol):
+                    asset_class = getattr(AssetClass, "CRYPTO", "crypto")
+                else:
+                    asset_class = AssetClass.US_EQUITY
                 projected.append(
                     type(
                         "ProjectedPosition",
@@ -466,14 +478,15 @@ class PortfolioRiskEngine:
 
     def _spot_for_underlying(self, symbol: str) -> float:
         symbol = str(symbol).upper()
-        try:
-            latest_trade = self.client.get_stock_latest_trade(symbol)
-            if isinstance(latest_trade, dict):
-                trade = latest_trade.get(symbol)
-                if trade is not None and getattr(trade, "price", None) is not None:
-                    return float(trade.price)
-        except Exception:
-            pass
+        if not cfg.is_crypto_symbol(symbol):
+            try:
+                latest_trade = self.client.get_stock_latest_trade(symbol)
+                if isinstance(latest_trade, dict):
+                    trade = latest_trade.get(symbol)
+                    if trade is not None and getattr(trade, "price", None) is not None:
+                        return float(trade.price)
+            except Exception:
+                pass
 
         history = self._history_for_symbol(symbol)
         if len(history):
@@ -508,7 +521,7 @@ class PortfolioRiskEngine:
             try:
                 import yfinance as yf
 
-                frame = yf.Ticker(symbol).history(period="1y")
+                frame = yf.Ticker(_history_lookup_symbol(symbol)).history(period="1y")
                 if "Close" in frame:
                     history = np.asarray(frame["Close"].dropna().tolist(), dtype=float)
             except Exception:
@@ -786,6 +799,19 @@ def _close_to_returns(history: np.ndarray) -> np.ndarray:
     if len(clipped) < 2:
         return np.array([], dtype=float)
     return np.diff(clipped) / np.clip(clipped[:-1], 1e-6, None)
+
+
+def _normalize_asset_class(asset_class: object) -> str:
+    return str(getattr(asset_class, "value", asset_class) or "").strip().lower()
+
+
+def _history_lookup_symbol(symbol: str) -> str:
+    normalized = str(symbol or "").strip().upper()
+    if cfg.is_crypto_symbol(normalized):
+        for suffix in ("USDT", "BUSD", "USD"):
+            if normalized.endswith(suffix):
+                return f"{normalized[: -len(suffix)]}-USD"
+    return normalized
 
 
 def _simulate_correlated_spots(

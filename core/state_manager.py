@@ -100,20 +100,46 @@ def remove_equity_overlay_metadata(symbol):
         with open(EQUITY_OVERLAY_META_FILE, 'w') as f:
             json.dump(data, f, indent=2)
 
+
+def _normalize_asset_class(asset_class):
+    return str(getattr(asset_class, "value", asset_class) or "").strip().lower()
+
+
+def _safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 # --- UPDATED RISK CALCULATOR ---
-def calculate_risk(positions):
-    risk = 0
+def calculate_risk(positions, *, include_crypto=True):
+    risk = 0.0
     options_by_underlying = {}
-    
+
+    equity_asset = _normalize_asset_class(getattr(AssetClass, "US_EQUITY", "us_equity"))
+    option_asset = _normalize_asset_class(getattr(AssetClass, "US_OPTION", "us_option"))
+    crypto_asset = _normalize_asset_class(getattr(AssetClass, "CRYPTO", "crypto"))
+
     for p in positions:
-        if p.asset_class == AssetClass.US_EQUITY:
+        asset_class = _normalize_asset_class(getattr(p, "asset_class", None))
+        if asset_class == equity_asset:
             # --- THE FIX: Ignore our cash-sweep ETF ---
             if p.symbol == SWEEP_TICKER:
-                continue 
-                
-            risk += float(p.avg_entry_price) * abs(int(p.qty))
-            
-        elif p.asset_class == AssetClass.US_OPTION:
+                continue
+
+            risk += _safe_float(getattr(p, "avg_entry_price", 0.0)) * abs(_safe_float(getattr(p, "qty", 0.0)))
+            continue
+
+        if include_crypto and asset_class == crypto_asset:
+            qty = abs(_safe_float(getattr(p, "qty", 0.0)))
+            mark = _safe_float(getattr(p, "current_price", None), 0.0)
+            if mark <= 0:
+                mark = _safe_float(getattr(p, "avg_entry_price", None), 0.0)
+            risk += mark * qty
+            continue
+
+        if asset_class == option_asset:
             parsed = try_parse_option_symbol(p.symbol)
             if parsed is None:
                 logger.warning("Skipping malformed option symbol in risk calculation: %s", p.symbol)
@@ -158,7 +184,7 @@ def calculate_risk(positions):
         # 2. Calculate Risk for leftover pure Longs (Straddles/Hedges)
         for long_leg in longs:
             risk += (long_leg['cost'] * 100) * long_leg['qty']
-                    
+
     return risk
 
 # --- UPDATED STATE MACHINE ---

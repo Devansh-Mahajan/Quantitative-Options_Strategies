@@ -252,6 +252,30 @@ class AutomationController:
                 self._emit_console(format_status_line(label, "failed", exit_code=code, seconds=f"{duration:.1f}"))
             return code
 
+    async def _run_daemon_command(self, label: str, command: str) -> int:
+        if not await self._ensure_preflight_ok(label):
+            return 2
+
+        started = time.monotonic()
+        self._emit_console(format_status_line(label, "start", command=command))
+        process = await asyncio.create_subprocess_shell(
+            command,
+            cwd=str(self.repo_root),
+            env=self.process_env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout_task = asyncio.create_task(self._stream_pipe(label, process.stdout, "stdout"))
+        stderr_task = asyncio.create_task(self._stream_pipe(label, process.stderr, "stderr"))
+        code = await process.wait()
+        await asyncio.gather(stdout_task, stderr_task)
+        duration = time.monotonic() - started
+        if code == 0:
+            self._emit_console(format_status_line(label, "done", exit_code=code, seconds=f"{duration:.1f}"))
+        else:
+            self._emit_console(format_status_line(label, "failed", exit_code=code, seconds=f"{duration:.1f}"))
+        return code
+
     async def _capture_json_command(self, label: str, command: str) -> dict:
         if not await self._ensure_preflight_ok(label):
             return {}
@@ -309,6 +333,16 @@ class AutomationController:
                 self.monitor_lock,
             )
             await asyncio.sleep(max(30, self.args.risk_interval_seconds))
+
+    async def crypto_daemon_loop(self):
+        while True:
+            code = await self._run_daemon_command("crypto-daemon", self.args.crypto_command)
+            if not self.args.restart_on_failure:
+                return
+            delay = max(10, int(self.args.restart_delay_seconds))
+            status = "unexpected-exit" if code == 0 else "restart"
+            self._emit_console(format_status_line("crypto-daemon", status, exit_code=code, restart_in=delay))
+            await asyncio.sleep(delay)
 
     async def regime_rebalance_loop(self):
         while True:
@@ -713,6 +747,7 @@ class AutomationController:
         await asyncio.gather(
             self.strategy_loop(),
             self.risk_monitor_loop(),
+            self.crypto_daemon_loop(),
             self.regime_rebalance_loop(),
             self.critical_window_loop(),
             self.regime_shift_watch_loop(),
@@ -774,6 +809,14 @@ def parse_args() -> argparse.Namespace:
             "scripts.run_strategy",
             "--manage-only",
             "--strat-log",
+            "--log-level",
+            "INFO",
+        ),
+    )
+    parser.add_argument(
+        "--crypto-command",
+        default=_python_module_command(
+            "scripts.run_crypto_bot",
             "--log-level",
             "INFO",
         ),

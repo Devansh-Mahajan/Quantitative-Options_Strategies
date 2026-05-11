@@ -31,6 +31,7 @@ def _args(tmp_path: Path) -> Namespace:
         close_burst_minutes=12,
         strategy_command="run-strategy",
         risk_command="run-strategy --manage-only",
+        crypto_command="run-crypto-bot",
         regime_command="run-strategy",
         open_bell_command="run-strategy --manage-only",
         market_open_deploy_command="run-strategy",
@@ -375,6 +376,7 @@ class AutomationControllerTests(unittest.TestCase):
 
         self.assertIn(sys.executable, args.strategy_command)
         self.assertIn("scripts.run_strategy", args.strategy_command)
+        self.assertIn("scripts.run_crypto_bot", args.crypto_command)
         self.assertIn("scripts.quant_research_foundry", args.post_close_eval_command)
         self.assertIn("scripts.model_maintenance", args.post_close_train_command)
         self.assertIn("scripts.quant_research_foundry", args.post_close_tune_command)

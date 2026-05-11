@@ -26,6 +26,8 @@ from config.params import (
     MIN_SIGNAL_CONFIDENCE,
     LOW_CONFIDENCE_RISK_MULTIPLIER,
     MAX_NEW_TRADES_PER_CYCLE,
+    MIN_EXECUTABLE_TRADE_RISK,
+    MIN_EXECUTABLE_TRADE_RISK_PCT_EQUITY,
     ENABLE_PAIRS_TRADING,
     PAIR_MAX_SIGNALS,
     PAIR_ENTRY_ZSCORE,
@@ -49,7 +51,12 @@ from core.regime_detection import get_brain_prediction # Macro market mood
 from scripts.mega_screener import get_mega_brain_targets
 from core.market_intelligence import estimate_institutional_flow
 from core.pairs_trading import generate_pairs_trading_signals
-from core.portfolio_optimizer import recommend_deployment_fraction, estimate_pair_overlay_confidence
+from core.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
+from core.portfolio_optimizer import (
+    effective_trade_risk_budget,
+    estimate_pair_overlay_confidence,
+    recommend_deployment_fraction,
+)
 from core.adaptive_recalibration import AdaptiveRecalibrationEngine
 from core.runtime_calibration import load_runtime_calibration
 from core.resource_profile import load_resource_profile
@@ -257,6 +264,9 @@ def main():
     )
 
     client = BrokerClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY, paper=IS_PAPER)
+    logger.info(
+        "Execution stack mode: Alpaca options + stock overlay. Crypto spot routing is not launched from run_strategy; that path lives in scripts.run_bot."
+    )
     try:
         execution_reconciliation = client.reconcile_recent_fills(lookback_hours=36.0, max_orders=128)
         if execution_reconciliation.get("checked_orders"):
@@ -298,7 +308,8 @@ def main():
     positions = client.get_positions()
     strat_logger.add_current_positions(positions)
 
-    current_risk = calculate_risk(positions)
+    current_risk = calculate_risk(positions, include_crypto=False)
+    account_risk = calculate_risk(positions, include_crypto=True)
     states = update_state(positions)
     strat_logger.add_state_dict(states)
 
@@ -334,6 +345,13 @@ def main():
 
     account = client.trade_client.get_account()
     total_equity = float(account.portfolio_value)
+    live_allocation_snapshot = write_live_allocation(
+        build_live_allocation_snapshot(
+            total_equity=total_equity,
+            positions=positions,
+            market_open=market_session_open_now(),
+        )
+    )
     
     # ==========================================================
     # --- QUANT CIRCUIT BREAKER & DRAWDOWN GUARD (DAILY P/L) ---
@@ -362,6 +380,9 @@ def main():
         alpha_signals = live_alpha_signal_map(alpha_universe)
     runtime_policy_mode = "weekend_policy" if _runtime_policy_has_live_controls(runtime_calibration) else "synthetic_live_policy"
     progress.advance("Scoring live market signals")
+    options_book = (live_allocation_snapshot.get("books") or {}).get("options_equity") or {}
+    crypto_book = (live_allocation_snapshot.get("books") or {}).get("crypto") or {}
+    max_risk_allowed = float(options_book.get("risk_budget", total_equity * RISK_ALLOCATION) or 0.0)
 
     if portfolio_risk_guard.kill_switch_active:
         hard_reasons = ", ".join(portfolio_risk_guard.hard_kill_reasons) or "portfolio-risk-limit"
@@ -405,8 +426,16 @@ def main():
                 portfolio_risk_guard.stress_pct_equity * 100.0,
                 portfolio_risk_guard.max_underlying_weight * 100.0,
             )
-        max_risk_allowed = total_equity * RISK_ALLOCATION
-        buying_power = max_risk_allowed - current_risk
+        buying_power = max(0.0, max_risk_allowed - current_risk)
+        logger.info(
+            "🔗 Live allocation synced | options/equity share=%.2f budget=$%.2f used_risk=$%.2f | crypto share=%.2f budget=$%.2f used_mv=$%.2f",
+            float(options_book.get("share", 1.0) or 1.0),
+            max_risk_allowed,
+            current_risk,
+            float(crypto_book.get("share", 0.0) or 0.0),
+            float(crypto_book.get("risk_budget", 0.0) or 0.0),
+            float(crypto_book.get("used_market_value", 0.0) or 0.0),
+        )
 
         # --- VIX-SCALED DYNAMIC RISK ---
         vix_scaled_risk = calculate_dynamic_risk(current_vix)
@@ -557,6 +586,7 @@ def main():
         "daily_pnl_dollars": round(float(daily_pnl_dollars), 2),
         "total_equity": round(float(total_equity), 2),
         "buying_power_budget": round(float(buying_power), 2),
+        "book_risk_budget": round(float(max_risk_allowed), 2),
         "vix": round(float(current_vix), 4),
         "portfolio_delta": round(float(port_delta), 4),
         "portfolio_theta": round(float(port_theta), 4),
@@ -574,6 +604,8 @@ def main():
         "open_positions": len(positions),
         "allowed_symbols": len(allowed_symbols),
         "risk_allocation_in_use": round(float(current_risk), 2),
+        "account_risk_in_use": round(float(account_risk), 2),
+        "live_allocation": live_allocation_snapshot,
         "portfolio_risk_engine": portfolio_risk_guard.to_dict(),
         "resource_profile": resource_profile.to_dict(),
     }
@@ -707,13 +739,21 @@ def main():
                     target_daily_return=TARGET_DAILY_RETURN_GOAL,
                     max_kelly_fraction=MAX_KELLY_FRACTION,
                 )
+                pre_platinum_risk = dynamic_max_risk
                 deployment_scale *= deploy_fraction
-                dynamic_max_risk *= deploy_fraction
+                dynamic_max_risk = effective_trade_risk_budget(
+                    base_trade_risk=pre_platinum_risk,
+                    deployment_fraction=deploy_fraction,
+                    equity=total_equity,
+                    minimum_dollars=MIN_EXECUTABLE_TRADE_RISK,
+                    minimum_pct_equity=MIN_EXECUTABLE_TRADE_RISK_PCT_EQUITY,
+                )
                 logger.info(
-                    "🧮 Platinum sizing active | deploy_fraction=%.2f pair_conf=%.2f risk/trade=$%.2f",
+                    "🧮 Platinum sizing active | deploy_fraction=%.2f pair_conf=%.2f risk/trade=$%.2f (pre-floor $%.2f)",
                     deploy_fraction,
                     pair_confidence,
                     dynamic_max_risk,
+                    pre_platinum_risk * deploy_fraction,
                 )
 
             throttle_n = max(

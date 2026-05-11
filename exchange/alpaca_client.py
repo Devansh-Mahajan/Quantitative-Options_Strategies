@@ -23,6 +23,8 @@ import logging
 import time
 from datetime import datetime, timezone, timedelta
 
+from alpaca.trading.enums import AssetClass
+
 from bot.config import cfg
 
 log = logging.getLogger("exchange.alpaca_client")
@@ -153,13 +155,19 @@ class AlpacaClient:
 
     async def get_spot_balance(self) -> dict[str, float]:
         positions = await asyncio.to_thread(self._trading.get_all_positions)
-        return {p.symbol.replace("/", ""): float(p.qty) for p in positions}
+        return {
+            p.symbol.replace("/", ""): float(p.qty)
+            for p in positions
+            if getattr(p, "asset_class", None) == AssetClass.CRYPTO
+        }
 
     async def get_futures_positions(self) -> list[dict]:
         """Returns positions in the same dict format as Binance futures_position_information."""
         positions = await asyncio.to_thread(self._trading.get_all_positions)
         result = []
         for p in positions:
+            if getattr(p, "asset_class", None) != AssetClass.CRYPTO:
+                continue
             binance_sym = _from_alpaca(p.symbol)
             result.append({
                 "symbol": binance_sym,
@@ -168,6 +176,7 @@ class AlpacaClient:
                 "markPrice": str(p.current_price or p.avg_entry_price),
                 "unRealizedProfit": str(p.unrealized_pl or 0),
                 "leverage": "1",
+                "market": "spot",
             })
         return result
 
@@ -192,6 +201,9 @@ class AlpacaClient:
             "day_pnl_pct": day_pnl_pct,
             "status": str(status).upper() if status else None,
         }
+
+    async def get_all_positions_raw(self) -> list[object]:
+        return await asyncio.to_thread(self._trading.get_all_positions)
 
     # ------------------------------------------------------------------ #
     # Market data

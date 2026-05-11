@@ -8,7 +8,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from bot.config import cfg
 
@@ -42,8 +42,9 @@ class Position:
 
 
 class PositionManager:
-    def __init__(self, client) -> None:
+    def __init__(self, client, symbol_filter: Callable[[str], bool] | None = None) -> None:
         self._client = client
+        self._symbol_filter = symbol_filter
         self.futures: dict[str, Position] = {}
         self.spot: dict[str, Position] = {}
         self.options: dict[str, Position] = {}
@@ -71,19 +72,24 @@ class PositionManager:
         try:
             raw = await self._client.get_futures_positions()
             self.futures = {}
+            self.spot = {}
             for p in raw:
                 qty = float(p.get("positionAmt", 0))
                 if qty == 0:
                     continue
                 sym = p["symbol"]
+                if not self._accept_symbol(sym):
+                    continue
                 entry = float(p.get("entryPrice", 0))
                 mark = float(p.get("markPrice", 0))
                 upnl = float(p.get("unRealizedProfit", 0))
                 lev = int(p.get("leverage", 1))
                 notional = abs(qty) * mark
-                self.futures[sym] = Position(
+                market = str(p.get("market", "futures") or "futures").lower()
+                target_store = self.spot if market == "spot" else self.futures
+                target_store[sym] = Position(
                     symbol=sym,
-                    market="futures",
+                    market=market,
                     side="LONG" if qty > 0 else "SHORT",
                     quantity=abs(qty),
                     entry_price=entry,
@@ -103,6 +109,8 @@ class PositionManager:
                 sym = p.get("symbol", "")
                 qty = float(p.get("quantity", 0))
                 if qty == 0:
+                    continue
+                if not self._accept_symbol(sym):
                     continue
                 self.options[sym] = Position(
                     symbol=sym,
@@ -177,3 +185,11 @@ class PositionManager:
 
     def is_flat(self) -> bool:
         return len(self.all_positions()) == 0
+
+    def _accept_symbol(self, symbol: str) -> bool:
+        if self._symbol_filter is None:
+            return True
+        try:
+            return bool(self._symbol_filter(str(symbol or "").upper()))
+        except Exception:
+            return False

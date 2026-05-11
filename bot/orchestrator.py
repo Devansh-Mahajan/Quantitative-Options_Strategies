@@ -29,6 +29,7 @@ from execution.order_manager import OrderManager
 from execution.position_manager import PositionManager
 from strategies.registry import build_registry
 from strategies.base import Signal
+from core.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
 from core.trade_decision_tape import record_trade_decision
 
 log = logging.getLogger("bot.orchestrator")
@@ -41,11 +42,46 @@ FUNDING_REFRESH_INTERVAL = 300    # 5 min
 OI_REFRESH_INTERVAL = 300
 
 
+ALPACA_CRYPTO_SPOT_STRATEGIES = {
+    "momentum",
+    "mean_reversion",
+    "order_flow",
+    "breakout",
+    "tsmom",
+    "knn_predictor",
+    "pivot_sr",
+    "hp_trend",
+    "microstructure_pressure",
+    "pullback_confluence",
+    "liquidation_cascade",
+    "contrarian_oi",
+    "rma_strategy",
+}
+
+
 class Orchestrator:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        runtime_symbols: list[str] | None = None,
+        model_symbols: list[str] | None = None,
+        primary_regime_symbol: str | None = None,
+        book_name: str = "primary",
+        long_only_spot: bool = False,
+        strategy_whitelist: set[str] | None = None,
+    ) -> None:
         self.client = get_client()
         self.store = MarketDataStore()
         self.stream_manager: StreamManager | None = None
+        self.book_name = str(book_name or "primary")
+        self.runtime_symbols = self._normalize_symbols(runtime_symbols or cfg.live_runtime_symbols)
+        self.model_symbols = self._normalize_symbols(model_symbols or cfg.live_model_symbols)
+        self.primary_regime_symbol = str(
+            (primary_regime_symbol or cfg.live_primary_regime_symbol or (self.model_symbols[0] if self.model_symbols else "SPY"))
+        ).upper()
+        self.long_only_spot = bool(long_only_spot and cfg.is_alpaca)
+        self.strategy_whitelist = {str(name).strip() for name in (strategy_whitelist or set()) if str(name).strip()}
+        self._latest_live_allocation: dict[str, Any] = {}
 
         # ML models — keyed by primary symbol for regime/price prediction
         self.regime_hmm: dict[str, RegimeHMM] = {}
@@ -59,6 +95,8 @@ class Orchestrator:
         self.store.options_chains = {}                  # type: ignore[attr-defined]
 
         self.strategies = build_registry()
+        if self.strategy_whitelist:
+            self.strategies = [strategy for strategy in self.strategies if strategy.name in self.strategy_whitelist]
         self.risk_engine = PortfolioRiskEngine()
         self.sizer = PositionSizer()
         self.guard = RiskGuard()
@@ -70,6 +108,26 @@ class Orchestrator:
         self._last_oi_refresh = 0.0
         self._cycle_count = 0
 
+    @staticmethod
+    def _normalize_symbols(symbols: list[str]) -> list[str]:
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for symbol in symbols:
+            normalized = str(symbol or "").strip().upper()
+            if not normalized or normalized in seen:
+                continue
+            cleaned.append(normalized)
+            seen.add(normalized)
+        return cleaned
+
+    def _position_symbol_filter(self, symbol: str) -> bool:
+        normalized = str(symbol or "").strip().upper()
+        if not normalized:
+            return False
+        if self.book_name == "crypto":
+            return cfg.is_crypto_symbol(normalized)
+        return True
+
     # ------------------------------------------------------------------ #
     # Startup
     # ------------------------------------------------------------------ #
@@ -80,7 +138,13 @@ class Orchestrator:
         state.init_db()
 
         broker_info = f"alpaca(paper={cfg.alpaca_paper})" if cfg.is_alpaca else f"binance(testnet={cfg.testnet})"
-        log.info("Starting Quant Bot — broker=%s", broker_info)
+        log.info(
+            "Starting Quant Bot — broker=%s book=%s long_only_spot=%s runtime_symbols=%s",
+            broker_info,
+            self.book_name,
+            self.long_only_spot,
+            self.runtime_symbols,
+        )
         await notifications.alert(
             f"Bot starting — broker={broker_info}, strategies={[s.name for s in self.strategies]}",
             title="Bot Startup",
@@ -88,10 +152,10 @@ class Orchestrator:
 
         await self.client.start()
         self.order_manager = OrderManager(self.client)
-        self.position_manager = PositionManager(self.client)
+        self.position_manager = PositionManager(self.client, symbol_filter=self._position_symbol_filter)
 
         # Warm up stream manager (Binance or Alpaca depending on BROKER)
-        all_symbols = cfg.live_runtime_symbols
+        all_symbols = self.runtime_symbols
         self.stream_manager = self.client.create_stream_manager(self.store)
         await self.stream_manager.start(all_symbols, intervals=["1m", "5m", "15m", "1h", "4h"])
 
@@ -100,10 +164,15 @@ class Orchestrator:
 
         # Seed initial equity
         balance = await self.client.get_futures_balance()
-        self._start_equity = float(balance.get("USDT", cfg.initial_capital))
+        account_snapshot = await self.client.get_account_snapshot() if hasattr(self.client, "get_account_snapshot") else {}
+        self._start_equity = float(
+            account_snapshot.get("equity", 0.0)
+            or balance.get("USDT", cfg.initial_capital)
+            or balance.get("USD", cfg.initial_capital)
+        )
         self.guard.maybe_reset_daily(self._start_equity)
 
-        log.info("Startup complete — initial equity=%.2f USDT", self._start_equity)
+        log.info("Startup complete — initial equity=%.2f", self._start_equity)
 
     # ------------------------------------------------------------------ #
     # Main loop
@@ -127,6 +196,20 @@ class Orchestrator:
                 await self.stream_manager.stop()
             await self.client.close()
             log.info("Orchestrator stopped")
+
+    async def _sync_live_allocation(self, equity: float) -> None:
+        if not cfg.is_alpaca or not hasattr(self.client, "get_all_positions_raw"):
+            return
+        try:
+            positions = await self.client.get_all_positions_raw()
+            snapshot = build_live_allocation_snapshot(
+                total_equity=equity,
+                positions=positions,
+                market_open=market_session_open_now(),
+            )
+            self._latest_live_allocation = write_live_allocation(snapshot)
+        except Exception as exc:
+            log.debug("Live allocation sync skipped: %s", exc)
 
     async def _trading_loop(self) -> None:
         while True:
@@ -174,6 +257,7 @@ class Orchestrator:
             or balance.get("USDT", self._start_equity)
             or balance.get("USD", self._start_equity)
         )
+        await self._sync_live_allocation(equity)
         state.record_equity(equity, self.guard.current_drawdown if hasattr(self.guard, 'current_drawdown') else 0)
 
         # --- 3. Daily reset ---
@@ -243,7 +327,7 @@ class Orchestrator:
 
         # --- 12. Execute orders ---
         for sig in approved:
-            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
+            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(self.primary_regime_symbol) or GARCHVolModel()
             leverage = self.sizer.safe_leverage(
                 vol_model.current_vol,
                 regime,
@@ -305,7 +389,7 @@ class Orchestrator:
 
     async def _handle_exits(self) -> None:
         for pos in self.position_manager.all_positions():
-            vol_model = self.vol_models.get(pos.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
+            vol_model = self.vol_models.get(pos.symbol) or self.vol_models.get(self.primary_regime_symbol) or GARCHVolModel()
             regime = self._get_regime(pos.symbol)
             plan = self.sizer.exit_plan(
                 realised_vol=vol_model.current_vol or 0.5,
@@ -331,7 +415,10 @@ class Orchestrator:
                 strategy="exit_manager",
                 meta={"exit_reason": exit_reason, "exit_plan": plan.as_dict()},
             )
-            await self.order_manager.execute(exit_sig)
+            prepared_exit = self._prepare_signal_for_execution(exit_sig, regime=regime, stage="exit")
+            if prepared_exit is None:
+                continue
+            await self.order_manager.execute(prepared_exit)
             log.info(
                 "Exiting %s %s pnl=%.2f%% reason=%s stop=%.2f%% take=%.2f%% regime=%s",
                 pos.symbol,
@@ -351,7 +438,7 @@ class Orchestrator:
         anchors: list[str] = []
         if anchor_symbol:
             anchors.append(anchor_symbol)
-        anchors.extend([cfg.live_primary_regime_symbol, *cfg.live_model_symbols])
+        anchors.extend([self.primary_regime_symbol, *self.model_symbols])
 
         seen: set[str] = set()
         for symbol in anchors:
@@ -371,7 +458,7 @@ class Orchestrator:
 
     async def _get_predictions(self) -> dict[str, dict]:
         results: dict[str, dict] = {}
-        for symbol in cfg.live_model_symbols:
+        for symbol in self.model_symbols:
             predictor = self.predictors.get(symbol)
             if predictor is None:
                 continue
@@ -395,10 +482,88 @@ class Orchestrator:
         for strategy in self.strategies:
             try:
                 sigs = strategy.generate_signals(self.store, regime, predictions)
-                signals.extend(sigs)
+                for signal in sigs:
+                    normalized = self._normalize_signal_for_book(signal)
+                    if normalized is not None:
+                        signals.append(normalized)
             except Exception as exc:
                 log.warning("Strategy %s error: %s", strategy.name, exc)
         return signals
+
+    def _normalize_signal_for_book(self, signal: Signal) -> Signal | None:
+        symbol = str(signal.symbol or "").upper()
+        if self.book_name == "crypto":
+            if not cfg.is_crypto_symbol(symbol):
+                return None
+            if signal.market not in {"futures", "spot"}:
+                return None
+            if self.long_only_spot:
+                return signal._replace(market="spot")
+        return signal
+
+    def _book_budget_remaining(self) -> float | None:
+        if self.book_name != "crypto":
+            return None
+        books = self._latest_live_allocation.get("books") or {}
+        book = books.get("crypto") or {}
+        try:
+            return max(0.0, float(book.get("remaining_risk_budget", 0.0)))
+        except (TypeError, ValueError):
+            return None
+
+    def _position_for_symbol(self, symbol: str):
+        normalized = str(symbol or "").upper()
+        return (
+            self.position_manager.position(normalized, market="spot")
+            or self.position_manager.position(normalized, market="futures")
+            or self.position_manager.position(normalized, market="options")
+        )
+
+    def _prepare_signal_for_execution(self, signal: Signal, *, regime: str, stage: str) -> Signal | None:
+        if not self.long_only_spot or not cfg.is_crypto_symbol(signal.symbol):
+            return signal
+
+        meta = dict(signal.meta or {})
+        if signal.side == "BUY":
+            return signal._replace(market="spot", meta=meta)
+
+        position = self._position_for_symbol(signal.symbol)
+        held_qty = float(getattr(position, "quantity", 0.0) or 0.0)
+        if held_qty <= 0:
+            record_trade_decision(
+                status="GATED",
+                strategy=signal.strategy,
+                symbol=signal.symbol,
+                action=f"{signal.side.lower()}_spot",
+                confidence=signal.confidence,
+                reason="Spot-safe Alpaca crypto mode blocks naked short sells.",
+                details={"market": signal.market, "stage": stage, "regime": regime, "meta": meta},
+            )
+            return None
+
+        reduced_qty = min(float(signal.quantity or 0.0), held_qty)
+        if reduced_qty <= 0:
+            return None
+        meta["reduce_only"] = True
+        meta["held_quantity"] = held_qty
+        return signal._replace(market="spot", quantity=reduced_qty, meta=meta)
+
+    def _reference_price(self, symbol: str, fallback: float = 0.0) -> float:
+        price = float(fallback or 0.0)
+        if price > 0:
+            return price
+        book = self.store.book.get(str(symbol or "").upper())
+        bid = float(getattr(book, "bid", 0.0) or 0.0)
+        ask = float(getattr(book, "ask", 0.0) or 0.0)
+        if bid > 0 and ask > 0:
+            return (bid + ask) / 2.0
+        for interval in ("1m", "5m", "15m", "1h"):
+            closes = self.store.get_closes(str(symbol or "").upper(), interval, 1)
+            if closes:
+                close = float(closes[-1] or 0.0)
+                if close > 0:
+                    return close
+        return 0.0
 
     def _apply_rl_weights(self, signals: list[Signal], equity: float, regime: str) -> list[Signal]:
         """Scale signal confidences by RL-derived strategy weights."""
@@ -432,16 +597,18 @@ class Orchestrator:
         peak_equity = state.get_peak_equity() or equity
         daily_start_equity = self.guard.daily_start_equity or equity
         open_positions = len(positions)
+        remaining_book_budget = self._book_budget_remaining()
 
         for sig in signals:
-            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(cfg.live_primary_regime_symbol) or GARCHVolModel()
+            vol_model = self.vol_models.get(sig.symbol) or self.vol_models.get(self.primary_regime_symbol) or GARCHVolModel()
+            reference_price = self._reference_price(sig.symbol, sig.price)
             meta = dict(sig.meta or {})
             symbol_exposure = sum(p.notional for p in positions if p.symbol == sig.symbol)
             decision = self.sizer.size_signal(
                 SizingContext(
                     signal_confidence=sig.confidence,
                     equity=equity,
-                    price=sig.price or 1.0,
+                    price=reference_price,
                     realised_vol=vol_model.current_vol or 0.5,
                     regime=regime,
                     side=sig.side,
@@ -460,16 +627,61 @@ class Orchestrator:
             )
             if decision.quantity > 0:
                 meta["sizing"] = decision.as_dict()
+                meta["reference_price"] = reference_price
                 meta["stop_loss_pct"] = decision.stop_loss_pct
                 meta["take_profit_pct"] = decision.take_profit_pct
-                sized.append(sig._replace(quantity=decision.quantity, meta=meta))
+                prepared = self._prepare_signal_for_execution(
+                    sig._replace(quantity=decision.quantity, meta=meta),
+                    regime=regime,
+                    stage="sizing",
+                )
+                if prepared is None:
+                    continue
+                projected_notional = float(decision.notional)
+                if decision.quantity > 0 and prepared.quantity != decision.quantity:
+                    projected_notional *= prepared.quantity / decision.quantity
+                if remaining_book_budget is not None and prepared.side == "BUY":
+                    if remaining_book_budget <= 0:
+                        record_trade_decision(
+                            status="GATED",
+                            strategy=prepared.strategy,
+                            symbol=prepared.symbol,
+                            action=f"{prepared.side.lower()}_{prepared.market}",
+                            confidence=prepared.confidence,
+                            reason="Live crypto allocation budget is fully consumed.",
+                            details={"market": prepared.market, "regime": regime, "meta": prepared.meta},
+                        )
+                        continue
+                    if projected_notional > remaining_book_budget:
+                        scale = remaining_book_budget / max(projected_notional, 1e-9)
+                        capped_qty = prepared.quantity * scale
+                        effective_price = max(float(prepared.price or 0.0), projected_notional / max(prepared.quantity, 1e-9))
+                        if capped_qty * effective_price < cfg.min_notional:
+                            record_trade_decision(
+                                status="GATED",
+                                strategy=prepared.strategy,
+                                symbol=prepared.symbol,
+                                action=f"{prepared.side.lower()}_{prepared.market}",
+                                confidence=prepared.confidence,
+                                reason="Live crypto allocation cap left less than the minimum executable notional.",
+                                details={"market": prepared.market, "regime": regime, "remaining_book_budget": remaining_book_budget, "meta": prepared.meta},
+                            )
+                            continue
+                        meta = dict(prepared.meta or {})
+                        meta["allocation_capped"] = True
+                        meta["allocation_remaining_before"] = remaining_book_budget
+                        prepared = prepared._replace(quantity=capped_qty, meta=meta)
+                        projected_notional = remaining_book_budget
+                sized.append(prepared)
+                if remaining_book_budget is not None and prepared.side == "BUY":
+                    remaining_book_budget = max(0.0, remaining_book_budget - projected_notional)
                 log.info(
                     "Sized %s %s strategy=%s notional=%.2f qty=%.8f risk=%.2f stop=%.2f%% take=%.2f%% bind=%s",
-                    sig.symbol,
-                    sig.side,
-                    sig.strategy,
-                    decision.notional,
-                    decision.quantity,
+                    prepared.symbol,
+                    prepared.side,
+                    prepared.strategy,
+                    projected_notional,
+                    prepared.quantity,
                     decision.risk_dollars,
                     decision.stop_loss_pct * 100,
                     decision.take_profit_pct * 100,
@@ -500,7 +712,7 @@ class Orchestrator:
     # ------------------------------------------------------------------ #
 
     async def _refresh_funding_and_oi(self) -> None:
-        for symbol in cfg.crypto_symbols:
+        for symbol in (self.runtime_symbols if self.book_name == "crypto" else cfg.crypto_symbols):
             try:
                 self.store.funding[symbol] = await self.client.get_funding_rate(symbol)
                 self.store.open_interest[symbol] = await self.client.get_open_interest(symbol)
@@ -513,7 +725,7 @@ class Orchestrator:
 
     async def _load_ml_models(self) -> None:
         log.info("Loading ML models...")
-        for symbol in cfg.live_model_symbols:
+        for symbol in self.model_symbols:
             self.regime_hmm[symbol] = load_or_init_hmm(symbol)
             from ml.features import FEATURE_NAMES
             self.predictors[symbol] = load_or_init_predictor(symbol, n_features=len(FEATURE_NAMES))
