@@ -130,7 +130,7 @@ async def run_training() -> None:
     lookback = cfg.retrain_lookback_days
 
     # 1. Download data
-    log.info("[1/6] Downloading %d days of 1h data for %d symbols...", lookback, len(symbols))
+    log.info("[1/8] Downloading %d days of 1h data for %d symbols...", lookback, len(symbols))
     data = await download_data(symbols, lookback_days=lookback)
 
     if not data:
@@ -141,7 +141,7 @@ async def run_training() -> None:
     training_dir.mkdir(parents=True, exist_ok=True)
 
     # 2. Retrain HMM for each symbol
-    log.info("[2/6] Training HMM regime detectors...")
+    log.info("[2/8] Training HMM regime detectors...")
     for symbol, df in data.items():
         try:
             hmm = RegimeHMM(n_states=cfg.hmm_states)
@@ -152,7 +152,7 @@ async def run_training() -> None:
             log.warning("  HMM training failed for %s: %s", symbol, exc)
 
     # 3. Retrain LSTM price predictors
-    log.info("[3/6] Training LSTM price predictors (GPU)...")
+    log.info("[3/8] Training LSTM price predictors (GPU)...")
     n_features = len(FEATURE_NAMES)
     all_X, all_y = [], []
 
@@ -186,7 +186,7 @@ async def run_training() -> None:
             log.warning("  LSTM training failed for %s: %s", symbol, exc)
 
     # 4. Retrain GARCH volatility models
-    log.info("[4/6] Fitting GARCH volatility models...")
+    log.info("[4/8] Fitting GARCH volatility models...")
     for symbol in cfg.model_symbols:
         try:
             df = data.get(symbol)
@@ -201,7 +201,7 @@ async def run_training() -> None:
             log.warning("  GARCH failed for %s: %s", symbol, exc)
 
     # 5. Retrain RL strategy allocator
-    log.info("[5/6] Training RL strategy allocator (PPO)...")
+    log.info("[5/8] Training RL strategy allocator (PPO)...")
     try:
         if all_X:
             X_combined = np.vstack(all_X)
@@ -223,8 +223,109 @@ async def run_training() -> None:
     except Exception as exc:
         log.warning("  RL training failed: %s", exc)
 
-    # 6. Deploy: copy training_dir models -> model_dir (live)
-    log.info("[6/6] Deploying new models to live directory...")
+    # 6. Train MegaStrategyNet (NeuralSelector backbone)
+    log.info("[6/8] Training MegaStrategyNet macro classifier (GPU)...")
+    try:
+        import torch
+        import torch.nn as nn
+        import torch.optim as optim
+        from torch.utils.data import DataLoader, TensorDataset
+        from core.mega_neural_brain import MegaStrategyNet
+        from ml.regime_hmm import RegimeHMM
+
+        mega_X_list, mega_y_list = [], []
+        for symbol in cfg.model_symbols:
+            df = data.get(symbol)
+            if df is None:
+                continue
+            X, y = build_training_data(df)
+            if len(X) < 100:
+                continue
+            # Derive per-bar macro label from HMM regime + return direction
+            # Label: 0=THETA (range), 1=VEGA (explosive), 2=BULL, 3=BEAR
+            hmm = RegimeHMM(n_states=cfg.hmm_states)
+            hmm.fit(df)
+            regime_seq = hmm.predict_sequence(df)  # list of str per bar
+            regime_map = {"ranging": 0, "volatile": 1, "bull": 2, "bear": 3}
+            if regime_seq is None or len(regime_seq) < len(X):
+                labels = np.zeros(len(X), dtype=np.int64)
+            else:
+                labels = np.array(
+                    [regime_map.get(r, 0) for r in regime_seq[-len(X):]],
+                    dtype=np.int64,
+                )
+            mega_X_list.append(X)
+            mega_y_list.append(labels)
+
+        if mega_X_list:
+            X_mega = np.vstack(mega_X_list)
+            y_mega = np.concatenate(mega_y_list)
+            n_features_mega = X_mega.shape[1]
+            seq_len = min(64, len(X_mega) // 4)
+
+            # Build sequences (T, seq_len, n_features)
+            Xs_mega, ys_mega = [], []
+            for i in range(seq_len, len(X_mega)):
+                Xs_mega.append(X_mega[i - seq_len: i])
+                ys_mega.append(y_mega[i])
+            Xs_mega = np.array(Xs_mega, dtype=np.float32)
+            ys_mega = np.array(ys_mega, dtype=np.int64)
+
+            split = int(len(Xs_mega) * 0.85)
+            t_X = torch.tensor(Xs_mega[:split])
+            t_y = torch.tensor(ys_mega[:split])
+            dataset = TensorDataset(t_X, t_y)
+            loader = DataLoader(dataset, batch_size=256, shuffle=True)
+
+            device = cfg.device if runtime.device.type != "cpu" else "cpu"
+            mega_net = MegaStrategyNet(input_size=n_features_mega).to(device)
+            optimizer = optim.AdamW(mega_net.parameters(), lr=1e-3, weight_decay=1e-4)
+            criterion = nn.CrossEntropyLoss()
+
+            mega_net.train()
+            for epoch in range(30):
+                epoch_loss = 0.0
+                for batch_X, batch_y in loader:
+                    batch_X = batch_X.to(device)
+                    batch_y = batch_y.to(device)
+                    optimizer.zero_grad()
+                    out = mega_net(batch_X)
+                    loss = criterion(out, batch_y)
+                    loss.backward()
+                    nn.utils.clip_grad_norm_(mega_net.parameters(), 1.0)
+                    optimizer.step()
+                    epoch_loss += loss.item()
+                if (epoch + 1) % 10 == 0:
+                    log.info("  MegaNet epoch %d/%d loss=%.4f", epoch + 1, 30, epoch_loss / max(len(loader), 1))
+
+            save_path = training_dir / "mega_net.pt"
+            torch.save({
+                "state_dict": mega_net.state_dict(),
+                "input_size": n_features_mega,
+            }, save_path)
+            log.info("  MegaStrategyNet saved to %s", save_path)
+        else:
+            log.warning("  MegaStrategyNet: no training data collected")
+    except Exception as exc:
+        log.warning("  MegaStrategyNet training failed: %s", exc)
+
+    # 7. Generate alpha cache (ml_alpha ensemble snapshot)
+    log.info("[7/8] Generating ML alpha cache...")
+    try:
+        from core.ml_alpha import generate_live_alpha_signals
+        from ml.alpha_cache import DEFAULT_CACHE_PATH
+
+        alpha_signals = generate_live_alpha_signals(
+            symbols=cfg.model_symbols,
+            cache_path=DEFAULT_CACHE_PATH,
+            max_age_minutes=0,   # force regenerate
+        )
+        log.info("  Alpha cache: %d signals written to %s", len(alpha_signals), DEFAULT_CACHE_PATH)
+    except Exception as exc:
+        log.warning("  Alpha cache generation failed: %s", exc)
+
+    # 8. Deploy: copy training_dir models -> model_dir (live)
+    log.info("[8/8] Deploying new models to live directory...")
     live_dir = cfg.model_dir
     live_dir.mkdir(parents=True, exist_ok=True)
 

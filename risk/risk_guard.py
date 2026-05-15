@@ -27,6 +27,7 @@ class RiskGuard:
         self._halt_reason: str = ""
         self._daily_date: date | None = None
         self._daily_pnl_start_equity: float | None = None
+        self._current_drawdown: float = 0.0
 
     # ------------------------------------------------------------------ #
     # Global halt
@@ -53,10 +54,15 @@ class RiskGuard:
     # Per-cycle checks
     # ------------------------------------------------------------------ #
 
+    @property
+    def current_drawdown(self) -> float:
+        return self._current_drawdown
+
     def check_drawdown(self, current_equity: float, peak_equity: float) -> GuardDecision:
         if peak_equity <= 0:
             return GuardDecision(True)
         dd = (peak_equity - current_equity) / peak_equity
+        self._current_drawdown = max(0.0, dd)
         if dd >= cfg.max_drawdown:
             self.halt(f"Max drawdown {dd:.1%} >= limit {cfg.max_drawdown:.1%}")
             return GuardDecision(False, self._halt_reason)

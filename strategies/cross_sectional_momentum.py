@@ -142,7 +142,7 @@ class CrossSectionalMomentumStrategy(BaseStrategy):
             side = "BUY" if is_long else "SELL"
             signals.append(Signal(
                 symbol=sym, market="futures", side=side,
-                quantity=0.001, price=0,
+                quantity=0.0, price=0,
                 confidence=confidence,
                 strategy=self.name,
             ))

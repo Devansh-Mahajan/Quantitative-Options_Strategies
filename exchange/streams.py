@@ -67,6 +67,9 @@ class MarketDataStore:
         self.open_interest: dict[str, float] = {}
         # callbacks registered by strategies
         self._on_candle_close: list[Callable[[Candle], None]] = []
+        # DataFrame cache: rebuilt only when new candle pushed for that key
+        self._df_cache: dict[tuple[str, str], "pd.DataFrame"] = {}
+        self._df_dirty: dict[tuple[str, str], bool] = defaultdict(lambda: True)
 
     def on_candle_close(self, callback: Callable[[Candle], None]) -> None:
         self._on_candle_close.append(callback)
@@ -75,6 +78,7 @@ class MarketDataStore:
         key = (candle.symbol, candle.interval)
         self.candles[key] = candle
         self.history[key].append(candle)
+        self._df_dirty[key] = True
         if candle.closed:
             for cb in self._on_candle_close:
                 try:
@@ -95,6 +99,8 @@ class MarketDataStore:
     def get_history_df(self, symbol: str, interval: str):
         import pandas as pd
         key = (symbol, interval)
+        if not self._df_dirty[key] and key in self._df_cache:
+            return self._df_cache[key]
         records = [
             {
                 "open_time": c.open_time, "open": c.open, "high": c.high,
@@ -102,7 +108,10 @@ class MarketDataStore:
             }
             for c in self.history[key]
         ]
-        return pd.DataFrame(records) if records else pd.DataFrame()
+        df = pd.DataFrame(records) if records else pd.DataFrame()
+        self._df_cache[key] = df
+        self._df_dirty[key] = False
+        return df
 
 
 # --------------------------------------------------------------------------- #

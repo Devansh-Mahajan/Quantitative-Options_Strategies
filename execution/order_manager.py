@@ -78,12 +78,19 @@ class OrderManager:
         except Exception:
             pass  # already set or not changeable
 
-        if cfg.maker_only or price > 0:
+        if price > 0:
             # Limit order — slightly inside the spread for maker fee
             limit_price = self._maker_price(side, price)
             resp = await self._client.place_futures_limit(symbol, side, qty, limit_price)
+            exec_price = limit_price
+        elif cfg.maker_only:
+            # maker_only with no reference price — fall back to market to avoid $0 limit
+            log.warning("maker_only=True but signal has no price for %s %s — using market order", side, symbol)
+            resp = await self._client.place_futures_market(symbol, side, qty)
+            exec_price = 0.0
         else:
             resp = await self._client.place_futures_market(symbol, side, qty)
+            exec_price = 0.0
 
         order_id = int(resp.get("orderId", 0))
         trade_id = state.record_trade(
@@ -97,7 +104,7 @@ class OrderManager:
                 side=side, quantity=qty, expected_price=price,
                 trade_db_id=trade_id, strategy=signal.strategy,
             )
-            log.info("Futures %s %s %.6f @ %.2f [id=%d]", side, symbol, qty, limit_price if price > 0 else 0, order_id)
+            log.info("Futures %s %s %.6f @ %.2f [id=%d]", side, symbol, qty, exec_price, order_id)
         return order_id
 
     # ------------------------------------------------------------------ #

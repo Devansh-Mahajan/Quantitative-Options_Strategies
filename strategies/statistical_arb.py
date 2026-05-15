@@ -170,7 +170,7 @@ class StatisticalArbStrategy(BaseStrategy):
                     # Close A leg
                     exit_side_a = "SELL" if pos else "BUY"
                     exit_side_b = "BUY"  if pos else "SELL"
-                    qty = 0.001   # absolute minimum; engine will resize
+                    qty = 0.0
                     signals.append(Signal(sym_a, "futures", exit_side_a, qty, 0, 0.5,
                                           self.name))
                     signals.append(Signal(sym_b, "futures", exit_side_b, qty, 0, 0.5,
@@ -183,18 +183,18 @@ class StatisticalArbStrategy(BaseStrategy):
 
             # Entry: spread too high → short A, long B
             if z > self._entry_z:
-                signals.append(Signal(sym_a, "futures", "SELL", 0.001, 0, confidence,
+                signals.append(Signal(sym_a, "futures", "SELL", 0.0, 0, confidence,
                                       self.name))
-                signals.append(Signal(sym_b, "futures", "BUY",  0.001, 0, confidence,
+                signals.append(Signal(sym_b, "futures", "BUY",  0.0, 0, confidence,
                                       self.name))
                 self._positions[(sym_a, sym_b)] = False   # short spread
                 log.debug("StatArb SELL %s / BUY %s  z=%.2f  β=%.3f", sym_a, sym_b, z, beta)
 
             # Entry: spread too low → long A, short B
             elif z < -self._entry_z:
-                signals.append(Signal(sym_a, "futures", "BUY",  0.001, 0, confidence,
+                signals.append(Signal(sym_a, "futures", "BUY",  0.0, 0, confidence,
                                       self.name))
-                signals.append(Signal(sym_b, "futures", "SELL", 0.001, 0, confidence,
+                signals.append(Signal(sym_b, "futures", "SELL", 0.0, 0, confidence,
                                       self.name))
                 self._positions[(sym_a, sym_b)] = True    # long spread
                 log.debug("StatArb BUY %s / SELL %s  z=%.2f  β=%.3f", sym_a, sym_b, z, beta)

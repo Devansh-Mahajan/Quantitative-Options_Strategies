@@ -22,6 +22,9 @@ from ml.price_lstm import PricePredictorTrainer, load_or_init_predictor
 from ml.rl_allocator import RLAllocator, load_or_init_allocator
 from ml.vol_model import GARCHVolModel, IVSurface
 from ml.features import compute_features
+from ml.neural_selector import NeuralSelector, load_or_init_selector
+from ml.movement_scorer import MovementScorer
+from ml.alpha_cache import AlphaCache
 from risk.portfolio_risk import PortfolioRiskEngine
 from risk.position_sizer import PositionSizer, SizingContext
 from risk.risk_guard import RiskGuard
@@ -31,6 +34,8 @@ from strategies.registry import build_registry
 from strategies.base import Signal
 from core.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
 from core.trade_decision_tape import record_trade_decision
+from core.signal_router import build_routing_plan, confidence_modifier
+from core.signal_fusion import RoutingPlan
 
 log = logging.getLogger("bot.orchestrator")
 
@@ -90,6 +95,12 @@ class Orchestrator:
         self.iv_surfaces: dict[str, IVSurface] = {}    # per underlying (BTC, ETH)
         self.rl_allocator: RLAllocator | None = None
 
+        # Integration layer: neural macro + movement + alpha → routing
+        self.neural_selector: NeuralSelector = NeuralSelector()
+        self.movement_scorer: MovementScorer = MovementScorer()
+        self.alpha_cache: AlphaCache = AlphaCache()
+        self._routing_plan: RoutingPlan | None = None
+
         # Store references on store for strategies to access
         self.store.iv_surfaces = self.iv_surfaces       # type: ignore[attr-defined]
         self.store.options_chains = {}                  # type: ignore[attr-defined]
@@ -107,6 +118,8 @@ class Orchestrator:
         self._last_funding_refresh = 0.0
         self._last_oi_refresh = 0.0
         self._cycle_count = 0
+        self._last_rl_weights: np.ndarray | None = None
+        self._prev_equity_for_rl: float | None = None
 
     @staticmethod
     def _normalize_symbols(symbols: list[str]) -> list[str]:
@@ -275,6 +288,22 @@ class Orchestrator:
 
         # --- 7. ML price predictions ---
         predictions = await self._get_predictions()
+
+        # --- 7b. Build macro routing plan (NeuralSelector + movement + alpha) ---
+        route_symbols = self.runtime_symbols or self.model_symbols
+        try:
+            self._routing_plan = build_routing_plan(
+                store=self.store,
+                neural_selector=self.neural_selector,
+                movement_scorer=self.movement_scorer,
+                alpha_cache=self.alpha_cache,
+                symbols=route_symbols,
+                equity=equity,
+                primary_symbol=self.primary_regime_symbol,
+            )
+        except Exception as exc:
+            log.warning("RoutingPlan build failed: %s — skipping this cycle", exc)
+            self._routing_plan = None
 
         # --- 8. Collect strategy signals ---
         raw_signals = self._collect_signals(regime, predictions)
@@ -479,13 +508,21 @@ class Orchestrator:
 
     def _collect_signals(self, regime: str, predictions: dict) -> list[Signal]:
         signals: list[Signal] = []
+        routing = self._routing_plan
         for strategy in self.strategies:
             try:
                 sigs = strategy.generate_signals(self.store, regime, predictions)
                 for signal in sigs:
                     normalized = self._normalize_signal_for_book(signal)
-                    if normalized is not None:
-                        signals.append(normalized)
+                    if normalized is None:
+                        continue
+                    # Apply macro routing confidence modifier when plan is available
+                    if routing is not None:
+                        mod = confidence_modifier(normalized, routing)
+                        normalized = normalized._replace(
+                            confidence=float(np.clip(normalized.confidence * mod, 0.0, 1.0))
+                        )
+                    signals.append(normalized)
             except Exception as exc:
                 log.warning("Strategy %s error: %s", strategy.name, exc)
         return signals
@@ -565,23 +602,89 @@ class Orchestrator:
                     return close
         return 0.0
 
+    def _build_rl_observation(
+        self, exp_dim: int, equity: float, regime: str, strategy_names: list[str]
+    ) -> np.ndarray:
+        """
+        Build observation matching StrategyAllocEnv._obs.
+
+        Supports two layouts (auto-detected from exp_dim):
+          New: features | weights | pnl | regime_ohe(4) | neural_probs(4)  overhead=9
+          Old: features | weights | pnl | regime_ohe(4)                    overhead=5
+        """
+        n_strats = len(strategy_names)
+
+        # Detect layout: new model has +4 neural_probs slot
+        n_feat_new = exp_dim - n_strats - 9
+        n_feat_old = exp_dim - n_strats - 5
+        if n_feat_new >= 0:
+            n_feat = n_feat_new
+            include_neural = True
+        elif n_feat_old >= 0:
+            n_feat = n_feat_old
+            include_neural = False
+        else:
+            log.error("RL observation_dim=%d incompatible with n_strategies=%d", exp_dim, n_strats)
+            return np.zeros(exp_dim, dtype=np.float32)
+
+        feature_vec = np.zeros(n_feat, dtype=np.float32)
+        df = self.store.get_history_df(self.primary_regime_symbol, "1h")
+        if len(df) >= 30:
+            try:
+                feats = compute_features(df)
+                if len(feats) > 0:
+                    row = feats.iloc[-1].to_numpy(dtype=np.float32)
+                    if row.size >= n_feat:
+                        feature_vec[:] = row[:n_feat]
+                    else:
+                        feature_vec[: row.size] = row
+            except Exception as exc:
+                log.debug("RL observation features skipped: %s", exc)
+
+        if (
+            self._last_rl_weights is not None
+            and self._last_rl_weights.shape[0] == n_strats
+        ):
+            w = self._last_rl_weights.astype(np.float32).copy()
+        else:
+            w = np.ones(n_strats, dtype=np.float32) / float(max(n_strats, 1))
+
+        last_pnl = 0.0
+        if self._prev_equity_for_rl is not None and self._prev_equity_for_rl > 0:
+            last_pnl = float(np.clip(equity / self._prev_equity_for_rl - 1.0, -0.5, 0.5))
+
+        regime_map = {"bull": 0, "bear": 1, "ranging": 2, "volatile": 3}
+        ri = min(int(regime_map.get(regime, 2)), 3)
+        regime_ohe = np.zeros(4, dtype=np.float32)
+        regime_ohe[ri] = 1.0
+
+        parts = [feature_vec, w, np.array([last_pnl], dtype=np.float32), regime_ohe]
+        if include_neural:
+            parts.append(self.neural_selector.probs_array)
+
+        obs = np.concatenate(parts)
+        if obs.shape[0] != exp_dim:
+            log.error("RL obs assembly bug: len=%d expected=%d", obs.shape[0], exp_dim)
+            return np.zeros(exp_dim, dtype=np.float32)
+        return obs
+
     def _apply_rl_weights(self, signals: list[Signal], equity: float, regime: str) -> list[Signal]:
         """Scale signal confidences by RL-derived strategy weights."""
         if self.rl_allocator is None:
             return signals
 
-        strategy_names = list({s.name for s in self.strategies})
-        regime_map = {"bull": 0, "bear": 1, "ranging": 2, "volatile": 3}
-        regime_idx = regime_map.get(regime, 2)
+        strategy_names = [s.name for s in self.strategies]
+        exp_dim = self.rl_allocator.observation_dim
+        if exp_dim is None:
+            dummy = np.zeros(1, dtype=np.float32)
+            weights = self.rl_allocator.get_weights(dummy)
+        else:
+            obs = self._build_rl_observation(exp_dim, equity, regime, strategy_names)
+            weights = self.rl_allocator.get_weights(obs)
 
-        # Build a flat obs vector for RL (portfolio state)
-        pos_count = len(self.position_manager.all_positions())
-        dummy_obs = np.zeros(10 + len(strategy_names) + 5, dtype=np.float32)
-        dummy_obs[regime_idx] = 1.0
-        dummy_obs[4] = equity / (self._start_equity + 1e-10)
-        dummy_obs[5] = pos_count / 20.0
+        self._last_rl_weights = weights.astype(np.float32).copy()
+        self._prev_equity_for_rl = float(equity)
 
-        weights = self.rl_allocator.get_weights(dummy_obs)
         weight_map = {name: float(w) for name, w in zip(strategy_names, weights)}
 
         scaled = []
@@ -733,6 +836,10 @@ class Orchestrator:
 
         n_strats = len(self.strategies)
         self.rl_allocator = load_or_init_allocator(n_strats)
+
+        # Load NeuralSelector (MegaStrategyNet); MovementScorer/AlphaCache need no loading
+        self.neural_selector = load_or_init_selector()
+        log.info("NeuralSelector ready (model_loaded=%s)", self.neural_selector._model is not None)
 
         for underlying in cfg.options_underlying:
             self.iv_surfaces[underlying] = IVSurface()

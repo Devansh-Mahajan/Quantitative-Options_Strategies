@@ -137,7 +137,7 @@ class CarryPortfolioStrategy(BaseStrategy):
 
             signals.append(Signal(
                 symbol=sym, market="futures", side="SELL",
-                quantity=0.001, price=0,
+                quantity=0.0, price=0,
                 confidence=confidence,
                 strategy=self.name,
                 meta={"carry_type": "positive", "ann_carry_pct": annualised_carry * 100},
@@ -157,7 +157,7 @@ class CarryPortfolioStrategy(BaseStrategy):
 
             signals.append(Signal(
                 symbol=sym, market="futures", side="BUY",
-                quantity=0.001, price=0,
+                quantity=0.0, price=0,
                 confidence=confidence,
                 strategy=self.name,
                 meta={"carry_type": "negative", "ann_carry_pct": annualised_carry * 100},

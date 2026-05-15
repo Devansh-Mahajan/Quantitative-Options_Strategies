@@ -118,8 +118,11 @@ def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest:
     f["mom_20"] = (c - c.shift(20)) / (c + 1e-10)
     f["roc_10"] = c.pct_change(10)
     f["roc_20"] = c.pct_change(20)
-    roll_high = c.rolling(min(504, len(c))).max()
-    roll_low  = c.rolling(min(504, len(c))).min()
+    # Use min_periods=1 so short histories (or len < 504 bars) still produce rows;
+    # default min_periods==window would leave only the final bar non-NaN and empty training.
+    _52w_win = min(504, max(len(c), 1))
+    roll_high = c.rolling(_52w_win, min_periods=1).max()
+    roll_low = c.rolling(_52w_win, min_periods=1).min()
     f["high52w_pct"] = (c - roll_high) / (roll_high + 1e-10)
     f["low52w_pct"]  = (c - roll_low)  / (roll_low  + 1e-10)
 
@@ -186,8 +189,14 @@ def compute_features(df: pd.DataFrame, funding_rate: float = 0.0, open_interest:
     f["donchian_low_20"]  = (c - lo.rolling(20).min()) / (c + 1e-10)
 
     # ── Autocorrelation — Cont (2001) return serial structure ─────────────────
-    f["autocorr_1"] = lr.rolling(20).apply(lambda x: float(pd.Series(x).autocorr(lag=1)), raw=False).fillna(0)
-    f["autocorr_5"] = lr.rolling(40).apply(lambda x: float(pd.Series(x).autocorr(lag=5)), raw=False).fillna(0)
+    # Vectorized: corr(r_t, r_{t-lag}) in rolling window via cov/var.
+    # Rolling().cov(shifted) is C-backed and ~50x faster than rolling().apply(autocorr).
+    f["autocorr_1"] = (
+        lr.rolling(20).cov(lr.shift(1)) / (lr.rolling(20).var() + 1e-10)
+    ).clip(-1.0, 1.0).fillna(0.0)
+    f["autocorr_5"] = (
+        lr.rolling(40).cov(lr.shift(5)) / (lr.rolling(40).var() + 1e-10)
+    ).clip(-1.0, 1.0).fillna(0.0)
 
     # ── Higher-order moments (20-bar window) ──────────────────────────────────
     f["skewness_20"] = lr.rolling(20).skew().fillna(0)

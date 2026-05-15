@@ -45,6 +45,7 @@ class StrategyAllocEnv(gym.Env):
         features: np.ndarray,       # (T, n_features) — market state
         regimes: np.ndarray,        # (T,) int — regime index
         episode_len: int = 200,
+        neural_probs: np.ndarray | None = None,   # (T, 4) or None
     ) -> None:
         super().__init__()
         self.returns = returns.astype(np.float32)
@@ -54,10 +55,18 @@ class StrategyAllocEnv(gym.Env):
         self.n_strategies = returns.shape[1]
         self.n_features = features.shape[1]
 
+        # Per-step neural macro probs: (T, 4); defaults to neutral if not supplied
+        T = len(returns)
+        if neural_probs is not None and len(neural_probs) == T:
+            self._neural_probs_seq = np.asarray(neural_probs, dtype=np.float32)
+        else:
+            self._neural_probs_seq = np.full((T, 4), 0.25, dtype=np.float32)
+        self._current_neural_probs = np.array([0.25, 0.25, 0.25, 0.25], dtype=np.float32)
+
         # Action: allocation weights for each strategy
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(self.n_strategies,), dtype=np.float32)
-        # Observation: features + current weights + portfolio return last bar
-        obs_dim = self.n_features + self.n_strategies + 1 + 4  # +1 pnl, +4 regime one-hot
+        # Observation: features + weights + pnl + regime one-hot + neural_probs
+        obs_dim = self.n_features + self.n_strategies + 1 + 4 + 4
         self.observation_space = spaces.Box(low=-10.0, high=10.0, shape=(obs_dim,), dtype=np.float32)
 
         self._t = 0
@@ -75,6 +84,7 @@ class StrategyAllocEnv(gym.Env):
         return self._obs(), {}
 
     def step(self, action: np.ndarray):
+        self._current_neural_probs = self._neural_probs_seq[min(self._t, len(self._neural_probs_seq) - 1)]
         weights = np.exp(action) / (np.exp(action).sum() + 1e-10)  # softmax
         step_ret = float(np.dot(weights, self.returns[self._t]))
         self._portfolio_rets.append(step_ret)
@@ -100,11 +110,13 @@ class StrategyAllocEnv(gym.Env):
         regime_ohe = np.zeros(4, dtype=np.float32)
         regime_ohe[min(self.regimes[t], 3)] = 1.0
         last_pnl = self._portfolio_rets[-1] if self._portfolio_rets else 0.0
+        neural = self._current_neural_probs
         return np.concatenate([
             self.features[t],
             self._weights,
             [last_pnl],
             regime_ohe,
+            neural,
         ]).astype(np.float32)
 
 
@@ -117,6 +129,17 @@ class RLAllocator:
         self.n_strategies = n_strategies
         self._model: Any = None
         self._equal = np.ones(n_strategies, dtype=np.float32) / n_strategies
+
+    @property
+    def observation_dim(self) -> int | None:
+        """Box observation size from the loaded PPO policy, if any."""
+        if self._model is None:
+            return None
+        space = getattr(self._model, "observation_space", None)
+        shape = getattr(space, "shape", None) if space is not None else None
+        if not shape:
+            return None
+        return int(shape[0])
 
     def train(
         self,
@@ -159,7 +182,16 @@ class RLAllocator:
         """
         if self._model is None or not _SB3_AVAILABLE:
             return self._equal.copy()
-        action, _ = self._model.predict(obs, deterministic=True)
+        vec = np.asarray(obs, dtype=np.float32).reshape(-1)
+        exp = int(self._model.observation_space.shape[0])
+        if vec.shape[0] != exp:
+            log.error(
+                "RL observation length mismatch: got %d, policy expects %d — using equal weights",
+                int(vec.shape[0]),
+                exp,
+            )
+            return self._equal.copy()
+        action, _ = self._model.predict(vec, deterministic=True)
         weights = np.exp(action) / (np.exp(action).sum() + 1e-10)
         return weights.astype(np.float32)
 

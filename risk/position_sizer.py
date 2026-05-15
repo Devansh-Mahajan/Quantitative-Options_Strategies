@@ -12,8 +12,8 @@ passed through several independent constraints:
 - drawdown / daily-loss throttles
 - market-regime and execution-quality scalars
 
-The legacy ``size_from_signal`` method is intentionally retained for callers
-that still expect the old `(notional, quantity)` tuple.
+The ``size_from_signal`` compatibility wrapper is retained for callers that
+expect the old ``(notional, quantity)`` tuple.
 """
 
 from __future__ import annotations
@@ -139,51 +139,6 @@ class PositionSizer:
         )
 
     # ------------------------------------------------------------------ #
-    # Kelly criterion
-    # ------------------------------------------------------------------ #
-
-    def kelly_size(
-        self,
-        win_rate: float,
-        avg_win: float,
-        avg_loss: float,
-        equity: float,
-    ) -> float:
-        """
-        Full Kelly fraction of equity.
-        k = (win_rate / avg_loss) - (loss_rate / avg_win)
-        Applied at self.kelly_fraction (quarter-Kelly by default).
-        """
-        if avg_loss <= 0 or avg_win <= 0:
-            return 0.0
-        loss_rate = 1.0 - win_rate
-        k = (win_rate / avg_loss) - (loss_rate / avg_win)
-        k = max(0.0, k)  # never go short from Kelly
-        size_fraction = min(k * self.kelly_fraction, self.max_risk_per_trade)
-        return equity * size_fraction
-
-    # ------------------------------------------------------------------ #
-    # Volatility targeting
-    # ------------------------------------------------------------------ #
-
-    def vol_target_size(
-        self,
-        target_vol: float,
-        realised_vol: float,
-        equity: float,
-        price: float,
-    ) -> float:
-        """
-        Size position so it contributes `target_vol` to portfolio volatility.
-        target_vol and realised_vol are annualised fractions.
-        Returns USDT notional.
-        """
-        if realised_vol <= 0 or price <= 0:
-            return 0.0
-        notional = (target_vol / realised_vol) * equity
-        return min(notional, equity * self.max_risk_per_trade / max(realised_vol, 0.01))
-
-    # ------------------------------------------------------------------ #
     # Dynamic stop/take-profit planning
     # ------------------------------------------------------------------ #
 
@@ -246,8 +201,8 @@ class PositionSizer:
         regime_scalar = {
             "bull": 1.00,
             "ranging": 0.85,
-            "volatile": 0.45,
-            "bear": 0.60,
+            "volatile": 0.60,   # raised from 0.45: crypto is routinely volatile
+            "bear": 0.65,       # raised from 0.60: bear markets still produce trades
         }.get(context.regime, 0.75)
 
         # Convex confidence map: weak signals survive as watchlist context but
@@ -388,7 +343,10 @@ class PositionSizer:
         """Return safe leverage cap given current volatility and regime."""
         max_lev = cfg.max_leverage
         regime_cap = {"bull": max_lev, "ranging": max_lev // 2, "volatile": 3, "bear": 5}.get(regime, 5)
-        vol_cap = max(1, int(0.20 / max(realised_vol, 0.01)))  # target 20% daily vol at 1x
+        # realised_vol is annualised; convert to daily before sizing leverage.
+        # vol_cap = target_daily_vol / daily_vol, where target_daily_vol = 20%.
+        daily_vol = max(realised_vol / sqrt(365), 1e-4)
+        vol_cap = max(1, int(0.20 / daily_vol))  # target 20% daily vol at 1x
         return min(regime_cap, vol_cap, max_lev)
 
     # ------------------------------------------------------------------ #

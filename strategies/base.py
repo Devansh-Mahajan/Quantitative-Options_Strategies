@@ -16,7 +16,7 @@ class Signal(NamedTuple):
     strategy: str
     required_regime: str | None = None   # bull|bear|ranging|volatile|None=any
     leverage: int = 1
-    meta: dict = {}
+    meta: dict | None = None
 
 
 class BaseStrategy(ABC):

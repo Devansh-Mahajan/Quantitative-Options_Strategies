@@ -708,3 +708,70 @@
 2026-05-11 19:58:55 | INFO     | scripts.risk_monitor | Risk | equity=10055.01 | dd=0.02% | var99=0.01% | gross_exp=0.9x | positions=1
 2026-05-11 19:59:56 | INFO     | scripts.risk_monitor | Risk | equity=10055.57 | dd=0.01% | var99=0.01% | gross_exp=0.9x | positions=1
 2026-05-11 20:00:56 | INFO     | scripts.risk_monitor | Risk | equity=10055.16 | dd=0.01% | var99=0.01% | gross_exp=0.9x | positions=1
+2026-05-11 20:28:16 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:16 | INFO     | httpx | HTTP Request: GET http://testserver/api/config "HTTP/1.1 200 OK"
+2026-05-11 20:28:16 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:16 | INFO     | httpx | HTTP Request: GET http://testserver/api/daily_pnl "HTTP/1.1 200 OK"
+2026-05-11 20:28:16 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:16 | INFO     | httpx | HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+2026-05-11 20:28:16 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:16 | INFO     | httpx | HTTP Request: GET http://testserver/api/forwardtest/jobs/ft_progress_test "HTTP/1.1 200 OK"
+2026-05-11 20:28:16 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/live/tape "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/positions "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/research/desk "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/risk/correlations "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: HEAD http://testserver/ "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/favicon.ico "HTTP/1.1 204 No Content"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/backtest/list "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/strategies/params "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/strategies/defaults "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/training/scripts "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/training/jobs "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/ml/alpha "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/execution/quality "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/system/health "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/risk/events "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/execution/ledger "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/intelligence "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | dashboard.server | Dashboard starting on port 8080
+2026-05-11 20:28:17 | INFO     | httpx | HTTP Request: GET http://testserver/api/trades/analysis "HTTP/1.1 200 OK"
+2026-05-11 20:28:17 | INFO     | backtester.data_loader | Downloading BTCUSDT 1h  2025-01-01 → 2025-01-02 …
+2026-05-11 20:28:17 | INFO     | backtester.data_loader |   → 2 bars saved to BTCUSDT_1h.parquet
+2026-05-11 20:28:17 | INFO     | backtester.data_loader | Downloading stock SPY 1h  2023-01-01 → 2026-05-10 …
+2026-05-11 20:28:17 | INFO     | backtester.data_loader |   → 6 bars saved to SPY_1h.parquet
+2026-05-11 20:28:17 | INFO     | backtester.data_loader | Downloading stock SPY 1h  2023-01-01 → 2026-05-10 …
+2026-05-11 20:28:17 | INFO     | backtester.data_loader |   → 6 bars saved to SPY_1h.parquet
+2026-05-11 20:28:17 | INFO     | backtester.data_loader |   → 6 bars saved to AAPL_1h.parquet
+2026-05-11 20:28:41 | ERROR    | broker.core.broker_client | 🚫 Portfolio risk gate blocked Buy TSLA | reason=Projected breach: portfolio_cvar. | breaches=portfolio_cvar | projected_cvar=12.00% | projected_stress=14.00%
+2026-05-11 20:28:41 | INFO     | strategy.core.execution | 🎯 Executing Long Straddle on AAPL: BUY AAPL260515C00100000 & BUY AAPL260515P00100000 | Target Debit: $4.0
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | No stale orders to clean up.
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | === ACCOUNT STATUS ===
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | Today's P/L: $50.00 (0.50%) | Total Equity: $10050.00
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | === PORTFOLIO MANAGER ===
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | --- CURRENT OPEN POSITIONS (HOLDING) ---
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | [HOLDING] SGOV [SHARES]: +0.40% ($+1.25) | Qty: 12
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | --- NO POSITIONS CLOSED THIS RUN ---
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | No stale orders to clean up.
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | === ACCOUNT STATUS ===
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | Today's P/L: $50.00 (0.50%) | Total Equity: $10050.00
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | 💧 CASH RELEASE: Sold 3 SGOV shares (~$300.00) for maintain cash buffer. Cash $700.00 -> target $1000.00.
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | === PORTFOLIO MANAGER ===
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | --- CURRENT OPEN POSITIONS (HOLDING) ---
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | [HOLDING] SGOV [SHARES]: +0.40% ($+1.25) | Qty: 12
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | --- NO POSITIONS CLOSED THIS RUN ---
+2026-05-11 20:28:41 | INFO     | strategy.core.order_monitor | 📡 Order monitor engaged for Credit spread SPY put wing | order_id=ord-1 | initial_limit=-1.10
+2026-05-11 20:28:41 | INFO     | strategy.core.order_monitor | 📈 Order status | Credit spread SPY put wing | order_id=ord-1 | status=new | filled=0.00/1.00 | limit=-1.10
+2026-05-11 20:28:41 | INFO     | strategy.core.order_monitor | 🔁 Repriced Credit spread SPY put wing | attempt=1/1 | new_limit=-1.08 | fair=-1.12 | natural=-1.00 | conf=0.84 | mc_var=0.06
+2026-05-11 20:28:41 | INFO     | strategy.core.order_monitor | 📈 Order status | Credit spread SPY put wing | order_id=ord-1 | status=filled | filled=1.00/1.00 | limit=-1.08
+2026-05-11 20:28:41 | INFO     | strategy.core.manager | 💧 CASH RELEASE: Sold 4 SGOV shares (~$400.00) for test funding. Cash $925.00 -> target $1250.00.
+2026-05-11 20:28:41 | INFO     | ml.price_lstm | PricePredictor on device: cpu

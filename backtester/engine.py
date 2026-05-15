@@ -18,12 +18,13 @@ from backtester.fill_model import FillModel, Order, Fill, OrderType, make_market
 from backtester.metrics import PerformanceMetrics, compute_metrics
 from exchange.streams import MarketDataStore, Candle, BookTicker
 from ml.features import compute_features
+from risk.position_sizer import PositionSizer
 from bot.config import cfg
 
 log = logging.getLogger("backtester.engine")
 
-STOP_LOSS_PCT = 0.05       # 5% hard stop per position
-TAKE_PROFIT_PCT = 0.10     # 10% take-profit per position
+STOP_LOSS_PCT = 0.05       # fallback hard stop (used only if PositionSizer produces no plan)
+TAKE_PROFIT_PCT = 0.10     # fallback take-profit
 
 
 # --------------------------------------------------------------------------- #
@@ -99,6 +100,8 @@ class SimPosition:
     entry_bar: int
     strategy: str
     market: str = "futures"
+    stop_loss_pct: float = STOP_LOSS_PCT
+    take_profit_pct: float = TAKE_PROFIT_PCT
 
     def pnl(self, current_price: float) -> float:
         if self.side == "LONG":
@@ -164,6 +167,7 @@ class BacktestEngine:
         self.stop_loss_pct = stop_loss_pct
         self.take_profit_pct = take_profit_pct
         self.max_risk_per_trade = max_risk_per_trade or cfg.max_risk_per_trade
+        self._sizer = PositionSizer()
 
         # Validate data
         if not data:
@@ -189,8 +193,10 @@ class BacktestEngine:
             for interval in ["1m", "5m", "15m", "1h", "4h"]:
                 store.load_symbol(sym, interval, df)   # all use same df; strategies filter by interval
 
-        # Build ATR series per symbol for fill model
+        # Build ATR and rolling-vol series per symbol for fill model + dynamic stops
         atr_series: dict[str, np.ndarray] = {}
+        ann_vol_series: dict[str, np.ndarray] = {}
+        ann_factor = np.sqrt(365 * 24)  # hourly crypto annualisation (matches GARCHVolModel)
         for sym, df in self.data.items():
             df = df.reset_index()
             tr = pd.concat([
@@ -199,6 +205,8 @@ class BacktestEngine:
                 (df["low"] - df["close"].shift()).abs(),
             ], axis=1).max(axis=1)
             atr_series[sym] = tr.rolling(14).mean().bfill().values
+            log_ret = np.log(df["close"] / df["close"].shift(1))
+            ann_vol_series[sym] = (log_ret.rolling(20).std() * ann_factor).bfill().values
 
         equity = self.initial_equity
         equity_ts: list[tuple] = []
@@ -243,7 +251,13 @@ class BacktestEngine:
                 fills = self.fill_model.process_bar(bar_dict, sym_orders, i)
                 for fill in fills:
                     equity -= fill.net_cost  # cost already signed (buy=negative cash flow)
-                    self._apply_fill_to_positions(fill, positions)
+                    vol = float(ann_vol_series.get(sym, [0.5] * (i + 1))[i] or 0.5)
+                    exit_plan = self._sizer.exit_plan(realised_vol=vol, regime=self._estimate_regime(store, sym))
+                    self._apply_fill_to_positions(
+                        fill, positions,
+                        stop_loss_pct=exit_plan.stop_loss_pct,
+                        take_profit_pct=exit_plan.take_profit_pct,
+                    )
 
             # Remove completed orders
             pending_orders = [o for o in pending_orders if not o.is_done]
@@ -256,7 +270,7 @@ class BacktestEngine:
                 price = float(sym_row["close"])
                 pnl_pct = pos.pnl_pct(price)
 
-                if pnl_pct <= -self.stop_loss_pct or pnl_pct >= self.take_profit_pct:
+                if pnl_pct <= -pos.stop_loss_pct or pnl_pct >= pos.take_profit_pct:
                     close_side = "SELL" if pos.side == "LONG" else "BUY"
                     exit_order = make_market_order(
                         pos.symbol, close_side, pos.quantity, "exit_manager", i
@@ -289,10 +303,9 @@ class BacktestEngine:
                         sigs = strategy.generate_signals(store, regime, predictions)
                         total_signals += len(sigs)
                         for sig in sigs:
-                            if sig.quantity > 0 or True:  # always size internally
-                                order = self._signal_to_order(sig, equity, i, atr_series)
-                                if order:
-                                    pending_orders.append(order)
+                            order = self._signal_to_order(sig, equity, i, atr_series)
+                            if order:
+                                pending_orders.append(order)
                     except Exception as exc:
                         log.debug("Strategy %s error at bar %d: %s", strategy.name, i, exc)
 
@@ -389,9 +402,17 @@ class BacktestEngine:
             return make_limit_order(sig.symbol, sig.side, quantity, sig.price, sig.strategy, bar_index)
         return make_market_order(sig.symbol, sig.side, quantity, sig.strategy, bar_index)
 
-    def _apply_fill_to_positions(self, fill: Fill, positions: list[SimPosition]) -> None:
+    def _apply_fill_to_positions(
+        self,
+        fill: Fill,
+        positions: list[SimPosition],
+        stop_loss_pct: float | None = None,
+        take_profit_pct: float | None = None,
+    ) -> None:
         """Open or close a position based on a fill."""
         existing = next((p for p in positions if p.symbol == fill.order.symbol), None)
+        sl = stop_loss_pct or self.stop_loss_pct
+        tp = take_profit_pct or self.take_profit_pct
 
         if fill.order.side == "BUY":
             if existing and existing.side == "SHORT":
@@ -404,6 +425,8 @@ class BacktestEngine:
                     entry_price=fill.fill_price,
                     entry_bar=fill.bar_index,
                     strategy=fill.order.strategy,
+                    stop_loss_pct=sl,
+                    take_profit_pct=tp,
                 ))
         else:  # SELL
             if existing and existing.side == "LONG":
@@ -416,6 +439,8 @@ class BacktestEngine:
                     entry_price=fill.fill_price,
                     entry_bar=fill.bar_index,
                     strategy=fill.order.strategy,
+                    stop_loss_pct=sl,
+                    take_profit_pct=tp,
                 ))
 
     def _estimate_regime(self, store: SimulatedMarketDataStore, symbol: str) -> str:
