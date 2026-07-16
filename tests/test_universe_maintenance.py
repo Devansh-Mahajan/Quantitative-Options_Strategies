@@ -1,6 +1,6 @@
 import unittest
 
-from core.universe_maintenance import dedupe_symbols, resolve_download_symbol
+from core.risk.universe_maintenance import dedupe_symbols, resolve_download_symbol
 
 
 class UniverseMaintenanceTests(unittest.TestCase):

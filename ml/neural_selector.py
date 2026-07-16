@@ -39,7 +39,7 @@ class NeuralSelector:
     def load(self, path: Path | str | None = None) -> "NeuralSelector":
         try:
             import torch
-            from core.mega_neural_brain import MegaStrategyNet
+            from core.ml.mega_neural_brain import MegaStrategyNet
         except ImportError as exc:
             log.warning("NeuralSelector: torch/MegaStrategyNet unavailable: %s", exc)
             return self

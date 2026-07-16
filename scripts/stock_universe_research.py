@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.universe_maintenance import download_close_matrix, load_symbol_file
+from core.risk.universe_maintenance import download_close_matrix, load_symbol_file
 
 ROOT = Path(__file__).resolve().parent.parent
 SYMBOLS_FILE = ROOT / "config" / "symbol_list.txt"

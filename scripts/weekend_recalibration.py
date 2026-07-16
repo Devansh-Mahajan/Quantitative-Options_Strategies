@@ -9,12 +9,12 @@ from pathlib import Path
 
 import joblib
 
-from core.market_intelligence import prioritize_symbols
-from core.resource_profile import load_resource_profile
-from core.runtime_calibration import MARKET_POLICY_PATH, save_market_regime_policy
-from core.state_manager import register_model_snapshot
-from core.strategy_regime import build_live_controls, clamp, macro_regime_to_market_state
-from core.universe_maintenance import (
+from core.ml.market_intelligence import prioritize_symbols
+from core.telemetry.resource_profile import load_resource_profile
+from core.ml.runtime_calibration import MARKET_POLICY_PATH, save_market_regime_policy
+from core.telemetry.state_manager import register_model_snapshot
+from core.ml.strategy_regime import build_live_controls, clamp, macro_regime_to_market_state
+from core.risk.universe_maintenance import (
     download_close_matrix,
     load_symbol_file,
     save_symbol_file,
@@ -426,6 +426,7 @@ def main():
             [
                 [python_exec, "scripts/train_hmm.py"],
                 [python_exec, "scripts/train_correlation_alpha.py"],
+                [python_exec, "scripts/train_deep_value_model.py"],
                 [python_exec, "scripts/mega_matrix.py", "--target-annual-return", str(args.target_daily_return * 252)],
                 [python_exec, "scripts/mega_gpu_training.py", "--target-annual-return", str(args.target_daily_return * 252), "--target-accuracy", str(args.target_accuracy)],
                 [python_exec, "scripts/train_regime_movement_models.py", "--target-accuracy", str(args.target_accuracy)],

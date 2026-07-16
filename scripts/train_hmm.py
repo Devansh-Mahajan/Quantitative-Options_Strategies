@@ -11,7 +11,7 @@ from hmmlearn.hmm import GaussianHMM
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from core.universe_maintenance import download_close_matrix, load_symbol_file
+from core.risk.universe_maintenance import download_close_matrix, load_symbol_file
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')

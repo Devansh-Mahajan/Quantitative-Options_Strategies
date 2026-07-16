@@ -32,10 +32,10 @@ from execution.order_manager import OrderManager
 from execution.position_manager import PositionManager
 from strategies.registry import build_registry
 from strategies.base import Signal
-from core.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
-from core.trade_decision_tape import record_trade_decision
-from core.signal_router import build_routing_plan, confidence_modifier
-from core.signal_fusion import RoutingPlan
+from core.execution.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
+from core.telemetry.trade_decision_tape import record_trade_decision
+from core.ml.signal_router import build_routing_plan, confidence_modifier
+from core.ml.signal_fusion import RoutingPlan
 
 log = logging.getLogger("bot.orchestrator")
 
@@ -850,9 +850,12 @@ class Orchestrator:
             if len(df) >= 30:
                 import pandas as pd
                 closes = pd.Series([c for c in self.store.get_closes(symbol, "1h", 200)])
-                log_rets = closes.pct_change().dropna()
-                if len(log_rets) >= 30:
-                    self.vol_models[symbol].fit(log_rets)
+                # NOTE: simple returns, not log returns — GARCHVolModel.fit() docstring
+                # says it expects log returns. Difference is small at hourly crypto bar
+                # magnitudes; left as-is pending a deliberate decision to switch.
+                simple_rets = closes.pct_change().dropna()
+                if len(simple_rets) >= 30:
+                    self.vol_models[symbol].fit(simple_rets)
 
         log.info("ML models loaded")
 

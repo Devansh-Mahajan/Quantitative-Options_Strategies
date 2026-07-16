@@ -1,11 +1,11 @@
 import unittest
 
-from core.equity_overlay import (
+from core.execution.equity_overlay import (
     EquitySignalContext,
     _build_delta_hedge_targets,
     _score_directional_candidate,
 )
-from core.movement_predictor import MovementSignal
+from core.ml.movement_predictor import MovementSignal
 
 
 class _Quote:

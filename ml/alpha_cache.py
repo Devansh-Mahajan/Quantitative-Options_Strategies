@@ -12,7 +12,7 @@ import logging
 import time
 from pathlib import Path
 
-from core.ml_alpha import AlphaSignal
+from core.ml.ml_alpha import AlphaSignal
 
 log = logging.getLogger("ml.alpha_cache")
 

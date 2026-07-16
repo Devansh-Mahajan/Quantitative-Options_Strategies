@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from core.resource_profile import build_resource_profile
+from core.telemetry.resource_profile import build_resource_profile
 
 
 class ResourceProfileTests(unittest.TestCase):

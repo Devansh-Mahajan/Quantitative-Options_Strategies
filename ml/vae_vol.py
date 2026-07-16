@@ -190,7 +190,7 @@ class VAEVolEngine:
 
     def __post_init__(self):
         try:
-            from core.torch_device import resolve_torch_runtime
+            from core.telemetry.torch_device import resolve_torch_runtime
             self.device = str(resolve_torch_runtime().device)
         except Exception:
             self.device = "cpu"

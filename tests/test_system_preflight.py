@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from core.system_preflight import run_preflight
+from core.telemetry.system_preflight import run_preflight
 
 
 class SystemPreflightTests(unittest.TestCase):
@@ -17,11 +17,11 @@ class SystemPreflightTests(unittest.TestCase):
             (root / "config" / "sample.json").write_text('{"ok": true}\n', encoding="utf-8")
             state_path = root / ".runtime" / "preflight.json"
 
-            with patch("core.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
-                "core.system_preflight.JSON_GLOBS", ("config/*.json",)
-            ), patch("core.system_preflight.CRITICAL_IMPORTS", ()), patch(
-                "core.system_preflight.REQUIRED_ARTIFACTS", ()
-            ), patch("core.system_preflight.OPTIONAL_ARTIFACTS", ()):
+            with patch("core.telemetry.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
+                "core.telemetry.system_preflight.JSON_GLOBS", ("config/*.json",)
+            ), patch("core.telemetry.system_preflight.CRITICAL_IMPORTS", ()), patch(
+                "core.telemetry.system_preflight.REQUIRED_ARTIFACTS", ()
+            ), patch("core.telemetry.system_preflight.OPTIONAL_ARTIFACTS", ()):
                 first = run_preflight(root=root, state_path=state_path, deep_model_checks=False)
                 second = run_preflight(root=root, state_path=state_path, deep_model_checks=False)
 
@@ -40,11 +40,11 @@ class SystemPreflightTests(unittest.TestCase):
             (root / "config" / "sample.json").write_text('{"ok": true}\n', encoding="utf-8")
             state_path = root / ".runtime" / "preflight.json"
 
-            with patch("core.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
-                "core.system_preflight.JSON_GLOBS", ("config/*.json",)
-            ), patch("core.system_preflight.CRITICAL_IMPORTS", ()), patch(
-                "core.system_preflight.REQUIRED_ARTIFACTS", ()
-            ), patch("core.system_preflight.OPTIONAL_ARTIFACTS", ()):
+            with patch("core.telemetry.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
+                "core.telemetry.system_preflight.JSON_GLOBS", ("config/*.json",)
+            ), patch("core.telemetry.system_preflight.CRITICAL_IMPORTS", ()), patch(
+                "core.telemetry.system_preflight.REQUIRED_ARTIFACTS", ()
+            ), patch("core.telemetry.system_preflight.OPTIONAL_ARTIFACTS", ()):
                 result = run_preflight(root=root, state_path=state_path, deep_model_checks=False)
 
             self.assertFalse(result.ok)
@@ -60,11 +60,11 @@ class SystemPreflightTests(unittest.TestCase):
             (root / "config" / "sample.json").write_text('{"ok": \n', encoding="utf-8")
             state_path = root / ".runtime" / "preflight.json"
 
-            with patch("core.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
-                "core.system_preflight.JSON_GLOBS", ("config/*.json",)
-            ), patch("core.system_preflight.CRITICAL_IMPORTS", ()), patch(
-                "core.system_preflight.REQUIRED_ARTIFACTS", ()
-            ), patch("core.system_preflight.OPTIONAL_ARTIFACTS", ()):
+            with patch("core.telemetry.system_preflight.SOURCE_GLOBS", ("core/**/*.py",)), patch(
+                "core.telemetry.system_preflight.JSON_GLOBS", ("config/*.json",)
+            ), patch("core.telemetry.system_preflight.CRITICAL_IMPORTS", ()), patch(
+                "core.telemetry.system_preflight.REQUIRED_ARTIFACTS", ()
+            ), patch("core.telemetry.system_preflight.OPTIONAL_ARTIFACTS", ()):
                 result = run_preflight(root=root, state_path=state_path, deep_model_checks=False)
 
             self.assertFalse(result.ok)

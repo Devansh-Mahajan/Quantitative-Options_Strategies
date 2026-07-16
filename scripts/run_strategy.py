@@ -3,19 +3,20 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-from core.runtime_env import apply_accelerator_policy
+from core.telemetry.runtime_env import apply_accelerator_policy
 
 os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
 
-from core.broker_client import BrokerClient
-from core.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
-from core.equity_overlay import rebalance_equity_overlay
-from core.state_manager import update_state, calculate_risk
+from core.execution.broker_client import BrokerClient
+from core.execution.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
+from core.execution.deep_value_sleeve import deploy_deep_value_bets
+from core.execution.equity_overlay import rebalance_equity_overlay
+from core.telemetry.state_manager import update_state, calculate_risk
 from config.credentials import ALPACA_API_KEY, ALPACA_SECRET_KEY, IS_PAPER
 from logging.strategy_logger import StrategyLogger
 from logging.logger_setup import setup_logger
 from core.cli_args import parse_args
-import core.state_manager as state_manager_module
+import core.telemetry.state_manager as state_manager_module
 
 from config.params import (
     RISK_ALLOCATION,
@@ -37,35 +38,36 @@ from config.params import (
     PLATINUM_MODE,
     TARGET_DAILY_RETURN_GOAL,
     MAX_KELLY_FRACTION,
+    ENABLE_DEEP_VALUE,
 )
 # --- Dashboard and Alert Tools ---
-from core.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
-from core.notifications import send_alert
-from core.sentiment import get_vix_level
-from core.movement_predictor import aggregate_movement_signals
-from core.ml_alpha import live_alpha_signal_map
-from core.greeks_targeting import derive_portfolio_greek_targets
+from core.execution.manager import manage_open_spreads, get_portfolio_greeks, sweep_idle_cash, calculate_dynamic_risk
+from core.telemetry.notifications import send_alert
+from core.ml.sentiment import get_vix_level
+from core.ml.movement_predictor import aggregate_movement_signals
+from core.ml.ml_alpha import live_alpha_signal_map
+from core.ml.greeks_targeting import derive_portfolio_greek_targets
 
 # 🧠 THE AI INFERENCE ENGINES
-from core.regime_detection import get_brain_prediction # Macro market mood
+from core.ml.regime_detection import get_brain_prediction # Macro market mood
 from scripts.mega_screener import get_mega_brain_targets
-from core.market_intelligence import estimate_institutional_flow
-from core.pairs_trading import generate_pairs_trading_signals
-from core.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
-from core.portfolio_optimizer import (
+from core.ml.market_intelligence import estimate_institutional_flow
+from core.ml.pairs_trading import generate_pairs_trading_signals
+from core.execution.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
+from core.execution.portfolio_optimizer import (
     effective_trade_risk_budget,
     estimate_pair_overlay_confidence,
     recommend_deployment_fraction,
 )
-from core.adaptive_recalibration import AdaptiveRecalibrationEngine
-from core.runtime_calibration import load_runtime_calibration
-from core.resource_profile import load_resource_profile
-from core.signal_fusion import empty_ai_targets, route_strategy_candidates
-from core.strategy_regime import synthesize_live_controls
-from core.system_preflight import DEFAULT_STATE_PATH, run_preflight
-from core.system_telemetry import DEFAULT_RISK_SNAPSHOT_PATH, write_risk_snapshot
-from core.terminal_ui import ProgressTracker
-from core.trade_decision_tape import record_trade_decision
+from core.ml.adaptive_recalibration import AdaptiveRecalibrationEngine
+from core.ml.runtime_calibration import load_runtime_calibration
+from core.telemetry.resource_profile import load_resource_profile
+from core.ml.signal_fusion import empty_ai_targets, route_strategy_candidates
+from core.ml.strategy_regime import synthesize_live_controls
+from core.telemetry.system_preflight import DEFAULT_STATE_PATH, run_preflight
+from core.telemetry.system_telemetry import DEFAULT_RISK_SNAPSHOT_PATH, write_risk_snapshot
+from core.telemetry.terminal_ui import ProgressTracker
+from core.telemetry.trade_decision_tape import record_trade_decision
 
 DEFAULT_LIVE_SYMBOL_LIMIT = 120
 BLOCKED_LIVE_SYMBOLS = {"STKS"}
@@ -824,6 +826,11 @@ def main():
             # --- 0B. ASYMMETRIC / CONVEXITY BETS (The Lottery Tickets) ---
             # Feed the most stable/range-bound (THETA) candidates to asymmetric generator
             deploy_asymmetric_bets(client, theta_candidates, total_equity, positions)
+
+            # --- 0C. DEEP VALUE SLEEVE (Graham net-net share positions) ---
+            # Consumes last night's scan snapshot; self-budgeted via cash sweep.
+            if ENABLE_DEEP_VALUE:
+                deploy_deep_value_bets(client, total_equity, positions)
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
             if greek_targets.target_vega > 0 and runtime_calibration.vega_enabled:

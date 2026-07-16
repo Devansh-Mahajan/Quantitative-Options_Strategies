@@ -11,13 +11,13 @@ import sys
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from core.operations_reporting import write_daily_ops_report
-from core.resource_profile import load_resource_profile
-from core.runtime_calibration import MARKET_POLICY_PATH
-from core.runtime_env import apply_accelerator_policy
-from core.system_preflight import run_preflight
-from core.system_telemetry import DEFAULT_SYSTEM_SNAPSHOT_PATH, write_system_resource_snapshot
-from core.terminal_ui import format_status_line
+from core.telemetry.operations_reporting import write_daily_ops_report
+from core.telemetry.resource_profile import load_resource_profile
+from core.ml.runtime_calibration import MARKET_POLICY_PATH
+from core.telemetry.runtime_env import apply_accelerator_policy
+from core.telemetry.system_preflight import run_preflight
+from core.telemetry.system_telemetry import DEFAULT_SYSTEM_SNAPSHOT_PATH, write_system_resource_snapshot
+from core.telemetry.terminal_ui import format_status_line
 from scripts.model_maintenance import DEFAULT_REPORT_PATH as DAILY_MAINTENANCE_REPORT_PATH
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -505,6 +505,21 @@ class AutomationController:
             self._build_weekend_report()
         return actions if success else []
 
+    async def _run_deep_value_scan_if_due(self, state: dict, now: datetime) -> bool:
+        """Nightly Graham net-net scan — once per day, retried until it succeeds."""
+        today_key = now.date().isoformat()
+        if state.get("deep_value_scan") == today_key:
+            return False
+        scan_rc = await self._run_command(
+            "deep-value-scan",
+            self.args.deep_value_scan_command,
+            self.execution_lock,
+        )
+        if scan_rc == 0:
+            state["deep_value_scan"] = today_key
+            self._save_state(state)
+        return scan_rc == 0
+
     async def _run_daily_maintenance_if_due(self, state: dict, now: datetime) -> bool:
         today_key = now.date().isoformat()
         pre_open_mark = now.replace(
@@ -606,6 +621,7 @@ class AutomationController:
 
         cycle_kind = self._offhours_cycle_kind(now)
         if cycle_kind == "overnight":
+            await self._run_deep_value_scan_if_due(state, now)
             if daily_maintenance_started:
                 return cycle_kind
             await self._run_command(
@@ -886,6 +902,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--regime-probe-command",
         default=_python_module_command("scripts.regime_probe"),
+    )
+    parser.add_argument(
+        "--deep-value-scan-command",
+        default=_python_module_command("scripts.nightly_deep_value_scan"),
     )
     parser.add_argument(
         "--regime-shift-command",

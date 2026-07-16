@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from core.system_preflight import DEFAULT_STATE_PATH, REPO_ROOT, run_preflight
+from core.telemetry.system_preflight import DEFAULT_STATE_PATH, REPO_ROOT, run_preflight
 
 
 def parse_args() -> argparse.Namespace:

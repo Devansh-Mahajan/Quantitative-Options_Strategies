@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 from alpaca.trading.enums import AssetClass
 
-from core.live_allocation import build_live_allocation_snapshot, classify_position_book
-from core.state_manager import calculate_risk
+from core.execution.live_allocation import build_live_allocation_snapshot, classify_position_book
+from core.telemetry.state_manager import calculate_risk
 
 
 class LiveAllocationTests(unittest.TestCase):

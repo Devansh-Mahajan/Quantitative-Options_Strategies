@@ -1,6 +1,6 @@
 import unittest
 
-from core.manager import build_credit_spread_exit_plan, build_long_option_exit_plan
+from core.execution.manager import build_credit_spread_exit_plan, build_long_option_exit_plan
 
 
 class ManagerExitPlanTests(unittest.TestCase):

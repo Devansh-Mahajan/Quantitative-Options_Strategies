@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from core.ml_alpha import _fit_live_ensemble, backtest_alpha_strategy, build_feature_frame, clean_feature_frame
+from core.ml.ml_alpha import _fit_live_ensemble, backtest_alpha_strategy, build_feature_frame, clean_feature_frame
 
 
 class MLAlphaTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class MLAlphaTests(unittest.TestCase):
     def test_backtest_alpha_strategy_returns_summary(self):
         prices = self._synthetic_daily_close()
 
-        with unittest.mock.patch("core.ml_alpha.download_close_matrix", return_value=prices):
+        with unittest.mock.patch("core.ml.ml_alpha.download_close_matrix", return_value=prices):
             result = backtest_alpha_strategy(prices.columns, min_train_months=48)
 
         self.assertNotIn("error", result)

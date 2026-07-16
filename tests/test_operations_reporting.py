@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from core.operations_reporting import archive_backtest_artifacts, write_daily_ops_report
+from core.telemetry.operations_reporting import archive_backtest_artifacts, write_daily_ops_report
 
 
 class OperationsReportingTests(unittest.TestCase):

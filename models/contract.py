@@ -5,7 +5,7 @@ from core.utils import get_ny_timestamp
 import json
 
 if TYPE_CHECKING:
-    from core.broker_client import BrokerClient
+    from core.execution.broker_client import BrokerClient
 
 
 @dataclass

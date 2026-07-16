@@ -5,7 +5,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from core.runtime_env import apply_accelerator_policy
+from core.telemetry.runtime_env import apply_accelerator_policy
 
 os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
 
@@ -21,8 +21,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from core.mega_neural_brain import MegaStrategyNet
-from core.torch_device import resolve_torch_runtime
+from core.ml.mega_neural_brain import MegaStrategyNet
+from core.telemetry.torch_device import resolve_torch_runtime
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("Mega_Trainer")

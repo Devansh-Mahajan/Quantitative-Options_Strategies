@@ -1,6 +1,6 @@
 import unittest
 
-from core.strategy_regime import build_live_controls, classify_market_state, synthesize_live_controls
+from core.ml.strategy_regime import build_live_controls, classify_market_state, synthesize_live_controls
 
 
 class StrategyRegimeTests(unittest.TestCase):

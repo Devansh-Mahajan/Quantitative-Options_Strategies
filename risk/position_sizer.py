@@ -156,7 +156,7 @@ class PositionSizer:
         get wider stops but smaller sizing elsewhere in the decision engine.
         """
         vol = self._clamp(abs(self._finite(realised_vol, 0.5)), 0.03, 4.0)
-        daily_vol = vol / sqrt(252.0)
+        daily_vol = vol / sqrt(365.0)
         base_stop = self._clamp(1.80 * daily_vol, 0.0125, 0.0650)
         regime_stop_scalar = {
             "bull": 1.05,

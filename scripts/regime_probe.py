@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
-from core.regime_detection import get_brain_prediction
-from core.runtime_calibration import load_runtime_calibration
+from core.ml.regime_detection import get_brain_prediction
+from core.ml.runtime_calibration import load_runtime_calibration
 
 
 def main():
