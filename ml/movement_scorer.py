@@ -10,7 +10,7 @@ import logging
 
 import numpy as np
 
-from core.movement_predictor import MovementSignal
+from core.ml.movement_predictor import MovementSignal
 
 log = logging.getLogger("ml.movement_scorer")
 

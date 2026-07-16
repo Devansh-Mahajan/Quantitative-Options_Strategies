@@ -9,20 +9,20 @@ from unittest.mock import patch
 import pandas as pd
 from alpaca.trading.enums import AssetClass
 
-from core.broker_client import BrokerClient
-from core.execution import buy_straddles
-from core.execution_ledger import load_execution_feedback, reconcile_recent_order_fills
-from core.manager import manage_open_spreads, release_cash_from_sweep
-from core.order_monitor import ExecutionPricingSnapshot, MonitoredOrderLeg, monitor_multileg_order
-from core.runtime_env import apply_accelerator_policy, host_has_nvidia_device
-from core.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioRiskSnapshot, PortfolioTradeLeg
-from core.quant_models import (
+from core.execution.broker_client import BrokerClient
+from core.execution.execution import buy_straddles
+from core.execution.execution_ledger import load_execution_feedback, reconcile_recent_order_fills
+from core.execution.manager import manage_open_spreads, release_cash_from_sweep
+from core.execution.order_monitor import ExecutionPricingSnapshot, MonitoredOrderLeg, monitor_multileg_order
+from core.telemetry.runtime_env import apply_accelerator_policy, host_has_nvidia_device
+from core.risk.portfolio_risk import PortfolioRiskBlockedError, PortfolioRiskEngine, PortfolioRiskSnapshot, PortfolioTradeLeg
+from core.ml.quant_models import (
     OptionLegModel,
     analyze_long_option_tail,
     binomial_option_price,
     monte_carlo_multileg_risk,
 )
-from core.torch_device import resolve_torch_runtime
+from core.telemetry.torch_device import resolve_torch_runtime
 
 
 @dataclass
@@ -169,14 +169,14 @@ class _RiskBrokerHarness:
 
 class RuntimeHardeningTests(unittest.TestCase):
     def test_cpu_runtime_message_is_stable(self):
-        with patch("core.torch_device.torch.cuda.is_available", return_value=False):
+        with patch("core.telemetry.torch_device.torch.cuda.is_available", return_value=False):
             runtime = resolve_torch_runtime()
 
         self.assertEqual(runtime.device.type, "cpu")
         self.assertEqual(runtime.message, "CPU detected and using.")
 
     def test_accelerator_policy_forces_cpu_without_gpu(self):
-        with patch("core.runtime_env.host_has_nvidia_device", return_value=False):
+        with patch("core.telemetry.runtime_env.host_has_nvidia_device", return_value=False):
             env, message = apply_accelerator_policy({})
 
         self.assertEqual(env["OPTIONS_STACK_FORCE_CPU"], "1")
@@ -184,8 +184,8 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(message, "CPU detected and using.")
 
     def test_host_gpu_detection_ignores_driver_nodes_without_real_gpu(self):
-        with patch("core.runtime_env._nvidia_proc_gpu_present", return_value=False), patch(
-            "core.runtime_env._nvidia_pci_gpu_present",
+        with patch("core.telemetry.runtime_env._nvidia_proc_gpu_present", return_value=False), patch(
+            "core.telemetry.runtime_env._nvidia_pci_gpu_present",
             return_value=False,
         ):
             self.assertFalse(host_has_nvidia_device())
@@ -240,7 +240,7 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(len(holding_status), 1)
         self.assertIn("SGOV [SHARES]", holding_status[0])
 
-    @patch("core.manager.send_alert")
+    @patch("core.execution.manager.send_alert")
     def test_release_cash_from_sweep_sells_only_needed_shares(self, _mock_alert):
         broker = _ManagerBrokerClient(
             account=SimpleNamespace(
@@ -260,7 +260,7 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(broker.sell_orders[0][1], 4)
         self.assertIn("test funding", broker.sell_orders[0][2])
 
-    @patch("core.manager.send_alert")
+    @patch("core.execution.manager.send_alert")
     def test_manage_open_spreads_releases_sgov_when_cash_buffer_short(self, _mock_alert):
         broker = _ManagerBrokerClient(
             account=SimpleNamespace(
@@ -278,13 +278,13 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertEqual(broker.sell_orders[0][0], "SGOV")
         self.assertEqual(broker.sell_orders[0][1], 3)
 
-    @patch("core.execution.send_alert")
-    @patch("core.execution.release_cash_from_sweep")
-    @patch("core.execution.effective_mid_price", return_value=1.90)
-    @patch("core.execution.effective_bid_price", return_value=1.80)
-    @patch("core.execution.effective_ask_price", return_value=2.00)
+    @patch("core.execution.execution.send_alert")
+    @patch("core.execution.execution.release_cash_from_sweep")
+    @patch("core.execution.execution.effective_mid_price", return_value=1.90)
+    @patch("core.execution.execution.effective_bid_price", return_value=1.80)
+    @patch("core.execution.execution.effective_ask_price", return_value=2.00)
     @patch(
-        "core.execution.build_delay_adjusted_contracts",
+        "core.execution.execution.build_delay_adjusted_contracts",
         return_value=[
             SimpleNamespace(symbol="AAPL260515C00100000", pricing_confidence=0.95),
             SimpleNamespace(symbol="AAPL260515P00100000", pricing_confidence=0.95),
@@ -318,7 +318,7 @@ class RuntimeHardeningTests(unittest.TestCase):
             [("AAPL260515C00100000", "AAPL260515P00100000", 4.0, 1)],
         )
 
-    @patch("core.order_monitor.send_alert")
+    @patch("core.execution.order_monitor.send_alert")
     def test_order_monitor_reprices_then_marks_fill(self, _mock_alert):
         recorded = []
         broker = _MonitorBrokerClient(
@@ -423,7 +423,7 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertGreaterEqual(float(feedback["adaptive_reprice_factor"]), 0.85)
         self.assertEqual(records[0]["execution_quality"]["broker_fill_observed"], True)
 
-    @patch("core.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
+    @patch("core.risk.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
     def test_portfolio_risk_snapshot_detects_concentration(self):
         positions = [
             SimpleNamespace(symbol="TSLA", asset_class=AssetClass.US_EQUITY, qty="150"),
@@ -443,7 +443,7 @@ class RuntimeHardeningTests(unittest.TestCase):
         self.assertGreater(snapshot.var_95, 0.0)
         self.assertGreater(snapshot.correlation_concentration, 0.0)
 
-    @patch("core.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
+    @patch("core.risk.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
     def test_portfolio_risk_engine_blocks_non_reducing_trade_when_breached(self):
         positions = [
             SimpleNamespace(symbol="TSLA", asset_class=AssetClass.US_EQUITY, qty="150"),
@@ -468,7 +468,7 @@ class RuntimeHardeningTests(unittest.TestCase):
             "risk" in decision.reason.lower() or "kill switch" in decision.reason.lower(),
         )
 
-    @patch("core.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
+    @patch("core.risk.portfolio_risk.PORTFOLIO_RISK_MC_PATHS", 300)
     def test_portfolio_risk_engine_allows_protective_put_when_it_reduces_risk(self):
         positions = [
             SimpleNamespace(symbol="SPY", asset_class=AssetClass.US_EQUITY, qty="100"),

@@ -61,7 +61,7 @@ from dashboard.analytics import (
     safe_float,
     safe_int,
 )
-from core.trade_decision_tape import DEFAULT_DECISION_TAPE_PATH, read_trade_decisions
+from core.telemetry.trade_decision_tape import DEFAULT_DECISION_TAPE_PATH, read_trade_decisions
 
 log = logging.getLogger("dashboard.server")
 

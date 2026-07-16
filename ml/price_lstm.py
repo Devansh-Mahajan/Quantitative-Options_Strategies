@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from sklearn.preprocessing import RobustScaler
 
 from bot.config import cfg
-from core.torch_device import resolve_torch_runtime
+from core.telemetry.torch_device import resolve_torch_runtime
 
 log = logging.getLogger("ml.price_lstm")
 

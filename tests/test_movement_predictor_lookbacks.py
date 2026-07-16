@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from core.movement_predictor import _slice_features_to_lookback, lookback_days
+from core.ml.movement_predictor import _slice_features_to_lookback, lookback_days
 
 
 class MovementPredictorLookbackTests(unittest.TestCase):

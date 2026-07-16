@@ -1,3 +1,5 @@
+import os
+
 RISK_ALLOCATION = 0.50
 DELTA_MIN = 0.12 
 DELTA_MAX = 0.30
@@ -29,8 +31,8 @@ STOP_LOSS = 3.0
 
 # --- FUND DASHBOARD SETTINGS ---
 
-# 1. Discord Alerts (Create a free Discord server, go to Channel Settings -> Integrations -> Webhooks, and paste the URL here)
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1483972575238426717/J5yYPUhtiwOzs9bXTFwOypf-0SfqBvBK-ogerhd21Vfx7vrsR6ftnP5w1-Atd383Q36C" # e.g., "https://discord.com/api/webhooks/12345/abcde"
+# 1. Discord Alerts (set DISCORD_WEBHOOK_URL in your .env — see .env.example)
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
 # 2. Idle Cash Sweep
 SWEEP_TICKER = "SGOV"  # SGOV = 0-3 Month Treasury Bill ETF (~5.3% Yield)
@@ -153,3 +155,25 @@ CORNWALL_MIN_STRIKE_DISTANCE_PCT = 0.05
 CORNWALL_MAX_STRIKE_DISTANCE_PCT = 0.35
 CORNWALL_MONTE_CARLO_PATHS = 4000
 CORNWALL_MAX_TRADES_PER_RUN = 4
+
+# 12. Deep-value (Graham net-net) sleeve
+# Nightly scan of daily movers for stocks priced below net current asset value.
+# NOT risk-free: daily-loser lists are full of value traps, hence the quality
+# gates and hard caps below.
+ENABLE_DEEP_VALUE = True
+DEEP_VALUE_AUTO_EXECUTE = True          # False = scan + alert only, no buys
+DEEP_VALUE_MAX_ALLOCATION = 0.20        # sleeve cap as fraction of total equity
+DEEP_VALUE_MAX_SYMBOL_WEIGHT = 0.05     # per-name cap as fraction of total equity
+DEEP_VALUE_MAX_POSITIONS = 5
+DEEP_VALUE_MARGIN_OF_SAFETY = 0.66      # buy only if price < 0.66 x NCAV/share (Graham)
+DEEP_VALUE_MIN_PRICE = 1.00             # avoid delisting-track penny stocks
+DEEP_VALUE_MIN_MARKET_CAP = 50e6
+DEEP_VALUE_MIN_DOLLAR_VOLUME = 2e6      # avg daily $ volume floor
+DEEP_VALUE_MIN_RUNWAY_QUARTERS = 4      # cash burn runway floor (FCF-positive passes)
+DEEP_VALUE_EXCLUDED_SECTORS = ("Financial Services", "Real Estate")  # NCAV meaningless
+DEEP_VALUE_TARGET_NCAV_FRACTION = 0.90  # take profit when price re-rates to 90% of entry NCAV
+DEEP_VALUE_STOP_LOSS = 0.30             # hard stop on unrealized loss
+DEEP_VALUE_MAX_HOLD_DAYS = 120          # time stop (calendar days)
+DEEP_VALUE_SCAN_MAX_AGE_HOURS = 20      # last night's scan valid through next close
+DEEP_VALUE_ALERT_SCORE = 0.70           # Discord alert threshold
+DEEP_VALUE_MIN_ENTRY_SCORE = 0.35       # floor for auto-entries

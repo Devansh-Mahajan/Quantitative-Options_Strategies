@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from core.universe_maintenance import download_close_matrix, load_symbol_file
+from core.risk.universe_maintenance import download_close_matrix, load_symbol_file
 
 ROOT = Path(__file__).resolve().parents[1]
 SYMBOLS_PATH = ROOT / "config" / "symbol_list.txt"

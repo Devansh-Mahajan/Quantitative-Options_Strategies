@@ -20,9 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.state_manager import register_model_snapshot
-from core.resource_profile import load_resource_profile
-from core.universe_maintenance import download_close_matrix, load_symbol_file
+from core.telemetry.state_manager import register_model_snapshot
+from core.telemetry.resource_profile import load_resource_profile
+from core.risk.universe_maintenance import download_close_matrix, load_symbol_file
 
 DEFAULT_REPORT_PATH = ROOT / "reports" / "quant_foundry_report.json"
 DEFAULT_PACK_PATH = ROOT / "config" / "quant_strategy_pack.json"

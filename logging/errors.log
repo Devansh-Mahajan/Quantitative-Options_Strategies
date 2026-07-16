@@ -1,3 +1,0 @@
-2026-05-10 19:00:22 | ERROR    | broker.core.broker_client | 🚫 Portfolio risk gate blocked Buy TSLA | reason=Projected breach: portfolio_cvar. | breaches=portfolio_cvar | projected_cvar=12.00% | projected_stress=14.00%
-2026-05-10 19:06:20 | ERROR    | broker.core.broker_client | 🚫 Portfolio risk gate blocked Buy TSLA | reason=Projected breach: portfolio_cvar. | breaches=portfolio_cvar | projected_cvar=12.00% | projected_stress=14.00%
-2026-05-11 20:28:41 | ERROR    | broker.core.broker_client | 🚫 Portfolio risk gate blocked Buy TSLA | reason=Projected breach: portfolio_cvar. | breaches=portfolio_cvar | projected_cvar=12.00% | projected_stress=14.00%

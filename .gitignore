@@ -1,7 +1,7 @@
 archive/
 logs/
 figures/
-options_wheel.egg-info
+*.egg-info/
 log_analysis.ipynb
 __pycache__/
 
@@ -9,12 +9,35 @@ __pycache__/
 /venv
 /env
 .env
-.log
-.parquet
+*.log
+*.log.*
+*.parquet
 # Mac stuff
 .DS_Store
 
 # VSCode settings
 .vscode/
+
+# --- Runtime-generated / retrained artifacts (not source) ---
+.backtest_cache/
+.runtime/
+backtest_reports/
+reports/backtests/
+reports/daily/
+reports/*.json
+reports/*.md
+!reports/.keep
+logging/*.log*
+models/live/
+models/training/
 data/*.pt
 config/*.pth
+config/*.pkl
+config/adaptive_profile.json
+config/model_state.json
+config/market_regime_policy.json
+config/foundry_last_model_config.json
+config/quant_strategy_pack.json
+config/equity_overlay_positions.json
+config/symbol_list.txt
+config/volatile_symbols.txt

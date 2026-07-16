@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from config.params import OPTION_DELAY_MIN_PRICING_CONFIDENCE
-from core.delay_aware_options import UnderlyingQuoteContext, reprice_contract
-from core.strategy import filter_options, score_options
+from core.execution.delay_aware_options import UnderlyingQuoteContext, reprice_contract
+from core.ml.strategy import filter_options, score_options
 from models.contract import Contract
 
 
@@ -72,7 +72,7 @@ class DelayAwareOptionsTests(unittest.TestCase):
         self.assertGreater(repriced.staleness_pct, 0.0)
         self.assertAlmostEqual(repriced.implied_volatility, 0.24, places=6)
 
-    @patch("core.strategy.get_dynamic_yield", return_value=0.01)
+    @patch("core.ml.strategy.get_dynamic_yield", return_value=0.01)
     def test_filter_options_rejects_contracts_with_low_delay_pricing_confidence(self, _mock_yield):
         contract = Contract(
             underlying="QQQ",
@@ -93,7 +93,7 @@ class DelayAwareOptionsTests(unittest.TestCase):
         filtered = filter_options([contract])
         self.assertEqual(filtered, [])
 
-    @patch("core.strategy.get_dynamic_yield", return_value=0.01)
+    @patch("core.ml.strategy.get_dynamic_yield", return_value=0.01)
     def test_score_options_penalizes_stale_low_confidence_contracts(self, _mock_yield):
         high_quality = Contract(
             underlying="IWM",

@@ -1,4 +1,9 @@
-"""Discord + Telegram alerting with non-blocking async sends."""
+"""
+Crypto/Binance-stack Discord + Telegram alerting with non-blocking async sends.
+Not the same module as core.telemetry.notifications, which is the sync
+Discord-only alerter used by the options/Alpaca-stack strategy loop — both are
+live, serving different trading stacks.
+"""
 
 from __future__ import annotations
 import asyncio

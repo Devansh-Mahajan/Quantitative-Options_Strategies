@@ -81,5 +81,5 @@ run-dashboard  = "dashboard.server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["bot*", "exchange*", "ml*", "risk*", "strategies*", "execution*", "scripts*", "backtester*", "dashboard*"]
+include = ["bot*", "exchange*", "ml*", "risk*", "strategies*", "execution*", "scripts*", "backtester*", "dashboard*", "core*", "config*", "models*"]
 exclude = ["archive*"]

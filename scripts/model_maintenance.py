@@ -8,8 +8,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from core.resource_profile import load_resource_profile
-from core.runtime_env import apply_accelerator_policy
+from core.telemetry.resource_profile import load_resource_profile
+from core.telemetry.runtime_env import apply_accelerator_policy
 
 
 ROOT = Path(__file__).resolve().parents[1]

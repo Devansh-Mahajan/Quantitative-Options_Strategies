@@ -1,6 +1,6 @@
 import unittest
 
-from core.portfolio_optimizer import effective_trade_risk_budget
+from core.execution.portfolio_optimizer import effective_trade_risk_budget
 
 
 class EffectiveTradeRiskBudgetTests(unittest.TestCase):

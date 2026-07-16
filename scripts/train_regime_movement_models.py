@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
-from core.universe_maintenance import download_close_matrix
+from core.risk.universe_maintenance import download_close_matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 HMM_PATH = ROOT / "config" / "hmm_macro_model.pkl"

@@ -1,4 +1,9 @@
 """
+Crypto/Binance-stack portfolio risk engine, used by bot/orchestrator.py. Not the
+same engine as core.risk.portfolio_risk, which is the options/Alpaca-stack engine
+— both are live, serving different trading stacks under the same class name
+(PortfolioRiskEngine).
+
 Portfolio risk metrics:
 - Historical VaR & CVaR (95% and 99%)
 - Monte Carlo VaR — GPU-accelerated, fat-tail Student-t (via risk.monte_carlo)
@@ -162,6 +167,9 @@ class PortfolioRiskEngine:
         positions: list of dicts with keys: symbol, notional, side (+1 long, -1 short)
         """
         if not positions or equity <= 0:
+            if equity > 0:
+                # Still record equity while flat so drawdown tracking doesn't go stale.
+                self.record_equity(equity)
             return RiskSnapshot(
                 equity=equity, var_95=0, var_99=0, cvar_95=0, cvar_99=0,
                 max_drawdown=self.max_drawdown, current_drawdown=self.current_drawdown,

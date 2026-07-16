@@ -24,7 +24,7 @@ import pandas as pd
 from bot.config import cfg
 from bot.logger import setup_logging
 from bot import state, notifications
-from core.torch_device import resolve_torch_runtime
+from core.telemetry.torch_device import resolve_torch_runtime
 
 setup_logging(cfg.log_dir, "INFO")
 log = logging.getLogger("scripts.weekend_training")
@@ -230,7 +230,7 @@ async def run_training() -> None:
         import torch.nn as nn
         import torch.optim as optim
         from torch.utils.data import DataLoader, TensorDataset
-        from core.mega_neural_brain import MegaStrategyNet
+        from core.ml.mega_neural_brain import MegaStrategyNet
         from ml.regime_hmm import RegimeHMM
 
         mega_X_list, mega_y_list = [], []
@@ -312,7 +312,7 @@ async def run_training() -> None:
     # 7. Generate alpha cache (ml_alpha ensemble snapshot)
     log.info("[7/8] Generating ML alpha cache...")
     try:
-        from core.ml_alpha import generate_live_alpha_signals
+        from core.ml.ml_alpha import generate_live_alpha_signals
         from ml.alpha_cache import DEFAULT_CACHE_PATH
 
         alpha_signals = generate_live_alpha_signals(

@@ -1,6 +1,0 @@
-[console_scripts]
-risk-monitor = scripts.risk_monitor:main
-run-backtest = scripts.run_backtest:main
-run-bot = scripts.run_bot:main
-system-check = scripts.system_check:main
-weekend-train = scripts.weekend_training:main

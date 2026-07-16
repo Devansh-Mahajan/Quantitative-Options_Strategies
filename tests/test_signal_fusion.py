@@ -1,9 +1,9 @@
 import unittest
 
-from core.greeks_targeting import PortfolioGreekTargets
-from core.ml_alpha import AlphaSignal
-from core.movement_predictor import MovementSignal
-from core.signal_fusion import empty_ai_targets, route_strategy_candidates
+from core.ml.greeks_targeting import PortfolioGreekTargets
+from core.ml.ml_alpha import AlphaSignal
+from core.ml.movement_predictor import MovementSignal
+from core.ml.signal_fusion import empty_ai_targets, route_strategy_candidates
 
 
 def _greek_targets(

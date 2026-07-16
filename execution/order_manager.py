@@ -198,8 +198,8 @@ class OrderManager:
         except Exception:
             pass
 
-        # More aggressive: tighten by 0.1%
-        adj = 0.999 if order.side == "BUY" else 1.001
+        # More aggressive: chase the market by 0.1% (BUY up, SELL down)
+        adj = 1.001 if order.side == "BUY" else 0.999
         new_price = order.expected_price * adj
 
         try:

@@ -15,7 +15,7 @@ import pandas as pd
 
 from bot import state as bot_state
 from bot.config import cfg
-from core.universe_maintenance import download_close_matrix
+from core.risk.universe_maintenance import download_close_matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_DIR = ROOT / ".runtime"
@@ -974,7 +974,7 @@ def live_option_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
         return [], {"available": False, "reason": "alpaca_broker_unavailable"}
 
     try:
-        from core.broker_client import BrokerClient
+        from core.execution.broker_client import BrokerClient
     except Exception as exc:
         return [], {"available": False, "reason": f"broker_client_import_failed: {exc}"}
 
@@ -1056,7 +1056,7 @@ def live_broker_positions() -> tuple[list[dict[str, Any]], dict[str, Any]]:
         return [], {"available": False, "reason": "alpaca_broker_unavailable"}
 
     try:
-        from core.broker_client import BrokerClient
+        from core.execution.broker_client import BrokerClient
     except Exception as exc:
         return [], {"available": False, "reason": f"broker_client_import_failed: {exc}"}
 
@@ -1141,7 +1141,7 @@ def live_broker_snapshot() -> dict[str, Any]:
         return {"available": False, "reason": "alpaca_broker_unavailable"}
 
     try:
-        from core.broker_client import BrokerClient
+        from core.execution.broker_client import BrokerClient
         from alpaca.trading.requests import GetPortfolioHistoryRequest
     except Exception as exc:
         return {"available": False, "reason": f"broker_client_import_failed: {exc}"}
@@ -2258,7 +2258,7 @@ def build_options_chain(
         return payload
 
     try:
-        from core.broker_client import BrokerClient
+        from core.execution.broker_client import BrokerClient
         from alpaca.trading.enums import ContractType
     except Exception as exc:
         payload["reason"] = f"broker_client_import_failed: {exc}"
@@ -2285,7 +2285,7 @@ def build_options_chain(
         snapshots = client.get_option_snapshot([str(getattr(contract, "symbol", "")) for contract in raw_contracts])
         source = "alpaca_delay_adjusted"
         try:
-            from core.delay_aware_options import build_delay_adjusted_contracts
+            from core.execution.delay_aware_options import build_delay_adjusted_contracts
 
             contracts = build_delay_adjusted_contracts(client, raw_contracts, snapshots=snapshots)
         except Exception:

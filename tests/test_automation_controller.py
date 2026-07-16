@@ -39,6 +39,7 @@ def _args(tmp_path: Path) -> Namespace:
         market_close_rebalance_command="run-strategy --manage-only",
         critical_window_command="run-strategy --manage-only",
         regime_probe_command="python -m scripts.regime_probe",
+        deep_value_scan_command="python -m scripts.nightly_deep_value_scan",
         regime_shift_command="run-strategy --manage-only",
         pre_open_hour=9,
         pre_open_minute=0,
@@ -265,7 +266,7 @@ class AutomationControllerTests(unittest.TestCase):
             self.assertEqual(cycle_kind, "overnight")
             self.assertEqual(
                 [name for name, _ in executed],
-                ["overnight-model-maintenance"],
+                ["deep-value-scan", "overnight-model-maintenance"],
             )
 
     def test_offhours_training_cycle_runs_weekend_research_chain(self):
@@ -381,6 +382,34 @@ class AutomationControllerTests(unittest.TestCase):
         self.assertIn("scripts.model_maintenance", args.post_close_train_command)
         self.assertIn("scripts.quant_research_foundry", args.post_close_tune_command)
         self.assertIn("scripts.massive_backtest_engine", args.weekend_backtest_command)
+        self.assertIn("scripts.nightly_deep_value_scan", args.deep_value_scan_command)
+
+    def test_deep_value_scan_dedups_per_day_and_retries_on_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = _args(Path(tmp))
+            controller = AutomationController(args)
+            executed = []
+            return_codes = [1, 0, 0]  # first attempt fails, second succeeds
+
+            async def _fake_run_command(label, command, lock):
+                executed.append(label)
+                return return_codes[len(executed) - 1]
+
+            controller._run_command = _fake_run_command
+            state = {}
+            now = datetime(2026, 4, 13, 20, 30, tzinfo=ZoneInfo("America/New_York"))
+
+            # Failed run: no dedup key recorded, so the next poll retries.
+            asyncio.run(controller._run_deep_value_scan_if_due(state, now))
+            self.assertNotIn("deep_value_scan", state)
+
+            # Successful run records today's key.
+            asyncio.run(controller._run_deep_value_scan_if_due(state, now))
+            self.assertEqual(state["deep_value_scan"], "2026-04-13")
+
+            # Same-day third call is a no-op.
+            asyncio.run(controller._run_deep_value_scan_if_due(state, now))
+            self.assertEqual(executed, ["deep-value-scan", "deep-value-scan"])
 
 
 if __name__ == "__main__":

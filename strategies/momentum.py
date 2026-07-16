@@ -62,6 +62,11 @@ class MomentumStrategy(BaseStrategy):
             "volatile": 0.3,
         }.get(regime, 0.5)
 
+        # TODO: this never triggers — regime_scale's floor is exactly 0.3 (ranging/
+        # volatile) and the unknown-regime default is 0.5, so no regime value is ever
+        # < 0.3. If the intent was to fully suppress trading in ranging/volatile
+        # regimes (rather than just down-weight via regime_scale below), lower this
+        # threshold or make ranging/volatile map to < 0.3 explicitly.
         if regime_scale < 0.3:
             return signals
 
