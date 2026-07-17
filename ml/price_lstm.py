@@ -105,7 +105,12 @@ class PricePredictorTrainer:
     ) -> dict[str, list[float]]:
         from ml.features import build_sequences
 
-        X_scaled = self.scaler.fit_transform(X)
+        # Fit the scaler on the TRAIN portion only — fitting on the full array
+        # leaked validation-set statistics into training normalization and
+        # understated validation loss (biasing early stopping).
+        raw_split = int(len(X) * 0.9)
+        self.scaler.fit(X[:raw_split])
+        X_scaled = self.scaler.transform(X)
         Xs, ys = build_sequences(X_scaled, y, lookback=cfg.lstm_lookback)
 
         split = int(len(Xs) * 0.9)

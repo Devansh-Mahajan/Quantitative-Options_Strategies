@@ -544,6 +544,8 @@ canvas{background:var(--bg0)}
   <button class="ntab" data-tab="cmdcenter">Command Center</button>
   <button class="ntab" data-tab="gsquant">GS Quant</button>
   <button class="ntab" data-tab="decisions">Decision Tape</button>
+  <button class="ntab" data-tab="sleeves">Asymmetric Sleeves</button>
+  <button class="ntab" data-tab="alloc">Allocation &amp; Crypto</button>
   <button class="ntab" data-tab="logs">Live Logs</button>
 </nav>
 
@@ -1982,6 +1984,87 @@ canvas{background:var(--bg0)}
 </div><!-- /decisions -->
 
 <!-- ───────────────────── LIVE LOGS ─────────────────────────────────── -->
+<!-- ═══════════ ASYMMETRIC SLEEVES TAB ═══════════ -->
+<div id="tab-sleeves" class="tab">
+  <div class="row">
+    <div class="col3 card">
+      <div class="card-hdr">
+        <span class="ctitle">Deep Value Sleeve — Graham Net-Nets</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="dvScanBadge" class="bdg bdg-info">WAITING</span>
+          <button class="btn btn-g btn-sm" id="sleevesRefreshBtn">/REFRESH</button>
+        </div>
+      </div>
+      <div class="alert alert-info">
+        Nightly scan of daily movers for stocks priced below net current asset value (price &lt; 0.66 × NCAV/share) with value-trap gates. Positions auto-managed: exit at 90% of entry NCAV, −30% hard stop, 120-day time stop, or thesis break.
+      </div>
+      <div class="bl-strip" id="dvSummary" style="margin-bottom:10px">
+        <div class="bl-cell"><span class="bl-clbl">Scanned</span><span class="bl-cval" id="dv-scanned">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Passing</span><span class="bl-cval" id="dv-passing">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Held</span><span class="bl-cval" id="dv-held">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Sleeve Cap</span><span class="bl-cval" id="dv-cap">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Auto-Execute</span><span class="bl-cval" id="dv-auto">—</span></div>
+      </div>
+      <div style="font-size:10px;color:var(--t2);margin:8px 0 4px">HELD POSITIONS</div>
+      <div class="tw"><table>
+        <thead><tr><th>Symbol</th><th>Entry</th><th>Price</th><th>Qty</th><th>P&amp;L</th><th>NCAV/sh</th><th>Target</th><th>Upside</th><th>Entered</th></tr></thead>
+        <tbody id="dvPositionsBody"><tr><td colspan="9" class="loading">No deep-value positions.</td></tr></tbody>
+      </table></div>
+      <div style="font-size:10px;color:var(--t2);margin:12px 0 4px">LAST SCAN — PASSING CANDIDATES</div>
+      <div class="tw"><table>
+        <thead><tr><th>Symbol</th><th>Price</th><th>NCAV/sh</th><th>P/NCAV</th><th>Liq/sh</th><th>Score</th><th>Model P(win)</th><th>Sector</th></tr></thead>
+        <tbody id="dvCandidatesBody"><tr><td colspan="8" class="loading">No scan data yet — runs nightly after close.</td></tr></tbody>
+      </table></div>
+      <div style="font-size:10px;color:var(--t2);margin:12px 0 4px">REJECTION REASONS (LAST SCAN)</div>
+      <div id="dvRejections" style="font-size:10px;color:var(--t1)">—</div>
+    </div>
+    <div class="col card">
+      <div class="card-hdr"><span class="ctitle">Cornwall Sleeve — Lottery Tickets</span></div>
+      <div class="alert alert-info">Cheap standalone long option legs (&lt;$150 cost) selected for convex tail payoffs.</div>
+      <div class="bl-strip" style="margin-bottom:10px">
+        <div class="bl-cell"><span class="bl-clbl">Tickets</span><span class="bl-cval" id="cw-count">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Total Cost</span><span class="bl-cval" id="cw-cost">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Value</span><span class="bl-cval" id="cw-value">—</span></div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Ticket</th><th>DTE</th><th>Cost</th><th>Value</th><th>Multiple</th></tr></thead>
+        <tbody id="cwTicketsBody"><tr><td colspan="5" class="loading">No lottery tickets held.</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ALLOCATION & CRYPTO TAB ═══════════ -->
+<div id="tab-alloc" class="tab">
+  <div class="row">
+    <div class="col card">
+      <div class="card-hdr">
+        <span class="ctitle">Live Allocation Snapshot</span>
+        <span id="allocBadge" class="bdg bdg-info">WAITING</span>
+      </div>
+      <div class="bl-strip" style="margin-bottom:10px">
+        <div class="bl-cell"><span class="bl-clbl">Total Equity</span><span class="bl-cval" id="alloc-equity">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Gross Value</span><span class="bl-cval" id="alloc-gross">—</span></div>
+        <div class="bl-cell"><span class="bl-clbl">Session</span><span class="bl-cval" id="alloc-session">—</span></div>
+      </div>
+      <div id="allocBooks" style="font-size:10px">—</div>
+    </div>
+    <div class="col3 card">
+      <div class="card-hdr"><span class="ctitle">Crypto Book</span></div>
+      <div style="font-size:10px;color:var(--t2);margin:4px 0">POSITIONS</div>
+      <div class="tw"><table>
+        <thead><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Price</th><th>Value</th><th>P&amp;L</th><th>P&amp;L %</th></tr></thead>
+        <tbody id="cryptoPositionsBody"><tr><td colspan="7" class="loading">No crypto positions.</td></tr></tbody>
+      </table></div>
+      <div style="font-size:10px;color:var(--t2);margin:12px 0 4px">STRATEGY ACTIVITY (LAST 200 TRADES)</div>
+      <div class="tw"><table>
+        <thead><tr><th>Strategy</th><th>Trades</th><th>Buy Notional</th><th>Sell Notional</th><th>Net Flow</th></tr></thead>
+        <tbody id="cryptoStrategyBody"><tr><td colspan="5" class="loading">No trade history.</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
 <div id="tab-logs" class="tab">
   <div class="row">
     <div class="col">
@@ -6107,6 +6190,127 @@ function initDecisionTape() {
 /* ═══════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   ASYMMETRIC SLEEVES + ALLOCATION TABS
+════════════════════════════════════════════════════════════════════ */
+async function loadSleeves() {
+  try {
+    const [dv, cw] = await Promise.all([
+      fetch('/api/sleeves/deep_value').then(r => r.json()),
+      fetch('/api/sleeves/cornwall').then(r => r.json()),
+    ]);
+
+    const badge = el('dvScanBadge');
+    if (badge) {
+      if (dv.scan_available) { badge.className = 'bdg bdg-ok'; badge.textContent = `SCAN ${String(dv.generated_at_utc || '').slice(0, 16)}`; }
+      else { badge.className = 'bdg bdg-warn'; badge.textContent = 'NO SCAN YET'; }
+    }
+    el('dv-scanned').textContent = dv.candidates_scanned ?? '—';
+    el('dv-passing').textContent = (dv.candidates_passing || []).length;
+    el('dv-held').textContent = (dv.positions || []).length + ' / ' + (dv.caps?.max_positions ?? '—');
+    el('dv-cap').textContent = dv.caps?.max_allocation != null ? fp(dv.caps.max_allocation * 100, 0) : '—';
+    el('dv-auto').textContent = dv.caps?.auto_execute ? 'ON' : 'OFF';
+
+    const posBody = el('dvPositionsBody');
+    if ((dv.positions || []).length) {
+      posBody.innerHTML = dv.positions.map(p => `<tr>
+        <td>${esc(p.symbol)}</td><td>${fm(p.entry_price)}</td><td>${fm(p.current_price)}</td>
+        <td>${f(p.qty, 0)}</td>
+        <td style="color:${csh(p.unrealized_pl)}">${fm(p.unrealized_pl)} (${fsp(p.unrealized_pl_pct)})</td>
+        <td>${fm(p.ncav_per_share)}</td><td>${fm(p.target_price)}</td>
+        <td style="color:${csh(p.upside_to_target_pct)}">${fsp(p.upside_to_target_pct)}</td>
+        <td>${esc(String(p.entered_at_utc || '').slice(0, 10))}</td>
+      </tr>`).join('');
+    } else {
+      posBody.innerHTML = '<tr><td colspan="9" class="loading">No deep-value positions.</td></tr>';
+    }
+
+    const candBody = el('dvCandidatesBody');
+    if ((dv.candidates_passing || []).length) {
+      candBody.innerHTML = dv.candidates_passing.map(c => `<tr>
+        <td>${esc(c.symbol)}</td><td>${fm(c.price)}</td><td>${fm(c.ncav_per_share)}</td>
+        <td>${f(c.price_to_ncav, 2)}</td><td>${fm(c.liquidation_per_share)}</td>
+        <td>${f(c.score, 2)}</td><td>${c.model_probability != null ? f(c.model_probability, 2) : 'heuristic'}</td>
+        <td>${esc(c.sector || '—')}</td>
+      </tr>`).join('');
+    } else {
+      candBody.innerHTML = '<tr><td colspan="8" class="loading">No candidates passed all gates in the last scan — genuine net-nets are rare; the scan keeps hunting nightly.</td></tr>';
+    }
+
+    const rej = dv.rejection_summary || {};
+    el('dvRejections').innerHTML = Object.keys(rej).length
+      ? Object.entries(rej).map(([g, n]) => `<span class="bdg bdg-info" style="margin-right:6px">${esc(g)}: ${n}</span>`).join('')
+      : '—';
+
+    el('cw-count').textContent = cw.count ?? '—';
+    el('cw-cost').textContent = fm(cw.total_cost);
+    el('cw-value').textContent = fm(cw.total_value);
+    const cwBody = el('cwTicketsBody');
+    if ((cw.tickets || []).length) {
+      cwBody.innerHTML = cw.tickets.map(t => `<tr>
+        <td>${esc(t.underlying || t.symbol)} ${esc(t.option_type || '')} ${t.strike != null ? f(t.strike, 0) : ''}</td>
+        <td>${t.dte ?? '—'}</td><td>${fm(t.cost_basis)}</td><td>${fm(t.market_value)}</td>
+        <td style="color:${csh((t.payoff_multiple || 0) - 1)}">${f(t.payoff_multiple, 2)}x</td>
+      </tr>`).join('');
+    } else {
+      cwBody.innerHTML = '<tr><td colspan="5" class="loading">No lottery tickets held.</td></tr>';
+    }
+  } catch (err) { console.warn('loadSleeves failed', err); }
+}
+
+async function loadAlloc() {
+  try {
+    const [alloc, book] = await Promise.all([
+      fetch('/api/allocation/live').then(r => r.json()),
+      fetch('/api/crypto/book').then(r => r.json()),
+    ]);
+
+    const badge = el('allocBadge');
+    if (badge) {
+      if (alloc.generated_at_utc) { badge.className = 'bdg bdg-ok'; badge.textContent = String(alloc.generated_at_utc).slice(0, 16); }
+      else { badge.className = 'bdg bdg-warn'; badge.textContent = 'NO SNAPSHOT'; }
+    }
+    el('alloc-equity').textContent = fm(alloc.total_equity);
+    el('alloc-gross').textContent = fm(alloc.gross_market_value);
+    el('alloc-session').textContent = alloc.market_session_open ? 'OPEN' : 'CLOSED';
+
+    const books = alloc.books || {};
+    el('allocBooks').innerHTML = Object.keys(books).length
+      ? Object.entries(books).map(([name, b]) => `
+        <div style="border:1px solid var(--border);border-radius:4px;padding:8px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between"><b>${esc(name.toUpperCase())}</b>
+            <span>${fm(b.market_value ?? b.gross_market_value)}</span></div>
+          <div style="color:var(--t2);margin-top:4px">${esc(JSON.stringify(b.symbols || b.positions || {}).slice(0, 220))}</div>
+        </div>`).join('')
+      : '<span style="color:var(--t2)">No allocation books in snapshot.</span>';
+
+    const posBody = el('cryptoPositionsBody');
+    if ((book.positions || []).length) {
+      posBody.innerHTML = book.positions.map(p => `<tr>
+        <td>${esc(p.symbol)}</td><td>${f(p.quantity, 4)}</td><td>${fm(p.entry_price)}</td>
+        <td>${fm(p.current_price)}</td><td>${fm(p.market_value)}</td>
+        <td style="color:${csh(p.unrealized_pnl)}">${fm(p.unrealized_pnl)}</td>
+        <td style="color:${csh(p.unrealized_pnl_pct)}">${fsp(p.unrealized_pnl_pct)}</td>
+      </tr>`).join('');
+    } else {
+      posBody.innerHTML = '<tr><td colspan="7" class="loading">No crypto positions.</td></tr>';
+    }
+
+    const stratBody = el('cryptoStrategyBody');
+    const strat = book.strategy_activity || {};
+    if (Object.keys(strat).length) {
+      stratBody.innerHTML = Object.entries(strat).map(([name, s]) => `<tr>
+        <td>${esc(name)}</td><td>${s.trades}</td><td>${fm(s.buy_notional)}</td>
+        <td>${fm(s.sell_notional)}</td><td style="color:${csh(s.net_flow)}">${fm(s.net_flow)}</td>
+      </tr>`).join('');
+    } else {
+      stratBody.innerHTML = '<tr><td colspan="5" class="loading">No trade history.</td></tr>';
+    }
+  } catch (err) { console.warn('loadAlloc failed', err); }
+}
+
+el('sleevesRefreshBtn')?.addEventListener('click', () => loadSleeves());
+
 const TAB_INIT = {
   live:          () => { loadLive(); connectLiveWs(); },
   options:       () => { loadOptions(); },
@@ -6125,6 +6329,8 @@ const TAB_INIT = {
   cmdcenter:     () => { loadCmdCenter(); },
   gsquant:       () => { loadGsQuant(); },
   decisions:     () => { initDecisionTape(); loadDecisionTape(); },
+  sleeves:       () => { loadSleeves(); },
+  alloc:         () => { loadAlloc(); },
   logs:          () => { initLogs(); },
 };
 
@@ -6307,6 +6513,12 @@ if (cliForm && cliInput) {
   setInterval(() => {
     if (el('tab-tradeanalysis').classList.contains('active')) loadTradeAnalysis();
   }, 120000);
+  setInterval(() => {
+    if (el('tab-sleeves')?.classList.contains('active')) loadSleeves();
+  }, 120000);
+  setInterval(() => {
+    if (el('tab-alloc')?.classList.contains('active')) loadAlloc();
+  }, 90000);
 })();
 
 /* ═══════════════════════════════════════════════════════════════════

@@ -1,10 +1,11 @@
 """
 Realistic order fill simulation.
-Models Binance fee tiers, bid-ask spread slippage, and volume impact.
+Models venue fee tiers, bid-ask spread slippage, and volume impact.
 No look-ahead bias: limit fills use the NEXT bar's OHLC; market fills at next open.
 """
 
 from __future__ import annotations
+import random
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -22,13 +23,35 @@ class OrderStatus(str, Enum):
     EXPIRED = "expired"
 
 
-# Binance VIP-0 fee schedule (retail, no BNB discount)
+# Default fees = Binance futures VIP-0. Callers should use venue_fees() so a
+# backtest charges what the LIVE venue actually charges — Alpaca crypto is
+# ~6x more expensive than these defaults, which materially changes the
+# viability of high-turnover strategies.
 MAKER_FEE = 0.0002    # 0.02%
 TAKER_FEE = 0.0004    # 0.04%
 
+# (maker, taker) per venue
+VENUE_FEES = {
+    "alpaca": (0.0015, 0.0025),          # Alpaca crypto retail tier
+    "binance_spot": (0.0010, 0.0010),    # Binance spot VIP-0
+    "binance_futures": (0.0002, 0.0004), # Binance USDM futures VIP-0
+}
+
+
+def venue_fees(broker: str, market: str = "spot") -> tuple[float, float]:
+    """(maker, taker) for a broker/market combination."""
+    broker = str(broker or "").lower()
+    if broker == "alpaca":
+        return VENUE_FEES["alpaca"]
+    if broker == "binance":
+        return VENUE_FEES["binance_futures" if market == "futures" else "binance_spot"]
+    return (MAKER_FEE, TAKER_FEE)
+
+
 # Slippage as fraction of ATR (market impact proxy)
 MARKET_SLIPPAGE_ATR_FRAC = 0.05   # 5% of ATR per market order
-LIMIT_PARTIAL_FILL_PROB = 0.85    # probability a limit order gets filled at the bar it crosses
+LIMIT_PARTIAL_FILL_PROB = 0.85    # fill probability when a limit is only touched (not penetrated)
+LIMIT_ORDER_TTL_BARS = 5          # unfilled limit orders expire after this many bars
 
 # Maximum order size as fraction of bar volume before significant impact
 MAX_VOL_FRACTION = 0.01
@@ -91,11 +114,14 @@ class FillModel:
         taker_fee: float = TAKER_FEE,
         slippage_atr_frac: float = MARKET_SLIPPAGE_ATR_FRAC,
         max_vol_fraction: float = MAX_VOL_FRACTION,
+        seed: int = 42,
     ) -> None:
         self.maker_fee = maker_fee
         self.taker_fee = taker_fee
         self.slippage_atr_frac = slippage_atr_frac
         self.max_vol_fraction = max_vol_fraction
+        # Seeded RNG for touch-only limit fills — keeps backtests reproducible.
+        self._rng = random.Random(seed)
 
     def process_bar(
         self,
@@ -121,6 +147,9 @@ class FillModel:
             if order.order_type == OrderType.MARKET:
                 fill = self._fill_market(order, bar, atr, volume, bar_index)
             elif order.order_type == OrderType.LIMIT:
+                if bar_index - order.bar_index > LIMIT_ORDER_TTL_BARS:
+                    order.status = OrderStatus.EXPIRED
+                    continue
                 fill = self._fill_limit(order, bar, atr, volume, bar_index)
 
             if fill:
@@ -161,7 +190,9 @@ class FillModel:
     def _fill_limit(self, order: Order, bar: dict, atr: float, volume: float, idx: int) -> Optional[Fill]:
         """
         Limit orders fill when bar high/low crosses the limit price.
-        Conservative: uses mid between limit and bar open as actual fill price.
+        Strict penetration (price trades THROUGH the limit) = full fill; a bare
+        touch means our order sat in the queue at that level, so it only fills
+        with LIMIT_PARTIAL_FILL_PROB. Conservative: fills between limit and open.
         """
         lp = order.limit_price
         touched = (order.side == "BUY" and bar["low"] <= lp) or \
@@ -169,6 +200,11 @@ class FillModel:
 
         if not touched:
             return None
+
+        penetrated = (order.side == "BUY" and bar["low"] < lp) or \
+                     (order.side == "SELL" and bar["high"] > lp)
+        if not penetrated and self._rng.random() > LIMIT_PARTIAL_FILL_PROB:
+            return None  # touched our level but queue ahead of us didn't clear
 
         # Conservative fill: halfway between limit and open (not always at limit)
         if order.side == "BUY":

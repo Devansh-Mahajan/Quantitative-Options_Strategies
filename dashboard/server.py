@@ -2201,6 +2201,42 @@ async def trade_decisions_api(
     }
 
 
+# --------------------------------------------------------------------------- #
+# Asymmetric sleeves + live allocation (2026-07 dashboard update)
+# --------------------------------------------------------------------------- #
+
+@app.get("/api/sleeves/deep_value")
+async def sleeves_deep_value_api():
+    """Deep-value (Graham net-net) sleeve: nightly scan + held positions."""
+    from dashboard.analytics import build_deep_value_payload
+
+    return build_deep_value_payload()
+
+
+@app.get("/api/sleeves/cornwall")
+async def sleeves_cornwall_api():
+    """Cornwall convexity sleeve: standalone long option lottery tickets."""
+    from dashboard.analytics import build_cornwall_payload
+
+    return build_cornwall_payload()
+
+
+@app.get("/api/allocation/live")
+async def live_allocation_api():
+    """Live allocation snapshot written by the crypto orchestrator."""
+    from dashboard.analytics import build_live_allocation_payload
+
+    return build_live_allocation_payload()
+
+
+@app.get("/api/crypto/book")
+async def crypto_book_api(limit: int = Query(200, ge=1, le=1000)):
+    """Crypto book: live crypto positions + per-strategy trade activity."""
+    from dashboard.analytics import build_crypto_book_payload
+
+    return build_crypto_book_payload(limit=limit)
+
+
 @app.get("/api/equity/analytics")
 async def equity_analytics():
     """Rolling Sharpe, Calmar, volatility, regime-annotated equity curve."""

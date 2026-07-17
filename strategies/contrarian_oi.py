@@ -23,6 +23,7 @@ Signal:
 
 from __future__ import annotations
 import logging
+from collections import defaultdict, deque
 
 import numpy as np
 
@@ -58,6 +59,9 @@ class ContrarianOIStrategy(BaseStrategy):
         self._rebal_bars = rebal_bars
         self._threshold = entry_threshold
         self._bar_count = 0
+        # Rolling OI levels per symbol so we can compute a change RATIO —
+        # store.open_interest only exposes the current level.
+        self._oi_history: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=8))
 
     def generate_signals(self, store, regime: str, predictions: dict) -> list[Signal]:
         self._bar_count += 1
@@ -96,9 +100,17 @@ class ContrarianOIStrategy(BaseStrategy):
             v_i = float(np.log(vol[-1] / (vol[-2] + 1e-10)))
             vol_chgs[sym] = v_i
 
-            # OI change (from store if available, else skip filter)
+            # OI change ratio: current level vs rolling mean of prior levels.
+            # (store.open_interest is a raw LEVEL — comparing it directly to a
+            # ratio threshold was a long-standing bug that disabled this filter.)
             oi_raw = float(store.open_interest.get(sym, 0.0))
-            oi_chgs[sym] = oi_raw
+            history = self._oi_history[sym]
+            if oi_raw > 0 and len(history) > 0:
+                oi_chgs[sym] = oi_raw / (float(np.mean(history)) + 1e-10)
+            else:
+                oi_chgs[sym] = 0.0  # no usable OI data -> filter passes open
+            if oi_raw > 0:
+                history.append(oi_raw)
             prices[sym] = float(arr[-1])
 
         if len(returns) < 3:
@@ -119,9 +131,10 @@ class ContrarianOIStrategy(BaseStrategy):
             # Filter 1: volume must be in top half (v_i > median)
             vol_ok = vol_chgs.get(sym, 0.0) >= vol_median
 
-            # Filter 2: OI must be declining (u_i < 0) if OI data available
-            oi_val = oi_chgs.get(sym, 0.0)
-            oi_ok  = (oi_val == 0.0) or (oi_val < OI_RATIO_MAX)  # pass if no OI data
+            # Filter 2: OI ratio must show decline (current below recent mean),
+            # confirming exhaustion. Passes open when no OI data (ratio 0.0).
+            oi_ratio = oi_chgs.get(sym, 0.0)
+            oi_ok = (oi_ratio == 0.0) or (oi_ratio < OI_RATIO_MAX)
 
             if not (vol_ok and oi_ok):
                 continue

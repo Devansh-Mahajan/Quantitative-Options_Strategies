@@ -319,8 +319,14 @@ class Orchestrator:
                 details={"market": sig.market, "quantity": sig.quantity, "price": sig.price, "regime": regime, "meta": sig.meta},
             )
 
+        # --- 8b. Drop pair legs whose counterpart can't execute ---
+        raw_signals = self._filter_orphan_pair_legs(raw_signals)
+
         # --- 9. Apply RL allocator weights ---
         signals = self._apply_rl_weights(raw_signals, equity, regime)
+
+        # --- 9b. Net conflicting same-symbol signals ---
+        signals = self._net_conflicting_signals(signals)
 
         # --- 10. Size positions ---
         sized = self._size_signals(signals, equity, regime)
@@ -673,7 +679,13 @@ class Orchestrator:
         if self.rl_allocator is None:
             return signals
 
-        strategy_names = [s.name for s in self.strategies]
+        # Weights are only trustworthy when the model was trained on real
+        # returns for exactly the canonical strategy ordering. Otherwise run
+        # equal-weight (i.e., leave confidences untouched).
+        strategy_names = getattr(self, "_canonical_strategy_names", None) or [s.name for s in self.strategies]
+        if not self.rl_allocator.is_valid_for(strategy_names):
+            return signals
+
         exp_dim = self.rl_allocator.observation_dim
         if exp_dim is None:
             dummy = np.zeros(1, dtype=np.float32)
@@ -685,13 +697,94 @@ class Orchestrator:
         self._last_rl_weights = weights.astype(np.float32).copy()
         self._prev_equity_for_rl = float(equity)
 
+        n = len(strategy_names)
         weight_map = {name: float(w) for name, w in zip(strategy_names, weights)}
 
         scaled = []
         for sig in signals:
-            w = weight_map.get(sig.strategy, 1.0 / len(strategy_names))
-            scaled.append(sig._replace(confidence=sig.confidence * w * len(strategy_names)))
+            w = weight_map.get(sig.strategy, 1.0 / n)
+            # w*n rescales so equal weights are a no-op; clip because the sizer
+            # treats confidence as [0,1] — unclipped values saturated sizing.
+            scaled.append(sig._replace(confidence=float(np.clip(sig.confidence * w * n, 0.0, 1.0))))
         return scaled
+
+    def _filter_orphan_pair_legs(self, signals: list[Signal]) -> list[Signal]:
+        """
+        Pairs strategies emit two legs tagged with the same meta["pair_id"].
+        In long-only spot mode the SELL leg is gated at execution unless the
+        asset is already held — executing the BUY leg alone would turn a
+        market-neutral spread into an unhedged directional bet. Drop the whole
+        pair when one leg can't execute.
+        """
+        if not self.long_only_spot:
+            return signals
+
+        doomed_pairs: set[str] = set()
+        for sig in signals:
+            pair_id = (sig.meta or {}).get("pair_id")
+            if not pair_id or sig.side != "SELL":
+                continue
+            if not cfg.is_crypto_symbol(sig.symbol):
+                continue
+            position = self._position_for_symbol(sig.symbol)
+            held_qty = float(getattr(position, "quantity", 0.0) or 0.0)
+            if held_qty <= 0:
+                doomed_pairs.add(pair_id)
+
+        if not doomed_pairs:
+            return signals
+
+        kept = []
+        for sig in signals:
+            pair_id = (sig.meta or {}).get("pair_id")
+            if pair_id in doomed_pairs:
+                record_trade_decision(
+                    status="GATED",
+                    strategy=sig.strategy,
+                    symbol=sig.symbol,
+                    action=f"{sig.side.lower()}_{sig.market}",
+                    confidence=sig.confidence,
+                    reason="Pair leg dropped: counterpart SELL leg not executable in long-only spot mode.",
+                    details={"pair_id": pair_id},
+                )
+                continue
+            kept.append(sig)
+        return kept
+
+    def _net_conflicting_signals(self, signals: list[Signal]) -> list[Signal]:
+        """
+        Net same-cycle opposing signals per (symbol, market): strategies can
+        disagree, but sending both a BUY and a SELL to the order manager just
+        pays fees twice. Keep the dominant side at net confidence; drop the
+        symbol entirely when conviction nets out below 0.2.
+        """
+        by_key: dict[tuple[str, str], list[Signal]] = defaultdict(list)
+        for sig in signals:
+            by_key[(sig.symbol, sig.market)].append(sig)
+
+        netted: list[Signal] = []
+        for key, group in by_key.items():
+            buys = [s for s in group if s.side == "BUY"]
+            sells = [s for s in group if s.side == "SELL"]
+            if not buys or not sells:
+                netted.extend(group)
+                continue
+            buy_conf = sum(s.confidence for s in buys)
+            sell_conf = sum(s.confidence for s in sells)
+            net = buy_conf - sell_conf
+            winners = buys if net > 0 else sells
+            net_conf = float(np.clip(abs(net), 0.0, 1.0))
+            if net_conf < 0.2:
+                log.info("Netted out conflicting signals on %s (buy %.2f vs sell %.2f)", key[0], buy_conf, sell_conf)
+                continue
+            # Keep the strongest signal of the winning side, at netted confidence.
+            best = max(winners, key=lambda s: s.confidence)
+            netted.append(best._replace(confidence=min(net_conf, best.confidence)))
+            log.info(
+                "Netted %s: %d buy vs %d sell -> %s conf %.2f",
+                key[0], len(buys), len(sells), best.side, netted[-1].confidence,
+            )
+        return netted
 
     def _size_signals(self, signals: list[Signal], equity: float, regime: str) -> list[Signal]:
         sized = []
@@ -834,8 +927,16 @@ class Orchestrator:
             self.predictors[symbol] = load_or_init_predictor(symbol, n_features=len(FEATURE_NAMES))
             self.vol_models[symbol] = GARCHVolModel()
 
-        n_strats = len(self.strategies)
-        self.rl_allocator = load_or_init_allocator(n_strats)
+        # RL weights are defined against the CANONICAL (venue-independent,
+        # pre-whitelist) strategy ordering — never the filtered list, which
+        # previously mismapped weights positionally when a whitelist was active.
+        from strategies.registry import canonical_strategy_names
+
+        self._canonical_strategy_names = canonical_strategy_names()
+        self.rl_allocator = load_or_init_allocator(
+            len(self._canonical_strategy_names),
+            expected_strategy_names=self._canonical_strategy_names,
+        )
 
         # Load NeuralSelector (MegaStrategyNet); MovementScorer/AlphaCache need no loading
         self.neural_selector = load_or_init_selector()

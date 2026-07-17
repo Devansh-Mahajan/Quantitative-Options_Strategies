@@ -105,9 +105,13 @@ def compute_metrics(
     sharpe = float(excess.mean() / (bar_returns.std() + 1e-10) * np.sqrt(ann))
 
     # --- Sortino (downside deviation only) ---
+    # Arithmetic annualized excess return over arithmetic downside deviation —
+    # mixing the geometric ann_ret with an arithmetic denominator (as before)
+    # produces a scale-inconsistent ratio.
     downside = bar_returns[bar_returns < rfr_per_bar]
     downside_std = float(downside.std() * np.sqrt(ann)) if len(downside) > 0 else 1e-10
-    sortino = float((ann_ret - risk_free_rate) / (downside_std + 1e-10))
+    arith_ann_excess = float(excess.mean() * ann)
+    sortino = float(arith_ann_excess / (downside_std + 1e-10))
 
     # --- Drawdown ---
     rolling_peak = eq.cummax()

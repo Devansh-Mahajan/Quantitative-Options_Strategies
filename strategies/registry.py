@@ -8,9 +8,51 @@ from strategies.base import BaseStrategy
 
 log = logging.getLogger("strategy.registry")
 
+# Strategies that cannot function on Alpaca's crypto-spot venue and are
+# auto-skipped there regardless of their ENABLE_ flag:
+#   - gamma_scalping / vol_surface_arb: express volatility views, which need an
+#     options/futures venue — on spot they degrade to naked directional bets
+#     with no directional thesis.
+#   - market_making: needs two-sided quoting; on spot the SELL side is gated,
+#     leaving one-sided inventory accumulation.
+#   - carry_portfolio / liquidation_cascade: depend on funding-rate /
+#     liquidation feeds that Alpaca never populates (permanently silent).
+# Skipping them also stops inert strategies diluting equal-weight/RL allocation.
+ALPACA_INCOMPATIBLE = {
+    "gamma_scalping",
+    "vol_surface_arb",
+    "market_making",
+    "carry_portfolio",
+    "liquidation_cascade",
+}
+
+
+def canonical_strategy_names() -> list[str]:
+    """
+    Full, venue-independent, order-stable strategy name list (every strategy
+    whose ENABLE_ flag is on, before venue gating). This is the canonical
+    ordering the RL allocator's weights are defined against.
+    """
+    return [s.name for s in _build_all_enabled()]
+
 
 def build_registry() -> list[BaseStrategy]:
-    """Return all enabled strategy instances based on config."""
+    """Return enabled strategy instances, minus venue-incompatible ones."""
+    strategies = _build_all_enabled()
+
+    if cfg.is_alpaca:
+        skipped = [s.name for s in strategies if s.name in ALPACA_INCOMPATIBLE]
+        if skipped:
+            log.info("Venue gating: skipping %s on Alpaca (need futures/options/feeds)", skipped)
+        strategies = [s for s in strategies if s.name not in ALPACA_INCOMPATIBLE]
+
+    log.info("Strategy registry: %d strategies active — %s",
+             len(strategies), [s.name for s in strategies])
+    return strategies
+
+
+def _build_all_enabled() -> list[BaseStrategy]:
+    """All enabled strategy instances based on config flags (no venue gating)."""
     strategies: list[BaseStrategy] = []
 
     if cfg.enable_momentum:
@@ -119,6 +161,4 @@ def build_registry() -> list[BaseStrategy]:
         from strategies.vol_surface_arb import VolSurfaceArbStrategy
         strategies.append(VolSurfaceArbStrategy())
 
-    log.info("Strategy registry: %d strategies active — %s",
-             len(strategies), [s.name for s in strategies])
     return strategies

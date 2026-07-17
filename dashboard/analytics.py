@@ -2707,3 +2707,179 @@ def permutation_grid(base_params: dict[str, Any], selected_keys: list[str], max_
         if len(combos) >= max_variants:
             break
     return combos or [dict(base_params)]
+
+
+# --------------------------------------------------------------------------- #
+# Asymmetric sleeves + live allocation payloads (2026-07 dashboard update)
+# --------------------------------------------------------------------------- #
+
+DEEP_VALUE_SCAN_PATH = RUNTIME_DIR / "deep_value_scan.json"
+LIVE_ALLOCATION_PATH = RUNTIME_DIR / "live_allocation.json"
+EQUITY_OVERLAY_REGISTRY_PATH = ROOT / "config" / "equity_overlay_positions.json"
+
+CORNWALL_COST_CEILING = 150.0  # matches core/execution/manager.py's classifier
+
+
+def build_deep_value_payload() -> dict[str, Any]:
+    """Deep-value sleeve: last scan snapshot + held positions joined with live P&L."""
+    from config import params as p
+
+    scan = read_json(DEEP_VALUE_SCAN_PATH, {})
+    candidates = scan.get("candidates") or []
+    passing = [c for c in candidates if not c.get("failed_gates")]
+    passing.sort(key=lambda c: safe_float(c.get("score")) or 0.0, reverse=True)
+
+    registry = read_json(EQUITY_OVERLAY_REGISTRY_PATH, {})
+    sleeve_meta = {
+        sym: meta for sym, meta in (registry or {}).items()
+        if str((meta or {}).get("mode") or "") == "deep_value"
+    }
+
+    broker_rows, broker_meta = live_broker_positions()
+    broker_by_symbol = {str(r.get("symbol") or "").upper(): r for r in broker_rows}
+
+    positions = []
+    for sym, meta in sleeve_meta.items():
+        live = broker_by_symbol.get(sym, {})
+        entry_ncav = safe_float(meta.get("ncav_per_share")) or 0.0
+        current_price = safe_float(live.get("current_price")) or 0.0
+        target_price = entry_ncav * float(getattr(p, "DEEP_VALUE_TARGET_NCAV_FRACTION", 0.9))
+        positions.append({
+            "symbol": sym,
+            "entered_at_utc": meta.get("entered_at_utc"),
+            "entry_price": safe_float(meta.get("entry_price")),
+            "current_price": current_price or None,
+            "qty": safe_float(live.get("quantity")),
+            "unrealized_pl": safe_float(live.get("unrealized_pnl")),
+            "unrealized_pl_pct": safe_float(live.get("unrealized_pnl_pct")),
+            "ncav_per_share": entry_ncav or None,
+            "liquidation_per_share": safe_float(meta.get("liquidation_per_share")),
+            "score": safe_float(meta.get("score")),
+            "target_price": target_price or None,
+            "upside_to_target_pct": (
+                round((target_price / current_price - 1.0) * 100.0, 2)
+                if target_price and current_price else None
+            ),
+            "live_position_found": sym in broker_by_symbol,
+        })
+
+    return {
+        "generated_at_utc": scan.get("generated_at_utc"),
+        "scan_available": bool(candidates),
+        "candidates_scanned": len(candidates),
+        "candidates_passing": passing[:15],
+        "rejection_summary": _deep_value_rejections(candidates),
+        "positions": positions,
+        "broker_meta": broker_meta,
+        "caps": {
+            "max_allocation": getattr(p, "DEEP_VALUE_MAX_ALLOCATION", None),
+            "max_symbol_weight": getattr(p, "DEEP_VALUE_MAX_SYMBOL_WEIGHT", None),
+            "max_positions": getattr(p, "DEEP_VALUE_MAX_POSITIONS", None),
+            "margin_of_safety": getattr(p, "DEEP_VALUE_MARGIN_OF_SAFETY", None),
+            "auto_execute": getattr(p, "DEEP_VALUE_AUTO_EXECUTE", None),
+        },
+    }
+
+
+def _deep_value_rejections(candidates: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for c in candidates:
+        for gate in c.get("failed_gates") or []:
+            counts[gate] = counts.get(gate, 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
+
+
+def build_cornwall_payload() -> dict[str, Any]:
+    """Cornwall convexity sleeve: standalone long option lottery tickets."""
+    rows, meta = live_option_positions()
+    tickets = []
+    for row in rows:
+        side = str(row.get("side") or "").lower()
+        entry_price = safe_float(row.get("entry_price")) or 0.0
+        qty = safe_float(row.get("quantity")) or 0.0
+        cost = abs(entry_price * qty * 100.0)  # option multiplier
+        if "long" not in side or cost <= 0 or cost >= CORNWALL_COST_CEILING:
+            continue
+        market_value = abs(safe_float(row.get("market_value")) or 0.0)
+        tickets.append({
+            "symbol": row.get("symbol"),
+            "underlying": row.get("underlying"),
+            "expiry": row.get("expiry"),
+            "strike": row.get("strike"),
+            "option_type": row.get("option_type"),
+            "qty": qty,
+            "cost_basis": round(cost, 2),
+            "market_value": market_value,
+            "payoff_multiple": round(market_value / cost, 2) if cost else None,
+            "unrealized_pl": safe_float(row.get("unrealized_pnl")),
+            "dte": row.get("dte"),
+        })
+    tickets.sort(key=lambda t: t.get("payoff_multiple") or 0.0, reverse=True)
+    total_cost = sum(t["cost_basis"] for t in tickets)
+    total_value = sum(t["market_value"] or 0.0 for t in tickets)
+    return {
+        "tickets": tickets,
+        "count": len(tickets),
+        "total_cost": round(total_cost, 2),
+        "total_value": round(total_value, 2),
+        "meta": meta,
+    }
+
+
+def build_live_allocation_payload() -> dict[str, Any]:
+    payload = read_json(LIVE_ALLOCATION_PATH, {})
+    if not isinstance(payload, dict):
+        payload = {}
+    payload.setdefault("available", bool(payload))
+    return payload
+
+
+def build_crypto_book_payload(limit: int = 200) -> dict[str, Any]:
+    """Crypto book: positions (live broker, crypto asset class) + per-strategy trade P&L from bot_state.db."""
+    broker_rows, broker_meta = live_broker_positions()
+    crypto_positions = [
+        r for r in broker_rows
+        if "crypto" in str(r.get("asset_class") or "").lower()
+    ]
+
+    strategy_stats: dict[str, dict[str, Any]] = {}
+    recent_trades: list[dict[str, Any]] = []
+    try:
+        import sqlite3
+
+        from bot import state as bot_state
+
+        conn = sqlite3.connect(str(bot_state._DB_PATH), check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(
+            "SELECT ts, symbol, market, side, quantity, price, strategy "
+            "FROM trades ORDER BY ts DESC LIMIT ?",
+            (int(limit),),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        recent_trades = rows
+        for row in rows:
+            name = row.get("strategy") or "unknown"
+            stats = strategy_stats.setdefault(name, {"trades": 0, "buy_notional": 0.0, "sell_notional": 0.0})
+            stats["trades"] += 1
+            notional = (safe_float(row.get("price")) or 0.0) * (safe_float(row.get("quantity")) or 0.0)
+            if str(row.get("side") or "").upper() == "BUY":
+                stats["buy_notional"] += notional
+            else:
+                stats["sell_notional"] += notional
+    except Exception as exc:
+        broker_meta = dict(broker_meta or {})
+        broker_meta["trades_db_error"] = str(exc)
+
+    for stats in strategy_stats.values():
+        stats["buy_notional"] = round(stats["buy_notional"], 2)
+        stats["sell_notional"] = round(stats["sell_notional"], 2)
+        stats["net_flow"] = round(stats["sell_notional"] - stats["buy_notional"], 2)
+
+    return {
+        "positions": crypto_positions,
+        "strategy_activity": dict(sorted(strategy_stats.items(), key=lambda kv: -kv[1]["trades"])),
+        "recent_trades": recent_trades[:50],
+        "meta": broker_meta,
+    }

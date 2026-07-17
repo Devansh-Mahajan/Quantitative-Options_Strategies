@@ -74,8 +74,18 @@ class SimulatedMarketDataStore(MarketDataStore):
         for (symbol, interval), candles in self._prebuilt.items():
             key = (symbol, interval)
             # Append only newly visible bars since last call
+            appended = False
             for j in range(self._last_i, min(i, len(candles))):
                 self.history[key].append(candles[j])
+                appended = True
+            if appended:
+                # CRITICAL: invalidate the DataFrame cache. Appending to the
+                # deque directly bypasses the live ingest path that flags
+                # _df_dirty, so get_history_df() previously returned a FROZEN
+                # early-window frame for the whole backtest — every strategy
+                # computing indicators from get_history_df saw static data,
+                # silently producing zero signals in historical backtests.
+                self._df_dirty[key] = True
             if i > 0 and i <= len(candles):
                 last = candles[i - 1]
                 self.candles[key] = last
@@ -161,7 +171,14 @@ class BacktestEngine:
         self.interval = interval
         self.initial_equity = initial_equity
         self.strategies = strategies or []
-        self.fill_model = fill_model or FillModel()
+        if fill_model is None:
+            # Charge what the LIVE venue charges (Alpaca crypto is ~6x Binance
+            # futures) — a backtest at the wrong fee tier flatters turnover.
+            from backtester.fill_model import venue_fees
+
+            maker, taker = venue_fees(cfg.broker, "spot" if cfg.is_alpaca else "futures")
+            fill_model = FillModel(maker_fee=maker, taker_fee=taker)
+        self.fill_model = fill_model
         self.lookback = lookback
         self.max_open_positions = max_open_positions
         self.stop_loss_pct = stop_loss_pct
@@ -264,32 +281,66 @@ class BacktestEngine:
 
             # ---------------------------------------------------------
             # 3. Exit existing positions (stop-loss / take-profit)
+            #
+            # Stops/TPs are checked INTRABAR against high/low (close-only
+            # checks understate drawdowns), and settled synchronously through
+            # the fill model at the triggered level (with fees + slippage).
+            # NOTE: exits must NOT be queued as pending orders — the old code
+            # did that after already removing the position, and the next-bar
+            # fill re-opened a phantom REVERSED position, corrupting every
+            # historical backtest.
             # ---------------------------------------------------------
             for pos in list(positions):
                 sym_row = self.data[pos.symbol].reset_index().iloc[i]
-                price = float(sym_row["close"])
-                pnl_pct = pos.pnl_pct(price)
+                bar_open = float(sym_row["open"])
+                bar_high = float(sym_row["high"])
+                bar_low = float(sym_row["low"])
 
-                if pnl_pct <= -pos.stop_loss_pct or pnl_pct >= pos.take_profit_pct:
-                    close_side = "SELL" if pos.side == "LONG" else "BUY"
-                    exit_order = make_market_order(
-                        pos.symbol, close_side, pos.quantity, "exit_manager", i
-                    )
-                    pending_orders.append(exit_order)
-                    pnl_abs = pos.pnl(price)
-                    closed_trades.append({
-                        "symbol": pos.symbol,
-                        "strategy": pos.strategy,
-                        "side": pos.side,
-                        "entry_price": pos.entry_price,
-                        "exit_price": price,
-                        "quantity": pos.quantity,
-                        "pnl_pct": pnl_pct,
-                        "pnl_abs": pnl_abs,
-                        "holding_bars": i - pos.entry_bar,
-                        "bar_index": i,
-                    })
-                    positions.remove(pos)
+                if pos.side == "LONG":
+                    stop_price = pos.entry_price * (1.0 - pos.stop_loss_pct)
+                    tp_price = pos.entry_price * (1.0 + pos.take_profit_pct)
+                    stop_hit = bar_low <= stop_price
+                    tp_hit = bar_high >= tp_price
+                    # Pessimistic: when both trigger in one bar, assume the stop.
+                    if stop_hit:
+                        exit_price = min(bar_open, stop_price)  # gap-through fills worse
+                    elif tp_hit:
+                        exit_price = max(bar_open, tp_price)    # gap-through fills better
+                    else:
+                        continue
+                else:  # SHORT
+                    stop_price = pos.entry_price * (1.0 + pos.stop_loss_pct)
+                    tp_price = pos.entry_price * (1.0 - pos.take_profit_pct)
+                    stop_hit = bar_high >= stop_price
+                    tp_hit = bar_low <= tp_price
+                    if stop_hit:
+                        exit_price = max(bar_open, stop_price)
+                    elif tp_hit:
+                        exit_price = min(bar_open, tp_price)
+                    else:
+                        continue
+
+                fee = exit_price * pos.quantity * self.fill_model.taker_fee
+                if pos.side == "LONG":
+                    equity += exit_price * pos.quantity - fee   # sell proceeds
+                else:
+                    equity -= exit_price * pos.quantity + fee   # buy-back cost
+
+                pnl_abs = pos.pnl(exit_price) - fee
+                closed_trades.append({
+                    "symbol": pos.symbol,
+                    "strategy": pos.strategy,
+                    "side": pos.side,
+                    "entry_price": pos.entry_price,
+                    "exit_price": exit_price,
+                    "quantity": pos.quantity,
+                    "pnl_pct": pos.pnl_pct(exit_price),
+                    "pnl_abs": pnl_abs,
+                    "holding_bars": i - pos.entry_bar,
+                    "bar_index": i,
+                    "exit_reason": "stop" if stop_hit else "take_profit",
+                })
+                positions.remove(pos)
 
             # ---------------------------------------------------------
             # 4. Generate signals from strategies
@@ -311,13 +362,20 @@ class BacktestEngine:
 
             # ---------------------------------------------------------
             # 5. Mark-to-market all open positions
+            #
+            # `equity` is CASH (entries debit/credit full notional via
+            # fill.net_cost), so marking must add position VALUE (±qty*price),
+            # not just PnL — the old +pnl-only marking made the equity curve
+            # fake-drop by the full notional on every entry.
             # ---------------------------------------------------------
-            unrealised = sum(
-                pos.pnl(float(self.data[pos.symbol].reset_index().iloc[i]["close"]))
+            open_value = sum(
+                (1.0 if pos.side == "LONG" else -1.0)
+                * pos.quantity
+                * float(self.data[pos.symbol].reset_index().iloc[i]["close"])
                 for pos in positions
                 if pos.symbol in self.data
             )
-            total_equity = equity + unrealised
+            total_equity = equity + open_value
 
             if bar_ts is not None:
                 equity_ts.append((bar_ts, total_equity))
@@ -335,14 +393,20 @@ class BacktestEngine:
         for pos in positions:
             price = float(self.data[pos.symbol].reset_index().iloc[last_i]["close"])
             pnl_pct = pos.pnl_pct(price)
+            fee = price * pos.quantity * self.fill_model.taker_fee
             closed_trades.append({
                 "symbol": pos.symbol, "strategy": pos.strategy,
                 "side": pos.side, "entry_price": pos.entry_price,
                 "exit_price": price, "quantity": pos.quantity,
-                "pnl_pct": pnl_pct, "pnl_abs": pos.pnl(price),
+                "pnl_pct": pnl_pct, "pnl_abs": pos.pnl(price) - fee,
                 "holding_bars": last_i - pos.entry_bar, "bar_index": last_i,
+                "exit_reason": "end_of_data",
             })
-            equity += pos.pnl(price)
+            # Cash settlement consistent with the entry-side notional debit.
+            if pos.side == "LONG":
+                equity += price * pos.quantity - fee
+            else:
+                equity -= price * pos.quantity + fee
 
         # ---------------------------------------------------------
         # 7. Build results
