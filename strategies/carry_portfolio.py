@@ -95,8 +95,8 @@ class CarryPortfolioStrategy(BaseStrategy):
             "volatile": 0.5,   # funding rates spike unpredictably
         }.get(regime, 0.7)
 
-        if regime_scale < 0.4:
-            return []
+        # (An unreachable `< 0.4` kill-switch was removed here — the map's
+        # minimum is 0.5; regime handling is via the regime_scale multiplier.)
 
         # ── Compute carry Sharpe per symbol ───────────────────────────────
         carry_scores: dict[str, float] = {}

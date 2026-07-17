@@ -96,13 +96,44 @@ class RegimeHMM:
         return {self._state_map.get(i, f"s{i}"): float(proba[i]) for i in range(self.n_states)}
 
     def predict_sequence(self, df: pd.DataFrame) -> list[str]:
-        """Regime label for every bar in df."""
+        """
+        Regime label for every bar in df.
+
+        WARNING: uses hmmlearn's global Viterbi decode — the state at bar t is
+        informed by bars AFTER t. Fine for descriptive analysis; do NOT use
+        these labels as training data (lookahead). Use decode_causal() there.
+        """
         if self.model is None:
             return ["unknown"] * len(df)
         X = self._build_obs(df)
         X_scaled = self.scaler.transform(X)
         states = self.model.predict(X_scaled)
         return [self._state_map.get(int(s), "unknown") for s in states]
+
+    def decode_causal(self, df: pd.DataFrame, stride: int = 24) -> list[str]:
+        """
+        Strictly lookahead-free regime labels for training data.
+
+        Every `stride` bars, decode the expanding window X[:t+1] and take the
+        LAST state — that label is then forward-filled until the next
+        checkpoint. Labels are therefore stale by at most `stride` bars but
+        never informed by future data (unlike predict_sequence's global
+        Viterbi). Use this whenever regime labels feed model training.
+        """
+        if self.model is None:
+            return ["unknown"] * len(df)
+        X = self._build_obs(df)
+        X_scaled = self.scaler.transform(X)
+        n = len(X_scaled)
+        labels = ["unknown"] * n
+        current = "unknown"
+        start = max(8, min(stride, n))  # need a few bars for a meaningful decode
+        for t in range(n):
+            if t >= start and (t - start) % stride == 0:
+                states = self.model.predict(X_scaled[: t + 1])
+                current = self._state_map.get(int(states[-1]), "unknown")
+            labels[t] = current
+        return labels
 
     # ------------------------------------------------------------------ #
     # Persistence

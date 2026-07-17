@@ -328,9 +328,14 @@ class XGBAlphaEngine:
         y_ret = data["target"]
         feat_names = list(X.columns)
 
-        # Classify into quintiles (0=bottom, 4=top)
-        q_low  = float(y_ret.quantile(0.20))
-        q_high = float(y_ret.quantile(0.80))
+        # Classify into quintiles (0=bottom, 4=top). Quantile thresholds come
+        # from the TRAIN portion only — computing them over the full sample
+        # let validation returns define the validation labels (leakage that
+        # inflated the reported OOS Sharpe).
+        train_cutoff = int(len(y_ret) * 0.80)
+        y_train_ret = y_ret.iloc[:train_cutoff]
+        q_low  = float(y_train_ret.quantile(0.20))
+        q_high = float(y_train_ret.quantile(0.80))
 
         # Binary: 1 = top quintile (buy), -1 = bottom quintile (sell), 0 = neutral
         y_label = np.zeros(len(y_ret))

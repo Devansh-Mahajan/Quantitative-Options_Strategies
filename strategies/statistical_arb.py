@@ -164,6 +164,8 @@ class StatisticalArbStrategy(BaseStrategy):
             beta_penalty = max(1.0 - abs(beta - 1.0) * 0.5, 0.3)
             confidence = min(abs(z) / (self._entry_z + 2.0), 1.0) * regime_scale * beta_penalty
 
+            pair_id = f"{self.name}:{sym_a}/{sym_b}"
+
             # Exit open positions first
             if pos is not None:
                 if abs(z) < self._exit_z:
@@ -172,9 +174,9 @@ class StatisticalArbStrategy(BaseStrategy):
                     exit_side_b = "BUY"  if pos else "SELL"
                     qty = 0.0
                     signals.append(Signal(sym_a, "futures", exit_side_a, qty, 0, 0.5,
-                                          self.name))
+                                          self.name, meta={"pair_id": pair_id, "leg": "exit"}))
                     signals.append(Signal(sym_b, "futures", exit_side_b, qty, 0, 0.5,
-                                          self.name))
+                                          self.name, meta={"pair_id": pair_id, "leg": "exit"}))
                     self._positions[(sym_a, sym_b)] = None
                 continue   # don't double-enter while managing a position
 
@@ -184,18 +186,18 @@ class StatisticalArbStrategy(BaseStrategy):
             # Entry: spread too high → short A, long B
             if z > self._entry_z:
                 signals.append(Signal(sym_a, "futures", "SELL", 0.0, 0, confidence,
-                                      self.name))
+                                      self.name, meta={"pair_id": pair_id}))
                 signals.append(Signal(sym_b, "futures", "BUY",  0.0, 0, confidence,
-                                      self.name))
+                                      self.name, meta={"pair_id": pair_id}))
                 self._positions[(sym_a, sym_b)] = False   # short spread
                 log.debug("StatArb SELL %s / BUY %s  z=%.2f  β=%.3f", sym_a, sym_b, z, beta)
 
             # Entry: spread too low → long A, short B
             elif z < -self._entry_z:
                 signals.append(Signal(sym_a, "futures", "BUY",  0.0, 0, confidence,
-                                      self.name))
+                                      self.name, meta={"pair_id": pair_id}))
                 signals.append(Signal(sym_b, "futures", "SELL", 0.0, 0, confidence,
-                                      self.name))
+                                      self.name, meta={"pair_id": pair_id}))
                 self._positions[(sym_a, sym_b)] = True    # long spread
                 log.debug("StatArb BUY %s / SELL %s  z=%.2f  β=%.3f", sym_a, sym_b, z, beta)
 

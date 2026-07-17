@@ -82,7 +82,9 @@ class CrossSectionalMomentumStrategy(BaseStrategy):
             "volatile": 0.3,    # high reversals, reduce size
         }.get(regime, 0.5)
 
-        if regime_scale < 0.3:
+        # Suppress in volatile regimes (scale floor 0.3); was `< 0.3` which
+        # could never trigger against a map whose minimum is exactly 0.3.
+        if regime_scale <= 0.3:
             return []
 
         # ── Score each symbol ─────────────────────────────────────────────

@@ -69,13 +69,13 @@ class PairsArbStrategy(BaseStrategy):
                         symbol=sym_a, market="futures", side="SELL",
                         quantity=0.0, price=price_a, confidence=confidence,
                         strategy=self.name,
-                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr},
+                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr, "pair_id": f"pairs_arb:{sym_a}/{sym_b}"},
                     ))
                     signals.append(Signal(
                         symbol=sym_b, market="futures", side="BUY",
                         quantity=0.0, price=price_b, confidence=confidence,
                         strategy=self.name,
-                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr},
+                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr, "pair_id": f"pairs_arb:{sym_a}/{sym_b}"},
                     ))
 
                 elif z < -ZSCORE_ENTRY:
@@ -85,13 +85,13 @@ class PairsArbStrategy(BaseStrategy):
                         symbol=sym_a, market="futures", side="BUY",
                         quantity=0.0, price=price_a, confidence=confidence,
                         strategy=self.name,
-                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr},
+                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr, "pair_id": f"pairs_arb:{sym_a}/{sym_b}"},
                     ))
                     signals.append(Signal(
                         symbol=sym_b, market="futures", side="SELL",
                         quantity=0.0, price=price_b, confidence=confidence,
                         strategy=self.name,
-                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr},
+                        meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr, "pair_id": f"pairs_arb:{sym_a}/{sym_b}"},
                     ))
 
             except Exception as exc:

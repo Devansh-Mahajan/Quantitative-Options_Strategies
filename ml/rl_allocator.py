@@ -129,6 +129,11 @@ class RLAllocator:
         self.n_strategies = n_strategies
         self._model: Any = None
         self._equal = np.ones(n_strategies, dtype=np.float32) / n_strategies
+        # Sidecar metadata written at save time: strategy_names (canonical
+        # ordering the action vector is defined against), trained_on,
+        # trained_at_utc. None when the model predates metadata (e.g. the old
+        # mock-data-trained artifact) — such models must not drive live weights.
+        self.metadata: dict | None = None
 
     @property
     def observation_dim(self) -> int | None:
@@ -147,6 +152,7 @@ class RLAllocator:
         features: np.ndarray,
         regimes: np.ndarray,
         timesteps: int | None = None,
+        neural_probs: np.ndarray | None = None,
     ) -> None:
         if not _SB3_AVAILABLE:
             log.warning("SB3 unavailable — skipping RL training")
@@ -154,8 +160,15 @@ class RLAllocator:
 
         timesteps = timesteps or cfg.rl_timesteps
 
+        # If no neural-prob sequence is supplied, vary the dims randomly rather
+        # than freezing them at 0.25 — frozen training dims made the live
+        # neural-prob inputs out-of-distribution noise to the policy.
+        if neural_probs is None:
+            rng = np.random.default_rng(42)
+            neural_probs = rng.dirichlet(np.ones(4) * 2.0, size=len(returns)).astype(np.float32)
+
         def make_env():
-            return StrategyAllocEnv(returns, features, regimes)
+            return StrategyAllocEnv(returns, features, regimes, neural_probs=neural_probs)
 
         env = DummyVecEnv([make_env])
         device = cfg.device if _gpu_available() else "cpu"
@@ -195,12 +208,19 @@ class RLAllocator:
         weights = np.exp(action) / (np.exp(action).sum() + 1e-10)
         return weights.astype(np.float32)
 
-    def save(self, path: Path | str) -> None:
+    def save(self, path: Path | str, metadata: dict | None = None) -> None:
         if self._model is None:
             return
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         self._model.save(str(path))
+        if metadata is not None:
+            import json
+
+            self.metadata = dict(metadata)
+            path.with_suffix(".meta.json").write_text(
+                json.dumps(self.metadata, indent=2), encoding="utf-8"
+            )
         log.info("RLAllocator saved to %s", path)
 
     def load(self, path: Path | str) -> "RLAllocator":
@@ -213,7 +233,29 @@ class RLAllocator:
                 log.info("RLAllocator loaded from %s", path)
             except Exception as exc:
                 log.warning("Could not load RL model: %s", exc)
+        meta_path = path.with_suffix(".meta.json")
+        if meta_path.exists():
+            try:
+                import json
+
+                self.metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                log.warning("Could not read RL metadata sidecar: %s", exc)
+                self.metadata = None
         return self
+
+    def is_valid_for(self, strategy_names: list[str]) -> bool:
+        """
+        True only when a model is loaded AND its metadata proves it was trained
+        on real returns for exactly this (ordered) strategy list. Models without
+        metadata — including the legacy mock-data-trained artifact — fail this
+        check, and callers must fall back to equal weighting.
+        """
+        if self._model is None or not self.metadata:
+            return False
+        if self.metadata.get("trained_on") != "backtest_returns":
+            return False
+        return list(self.metadata.get("strategy_names") or []) == list(strategy_names)
 
 
 def _gpu_available() -> bool:
@@ -224,9 +266,19 @@ def _gpu_available() -> bool:
         return False
 
 
-def load_or_init_allocator(n_strategies: int) -> RLAllocator:
+def load_or_init_allocator(
+    n_strategies: int,
+    expected_strategy_names: list[str] | None = None,
+) -> RLAllocator:
     path = cfg.model_dir / "rl_allocator"
     allocator = RLAllocator(n_strategies)
     if (path.with_suffix(".zip")).exists() or path.exists():
         allocator.load(path)
+        if expected_strategy_names is not None and not allocator.is_valid_for(expected_strategy_names):
+            log.warning(
+                "RL allocator model at %s has no valid metadata for the current "
+                "strategy set — ignoring it (equal weights until retrained).",
+                path,
+            )
+            allocator._model = None
     return allocator

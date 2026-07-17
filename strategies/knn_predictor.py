@@ -83,11 +83,14 @@ def _features(arr: np.ndarray) -> np.ndarray | None:
     # Volume ratio
     vol_ratio = float(v[-1] / (v[-20:].mean() + _EPS))
 
-    # ATR ratio
-    tr = np.maximum(h - l, np.maximum(abs(h - np.roll(c, 1))[-14:], abs(l - np.roll(c, 1))[-14:]))
-    atr = float(np.mean(tr[:14]))
-    atr_long = float(np.mean(tr[:14]))   # simplified: just ATR(14) vs ATR(20)
-    atr_ratio = atr / (float(np.mean(tr)) + _EPS)
+    # ATR ratio: short ATR(14) vs long ATR(50) — true range elementwise on
+    # aligned arrays (prev close via roll; first element invalid, excluded by
+    # only using trailing windows).
+    prev_close = np.roll(c, 1)
+    tr = np.maximum(h - l, np.maximum(np.abs(h - prev_close), np.abs(l - prev_close)))
+    atr = float(np.mean(tr[-14:]))
+    atr_long = float(np.mean(tr[-50:]))
+    atr_ratio = atr / (atr_long + _EPS)
 
     # Short-term returns
     ret1 = float((c[-1] / (c[-2] + _EPS)) - 1)

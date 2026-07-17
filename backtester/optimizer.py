@@ -37,6 +37,8 @@ class OptimizationResult:
     top_trials: list[dict]           # top-5 by score
     param_importances: dict          # which params mattered most
     robustness_score: float          # std of top-5 scores (lower = more robust)
+    holdout_score: float = float("nan")   # best params on the untouched final window
+    holdout_metrics: dict | None = None   # sharpe/return/max_dd on the holdout
 
 
 # --------------------------------------------------------------------------- #
@@ -116,14 +118,58 @@ class BacktestOptimizer:
         n_wf_folds: int = 3,
         initial_equity: float = 10_000,
         output_dir: Path | None = None,
+        holdout_fraction: float = 0.20,
     ) -> None:
-        self.data = data
+        # Reserve the FINAL holdout_fraction of bars as an untouched test
+        # window. Optuna only ever sees the earlier portion; without this, the
+        # reported best_value is the max over n_trials evaluations of the same
+        # OOS folds — selection bias masquerading as edge.
+        self.holdout_fraction = max(0.0, min(0.4, float(holdout_fraction)))
+        self.data, self.holdout_data = self._split_holdout(data, self.holdout_fraction)
         self.interval = interval
         self.strategy_factory = strategy_factory
         self.n_trials = n_trials
         self.n_wf_folds = n_wf_folds
         self.initial_equity = initial_equity
         self.output_dir = output_dir or Path(__file__).resolve().parents[1] / "backtest_reports"
+
+    @staticmethod
+    def _split_holdout(data: dict, fraction: float, warmup_bars: int = 100) -> tuple[dict, dict]:
+        if fraction <= 0.0:
+            return data, {}
+        opt_data, holdout = {}, {}
+        for sym, df in data.items():
+            cut = int(len(df) * (1.0 - fraction))
+            if cut < warmup_bars + 10 or len(df) - cut < 50:
+                return data, {}  # too little data to split — skip holdout
+            opt_data[sym] = df.iloc[:cut]
+            holdout[sym] = df.iloc[max(0, cut - warmup_bars):]
+        return opt_data, holdout
+
+    def _evaluate_holdout(self, best_params: dict) -> tuple[float, dict | None]:
+        if not self.holdout_data:
+            return float("nan"), None
+        from backtester.engine import BacktestEngine
+
+        try:
+            engine = BacktestEngine(
+                data=self.holdout_data,
+                interval=self.interval,
+                initial_equity=self.initial_equity,
+                strategies=self.strategy_factory(),
+                **best_params,
+            )
+            result = engine.run()
+            m = result.metrics
+            return float(m.sharpe or 0.0), {
+                "sharpe": float(m.sharpe or 0.0),
+                "total_return_pct": float(m.total_return_pct or 0.0),
+                "max_drawdown_pct": float(m.max_drawdown_pct or 0.0),
+                "num_trades": int(m.num_trades or 0),
+            }
+        except Exception as exc:
+            log.warning("Holdout evaluation failed: %s", exc)
+            return float("nan"), None
 
     # ------------------------------------------------------------------ #
     # Optuna objective
@@ -209,6 +255,8 @@ class BacktestOptimizer:
 
         robustness = float(np.std(top5_scores)) if len(top5_scores) > 1 else 0.0
 
+        holdout_score, holdout_metrics = self._evaluate_holdout(study.best_params)
+
         result = OptimizationResult(
             best_params=study.best_params,
             best_score=study.best_value,
@@ -217,6 +265,8 @@ class BacktestOptimizer:
             top_trials=[{"params": t.params, "score": t.value} for t in top5],
             param_importances=importances,
             robustness_score=robustness,
+            holdout_score=holdout_score,
+            holdout_metrics=holdout_metrics,
         )
 
         self._save(result)
@@ -238,6 +288,8 @@ class BacktestOptimizer:
             "robustness_score": result.robustness_score,
             "param_importances": result.param_importances,
             "top_trials": result.top_trials,
+            "holdout_score": None if result.holdout_score != result.holdout_score else result.holdout_score,
+            "holdout_metrics": result.holdout_metrics,
         }
         path.write_text(json.dumps(payload, indent=2))
         log.info("Optimal params saved → %s", path)
@@ -247,7 +299,12 @@ class BacktestOptimizer:
         print("  OPTIMIZATION RESULTS")
         print("═" * 58)
         print(f"  Trials completed : {result.n_completed} / {result.n_trials}")
-        print(f"  Best score       : {result.best_score:.4f}")
+        print(f"  Best score       : {result.best_score:.4f}  (selection-biased — trust holdout)")
+        if result.holdout_metrics:
+            print(f"  HOLDOUT Sharpe   : {result.holdout_score:.4f}  "
+                  f"(return {result.holdout_metrics['total_return_pct']:+.2f}%, "
+                  f"maxDD {result.holdout_metrics['max_drawdown_pct']:.2f}%, "
+                  f"{result.holdout_metrics['num_trades']} trades on untouched data)")
         print(f"  Robustness (σ)   : {result.robustness_score:.4f}  (lower = more robust)")
         print()
         print("  Best parameters found:")

@@ -91,8 +91,8 @@ class MarketMakingStrategy(BaseStrategy):
             "bear":     0.55,
         }.get(regime, 0.75)
 
-        if regime_scale < 0.40:
-            return signals
+        # (An unreachable `< 0.40` kill-switch was removed here — the map's
+        # minimum is 0.55; regime handling is via the regime_scale multiplier.)
 
         for symbol in self.symbols:
             try:

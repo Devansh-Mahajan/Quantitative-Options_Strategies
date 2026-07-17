@@ -107,7 +107,92 @@ def validate_lstm(predictor, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, 
 # Main training pipeline
 # --------------------------------------------------------------------------- #
 
-async def run_training() -> None:
+def build_rl_training_set(
+    data: dict[str, pd.DataFrame],
+    rl_symbols: list[str],
+    rl_months: int,
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None, list[str]]:
+    """
+    Per-strategy return series from single-strategy backtests over real data.
+
+    Runs the BacktestEngine once per canonical strategy (each run whitelisted
+    to that one strategy), aligns the resulting equity curves, and returns
+    (returns T×n, features T×k, regime_idx T, strategy_names). Regime labels
+    come from RegimeHMM.decode_causal (no lookahead). Strategies that never
+    trade contribute flat (zero) return columns — the policy learns to ignore
+    them rather than being fed fabricated noise.
+    """
+    from backtester.engine import BacktestEngine
+    from ml.regime_hmm import RegimeHMM
+    from strategies.registry import _build_all_enabled, canonical_strategy_names
+
+    strategy_names = canonical_strategy_names()
+    rl_data = {}
+    max_bars = max(1, int(rl_months * 30 * 24))
+    for sym in rl_symbols:
+        df = data.get(sym)
+        if df is not None and len(df) >= 500:
+            rl_data[sym] = df.tail(max_bars)
+    if not rl_data:
+        return None, None, None, strategy_names
+
+    equity_curves: dict[str, pd.Series] = {}
+    for name in strategy_names:
+        try:
+            instances = [s for s in _build_all_enabled() if s.name == name]
+            if not instances:
+                continue
+            engine = BacktestEngine(data=rl_data, interval="1h", strategies=instances)
+            result = engine.run()
+            equity_curves[name] = result.equity_curve
+        except Exception as exc:
+            log.warning("  RL returns backtest failed for strategy %s: %s", name, exc)
+
+    curves = {n: c for n, c in equity_curves.items() if c is not None and len(c) > 100}
+    if len(curves) < max(3, len(strategy_names) // 4):
+        return None, None, None, strategy_names
+
+    frame = pd.DataFrame(curves).ffill().dropna()
+    rets = frame.pct_change().fillna(0.0)
+    # Canonical column order; missing strategies (failed backtest) = flat zero.
+    returns_matrix = np.column_stack([
+        rets[name].to_numpy(dtype=np.float32) if name in rets.columns else np.zeros(len(rets), dtype=np.float32)
+        for name in strategy_names
+    ])
+
+    # Market features from the anchor symbol, aligned to the returns index.
+    anchor_sym = next(iter(rl_data))
+    anchor = rl_data[anchor_sym]
+    closes = anchor["close"].astype(float)
+    feat = pd.DataFrame(index=anchor.index)
+    feat["ret_1"] = closes.pct_change()
+    feat["ret_24"] = closes.pct_change(24)
+    feat["vol_24"] = closes.pct_change().rolling(24).std()
+    feat["mom_72"] = closes.pct_change(72)
+    feat["rng"] = ((anchor["high"] - anchor["low"]) / closes).rolling(24).mean()
+    feat = feat.fillna(0.0).clip(-10, 10)
+    feature_matrix = (
+        feat.reindex(rets.index).ffill().fillna(0.0).to_numpy(dtype=np.float32)
+        if not feat.empty
+        else np.zeros((len(rets), 5), dtype=np.float32)
+    )
+
+    # Causal regime labels for the same window.
+    regime_map = {"bull": 0, "bear": 1, "ranging": 2, "volatile": 3}
+    try:
+        hmm = RegimeHMM(n_states=cfg.hmm_states)
+        hmm.fit(anchor)
+        labels = hmm.decode_causal(anchor)
+        label_series = pd.Series(labels, index=anchor.index).reindex(rets.index).ffill()
+        regime_idx = np.array([regime_map.get(r, 2) for r in label_series], dtype=np.int32)
+    except Exception as exc:
+        log.warning("  RL regime labeling failed (%s) — defaulting to 'ranging'", exc)
+        regime_idx = np.full(len(rets), 2, dtype=np.int32)
+
+    return returns_matrix, feature_matrix, regime_idx, strategy_names
+
+
+async def run_training(rl_months: int = 12, rl_symbols_cap: int = 4) -> None:
     from ml.regime_hmm import RegimeHMM
     from ml.price_lstm import PricePredictorTrainer
     from ml.rl_allocator import RLAllocator, StrategyAllocEnv
@@ -128,6 +213,7 @@ async def run_training() -> None:
 
     symbols = cfg.model_symbols
     lookback = cfg.retrain_lookback_days
+    rl_symbols = [s for s in symbols][: max(1, rl_symbols_cap)]
 
     # 1. Download data
     log.info("[1/8] Downloading %d days of 1h data for %d symbols...", lookback, len(symbols))
@@ -200,26 +286,35 @@ async def run_training() -> None:
         except Exception as exc:
             log.warning("  GARCH failed for %s: %s", symbol, exc)
 
-    # 5. Retrain RL strategy allocator
-    log.info("[5/8] Training RL strategy allocator (PPO)...")
+    # 5. Retrain RL strategy allocator on REAL per-strategy backtest returns.
+    # (The previous implementation trained PPO on np.random.randn mock returns
+    # and a constant regime — a policy learned from noise. Models produced that
+    # way carried no metadata and are now rejected at load time.)
+    log.info("[5/8] Training RL strategy allocator (PPO) on real strategy returns...")
     try:
-        if all_X:
-            X_combined = np.vstack(all_X)
-            # Mock per-strategy returns (in prod, use actual strategy PnL history)
-            from strategies.registry import build_registry
-            strategies = build_registry()
-            n_strats = len(strategies)
-            # Proxy: each strategy return = some function of features
-            T = len(X_combined)
-            mock_rets = np.random.randn(T, n_strats) * 0.001  # small random for now
-
-            # Regime index (0=bull,1=bear,2=ranging,3=volatile) — use HMM output
-            mock_regimes = np.zeros(T, dtype=np.int32)
-
-            allocator = RLAllocator(n_strats)
-            allocator.train(mock_rets, X_combined, mock_regimes, timesteps=cfg.rl_timesteps)
-            allocator.save(training_dir / "rl_allocator")
-            log.info("  RL allocator saved")
+        returns_matrix, feature_matrix, regime_idx, strategy_names = build_rl_training_set(
+            data,
+            rl_symbols=rl_symbols,
+            rl_months=rl_months,
+        )
+        if returns_matrix is None:
+            log.warning("  RL training skipped — could not build a usable returns matrix")
+        else:
+            allocator = RLAllocator(len(strategy_names))
+            allocator.train(returns_matrix, feature_matrix, regime_idx, timesteps=cfg.rl_timesteps)
+            allocator.save(
+                training_dir / "rl_allocator",
+                metadata={
+                    "strategy_names": strategy_names,
+                    "trained_on": "backtest_returns",
+                    "trained_at_utc": pd.Timestamp.utcnow().isoformat(),
+                    "n_strategies": len(strategy_names),
+                    "bars": int(len(returns_matrix)),
+                    "symbols": rl_symbols,
+                },
+            )
+            log.info("  RL allocator saved (%d strategies × %d bars of real returns)",
+                     len(strategy_names), len(returns_matrix))
     except Exception as exc:
         log.warning("  RL training failed: %s", exc)
 
@@ -245,7 +340,10 @@ async def run_training() -> None:
             # Label: 0=THETA (range), 1=VEGA (explosive), 2=BULL, 3=BEAR
             hmm = RegimeHMM(n_states=cfg.hmm_states)
             hmm.fit(df)
-            regime_seq = hmm.predict_sequence(df)  # list of str per bar
+            # decode_causal: labels at bar t use only data <= t. The old
+            # predict_sequence used global Viterbi, leaking future bars into
+            # training labels.
+            regime_seq = hmm.decode_causal(df)  # list of str per bar
             regime_map = {"ranging": 0, "volatile": 1, "bull": 2, "bear": 3}
             if regime_seq is None or len(regime_seq) < len(X):
                 labels = np.zeros(len(X), dtype=np.int64)
@@ -354,8 +452,15 @@ async def run_training() -> None:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Weekend GPU training pipeline.")
+    parser.add_argument("--rl-months", type=int, default=12, help="months of data for RL returns backtests")
+    parser.add_argument("--rl-symbols", type=int, default=4, help="max symbols for RL returns backtests")
+    args = parser.parse_args()
+
     try:
-        asyncio.run(run_training())
+        asyncio.run(run_training(rl_months=args.rl_months, rl_symbols_cap=args.rl_symbols))
     except KeyboardInterrupt:
         log.info("Training interrupted")
     except Exception as exc:

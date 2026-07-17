@@ -81,9 +81,27 @@ class RMAStrategy(BaseStrategy):
         self._long_w   = long_window
         self._entry_k  = entry_k
         self._trend_k  = trend_entry_k
-        self._positions: dict[str, str | None] = {}   # sym → "LONG"|"SHORT"|None
+        # sym → ("LONG"|"SHORT", cycle_count_at_entry). Internal tracking only —
+        # the orchestrator may close the real position (stop/TP) without telling
+        # us, so entries expire after STALE_CYCLES to avoid blocking re-entry
+        # forever (trend mode has no exit path of its own).
+        self._positions: dict[str, tuple[str, int] | None] = {}
+        self._cycle = 0
+
+    STALE_CYCLES = 96  # ~4 days of hourly cycles
+
+    def _position_side(self, sym: str) -> str | None:
+        entry = self._positions.get(sym)
+        if not entry:
+            return None
+        side, opened_at = entry
+        if self._cycle - opened_at > self.STALE_CYCLES:
+            self._positions[sym] = None
+            return None
+        return side
 
     def generate_signals(self, store, regime: str, predictions: dict) -> list[Signal]:
+        self._cycle += 1
         signals: list[Signal] = []
         symbols = [key[0] for key in store.candles if key[1] == "1h"]
 
@@ -101,7 +119,7 @@ class RMAStrategy(BaseStrategy):
             local_vol  = float(np.diff(np.log(arr[-self._short_w:])).std() + 1e-10)
             vol_weight = min(0.02 / local_vol, 2.0)   # normalise: target 2% vol per unit
 
-            pos = self._positions.get(sym)
+            pos = self._position_side(sym)
 
             # ── Mean-Reversion mode (ranging regime) ──────────────────────
             if regime in ("ranging", "volatile"):
@@ -128,7 +146,7 @@ class RMAStrategy(BaseStrategy):
                         signals.append(Signal(sym, "futures", "BUY", 0.0, 0, conf, self.name,
                                               meta={"rmm_short": round(rmm_short, 3),
                                                     "mode": "mean_rev"}))
-                        self._positions[sym] = "LONG"
+                        self._positions[sym] = ("LONG", self._cycle)
 
                 elif rmm_short >= self._entry_k and rmm_long > 0.5:
                     conf = min(abs(rmm_short) / (self._entry_k * 2), 0.88) * vol_weight
@@ -137,7 +155,7 @@ class RMAStrategy(BaseStrategy):
                         signals.append(Signal(sym, "futures", "SELL", 0.0, 0, conf, self.name,
                                               meta={"rmm_short": round(rmm_short, 3),
                                                     "mode": "mean_rev"}))
-                        self._positions[sym] = "SHORT"
+                        self._positions[sym] = ("SHORT", self._cycle)
 
             # ── Trend-Following mode (bull/bear regime) ───────────────────
             else:
@@ -153,14 +171,14 @@ class RMAStrategy(BaseStrategy):
                         signals.append(Signal(sym, "futures", "BUY", 0.0, 0, conf, self.name,
                                               meta={"rmm_short": round(rmm_short, 3),
                                                     "mode": "trend"}))
-                        self._positions[sym] = "LONG"
+                        self._positions[sym] = ("LONG", self._cycle)
                 elif rmm_trending_down:
                     conf = min(abs(rmm_short) / (self._trend_k * 4), 0.80)
                     if conf >= 0.25:
                         signals.append(Signal(sym, "futures", "SELL", 0.0, 0, conf, self.name,
                                               meta={"rmm_short": round(rmm_short, 3),
                                                     "mode": "trend"}))
-                        self._positions[sym] = "SHORT"
+                        self._positions[sym] = ("SHORT", self._cycle)
 
         # ── Pairs extension: trade RMM spread ────────────────────────────
         for sym_a, sym_b in PAIRS:
@@ -173,19 +191,20 @@ class RMAStrategy(BaseStrategy):
             rmm_b = _rmm(np.array(closes_b, dtype=float), self._short_w)
             spread = rmm_a - rmm_b   # positive → A rich vs B
 
+            pair_id = f"{self.name}:{sym_a}/{sym_b}"
             if spread > self._entry_k:
                 conf = min(abs(spread) / (self._entry_k * 2), 0.80)
                 if conf >= 0.30:
                     signals.append(Signal(sym_a, "futures", "SELL", 0.0, 0, conf, self.name,
-                                          meta={"mode": "rma_pair", "spread": round(spread, 3)}))
+                                          meta={"mode": "rma_pair", "spread": round(spread, 3), "pair_id": pair_id}))
                     signals.append(Signal(sym_b, "futures", "BUY",  0.0, 0, conf, self.name,
-                                          meta={"mode": "rma_pair", "spread": round(spread, 3)}))
+                                          meta={"mode": "rma_pair", "spread": round(spread, 3), "pair_id": pair_id}))
             elif spread < -self._entry_k:
                 conf = min(abs(spread) / (self._entry_k * 2), 0.80)
                 if conf >= 0.30:
                     signals.append(Signal(sym_a, "futures", "BUY",  0.0, 0, conf, self.name,
-                                          meta={"mode": "rma_pair", "spread": round(spread, 3)}))
+                                          meta={"mode": "rma_pair", "spread": round(spread, 3), "pair_id": pair_id}))
                     signals.append(Signal(sym_b, "futures", "SELL", 0.0, 0, conf, self.name,
-                                          meta={"mode": "rma_pair", "spread": round(spread, 3)}))
+                                          meta={"mode": "rma_pair", "spread": round(spread, 3), "pair_id": pair_id}))
 
         return signals
