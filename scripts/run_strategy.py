@@ -10,6 +10,7 @@ os.environ.update(apply_accelerator_policy(os.environ.copy())[0])
 from core.execution.broker_client import BrokerClient
 from core.execution.execution import sell_puts, sell_calls, buy_straddles, sell_iron_condors, buy_tail_hedge, deploy_asymmetric_bets
 from core.execution.deep_value_sleeve import deploy_deep_value_bets
+from core.execution.asymmetric_engine import manage_asym_positions, run_asymmetric_engine
 from core.execution.equity_overlay import rebalance_equity_overlay
 from core.telemetry.state_manager import update_state, calculate_risk
 from config.credentials import ALPACA_API_KEY, ALPACA_SECRET_KEY, IS_PAPER
@@ -823,14 +824,20 @@ def main():
                         },
                     )
 
-            # --- 0B. ASYMMETRIC / CONVEXITY BETS (The Lottery Tickets) ---
-            # Feed the most stable/range-bound (THETA) candidates to asymmetric generator
-            deploy_asymmetric_bets(client, theta_candidates, total_equity, positions)
+            # --- 0B. ASYMMETRIC BETS ENGINE (rebuilt 2026-07-18) ---
+            # One engine, one contract: defined max loss, payoff >= 4x the
+            # loss, bets sized from the portfolio risk budget. Sources:
+            # deep-value net-nets, capitulation-R, breakout-R, option tails
+            # (delegated to the Cornwall leg selector with the engine budget).
+            manage_asym_positions(client, positions)
+            run_asymmetric_engine(
+                client, total_equity, positions,
+                equity_universe=list(allowed_symbols or []),
+            )
 
-            # --- 0C. DEEP VALUE SLEEVE (Graham net-net share positions) ---
-            # Consumes last night's scan snapshot; self-budgeted via cash sweep.
+            # --- 0C. DEEP VALUE SLEEVE (exits only — engine owns entries) ---
             if ENABLE_DEEP_VALUE:
-                deploy_deep_value_bets(client, total_equity, positions)
+                deploy_deep_value_bets(client, total_equity, positions, entries_enabled=False)
 
             # --- 2A. DEPLOY VEGA ENGINE (Long Straddles) ---
             if greek_targets.target_vega > 0 and runtime_calibration.vega_enabled:

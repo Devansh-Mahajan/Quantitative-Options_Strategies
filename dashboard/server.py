@@ -729,6 +729,21 @@ async def ops_summary():
     }
 
 
+@app.get("/api/asym/engine")
+async def asym_engine_api():
+    """Latest Asymmetric Bets Engine pass: budget, setups evaluated, open bets."""
+    snapshot = read_json(RUNTIME_DIR / "asymmetric_setups.json", {})
+    registry = read_json(ROOT / "config" / "equity_overlay_positions.json", {})
+    open_bets = [
+        {**meta, "symbol": sym}
+        for sym, meta in (registry or {}).items()
+        if str((meta or {}).get("mode") or "") == "asym_r"
+    ]
+    snapshot["open_bets"] = open_bets
+    snapshot.setdefault("setups", [])
+    return snapshot
+
+
 @app.get("/api/ops/league")
 async def ops_league():
     """Measured strategy league joined with each strategy's live enable flag."""

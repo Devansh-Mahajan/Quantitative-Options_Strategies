@@ -98,11 +98,14 @@ def _exit_reason(pos, metadata: dict, fresh_by_symbol: dict[str, dict]) -> str |
     return None
 
 
-def deploy_deep_value_bets(client, total_equity: float, positions: list) -> list[str]:
+def deploy_deep_value_bets(client, total_equity: float, positions: list, entries_enabled: bool = True) -> list[str]:
     """
     Manage the deep-value sleeve for one strategy cycle: run exits on held
     positions first, then deploy capped entries from the freshest nightly scan.
     Returns human-readable action strings (mirrors the equity overlay).
+
+    entries_enabled=False keeps exit management here while the Asymmetric
+    Bets Engine owns deep-value ENTRIES with its unified risk sizing.
     """
     actions: list[str] = []
     if not ENABLE_DEEP_VALUE:
@@ -137,7 +140,7 @@ def deploy_deep_value_bets(client, total_equity: float, positions: list) -> list
             logger.error("Deep value exit failed for %s: %s", symbol, exc)
 
     # ---- Entries -------------------------------------------------------- #
-    if not DEEP_VALUE_AUTO_EXECUTE or not candidates:
+    if not entries_enabled or not DEEP_VALUE_AUTO_EXECUTE or not candidates:
         return actions
 
     sleeve_value = sum(

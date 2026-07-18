@@ -138,6 +138,7 @@ class Config:
     enable_trend_follow_daily: bool = field(default_factory=lambda: _bool("ENABLE_TREND_FOLLOW_DAILY", True))
     enable_weekly_momentum_rotation: bool = field(default_factory=lambda: _bool("ENABLE_WEEKLY_MOMENTUM_ROTATION", False))  # league 2026-07: -0.31% / PF 1.15 — borderline, off by default
     enable_dip_buyer: bool = field(default_factory=lambda: _bool("ENABLE_DIP_BUYER", True))
+    enable_vol_managed_momentum: bool = field(default_factory=lambda: _bool("ENABLE_VOL_MANAGED_MOMENTUM", True))
     # High-alpha quantitative strategies (batch 3 — Avellaneda-Stoikov, Taleb, Gatheral)
     enable_market_making: bool = field(default_factory=lambda: _bool("ENABLE_MARKET_MAKING", True))
     enable_gamma_scalping: bool = field(default_factory=lambda: _bool("ENABLE_GAMMA_SCALPING", True))

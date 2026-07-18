@@ -690,12 +690,14 @@ def buy_tail_hedge(client, total_equity, positions, max_risk_limit, port_delta):
         logger.error(f"Failed to search Delta-Neutral hedge: {e}")
 
 
-def deploy_asymmetric_bets(client, symbols_list, total_equity, positions):
+def deploy_asymmetric_bets(client, symbols_list, total_equity, positions, budget_override=None):
     import yfinance as yf
     import math
     from datetime import datetime, timezone, timedelta
-    
-    max_allocation = total_equity * CORNWALL_MAX_ALLOCATION_PCT
+
+    # budget_override: the Asymmetric Bets Engine passes an explicit dollar
+    # budget from its unified risk budget instead of the legacy pct-of-equity.
+    max_allocation = float(budget_override) if budget_override else total_equity * CORNWALL_MAX_ALLOCATION_PCT
     
     active_bets_cost = sum(float(p.market_value) for p in positions if float(p.market_value) < 100 and float(p.qty) > 0)
     if active_bets_cost >= max_allocation: return

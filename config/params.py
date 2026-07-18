@@ -156,6 +156,16 @@ CORNWALL_MAX_STRIKE_DISTANCE_PCT = 0.35
 CORNWALL_MONTE_CARLO_PATHS = 4000
 CORNWALL_MAX_TRADES_PER_RUN = 4
 
+# 11b. Asymmetric Bets Engine (rebuilt 2026-07-18)
+# Only takes setups with a DEFINED max loss and payoff >= ASYM_MIN_RATIO x
+# that loss; sizes each bet so the worst case is a known slice of equity.
+ENABLE_ASYMMETRIC_ENGINE = True
+ASYM_MIN_RATIO = 4.0            # min target-gain / max-loss to take a bet
+ASYM_TOTAL_RISK_PCT = 0.06      # max 6% of equity at risk across all engine bets
+ASYM_PER_BET_RISK_PCT = 0.015   # max 1.5% of equity risked on any single bet
+ASYM_OPTION_BUDGET_FRACTION = 0.35  # share of remaining risk budget for option tails
+ASYM_TIME_STOP_DAYS = 45        # calendar-day time stop for R-positions
+
 # 12. Deep-value (Graham net-net) sleeve
 # Nightly scan of daily movers for stocks priced below net current asset value.
 # NOT risk-free: daily-loser lists are full of value traps, hence the quality

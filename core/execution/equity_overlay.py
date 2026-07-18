@@ -470,10 +470,11 @@ def rebalance_equity_overlay(
 
         metadata = overlay_meta.get(symbol) or {}
         mode = str(metadata.get("mode") or "directional")
-        if mode == "deep_value":
-            # Deep-value positions are entered/exited exclusively by
-            # core.execution.deep_value_sleeve — the directional exit logic
-            # below would dump them instantly (no overlay target exists).
+        if mode in ("deep_value", "asym_r"):
+            # deep_value positions belong to core.execution.deep_value_sleeve;
+            # asym_r positions belong to core.execution.asymmetric_engine —
+            # the directional exit logic below would dump either instantly
+            # (no overlay target exists for them).
             continue
         signal = signal_map.get(symbol)
         pnl_pct = float(getattr(pos, "unrealized_plpc", 0.0) or 0.0)

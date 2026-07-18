@@ -161,6 +161,10 @@ def _build_all_enabled() -> list[BaseStrategy]:
         from strategies.dip_buyer import DipBuyerStrategy
         strategies.append(DipBuyerStrategy())
 
+    if cfg.enable_vol_managed_momentum:
+        from strategies.vol_managed_momentum import VolManagedMomentumStrategy
+        strategies.append(VolManagedMomentumStrategy())
+
     # ── High-alpha quantitative strategies (Avellaneda-Stoikov, Taleb, Gatheral) ──
     if cfg.enable_market_making:
         from strategies.market_making import MarketMakingStrategy

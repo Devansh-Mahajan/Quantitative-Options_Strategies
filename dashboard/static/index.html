@@ -225,6 +225,29 @@ tbody tr:hover{background:var(--accent-a)}
     </div>
   </section>
 
+  <!-- ═══ ASYMMETRIC ENGINE ═══ -->
+  <section class="panel" style="margin-top:16px">
+    <div class="phdr">
+      <div>
+        <div class="ptitle">Asymmetric Bets Engine</div>
+        <div class="psub" id="asymSub">Defined max loss · payoff ≥ 4× risk · portfolio-scaled bets</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="count">At risk <b id="asymDeployed">—</b> / <b id="asymBudget">—</b></span>
+        <span id="asymAge" class="age stale">—</span>
+      </div>
+    </div>
+    <div class="tw" style="max-height:320px">
+      <table>
+        <thead><tr>
+          <th>Source</th><th>Symbol</th><th class="num">Entry</th><th class="num">Max Loss/u</th>
+          <th class="num">Target Gain/u</th><th class="num">Ratio</th><th>Status</th><th>Reason / Note</th>
+        </tr></thead>
+        <tbody id="asymBody"><tr><td colspan="8" class="empty">No engine pass recorded yet — runs inside each strategy cycle.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- ═══ SECONDARY ═══ -->
   <div class="grid3">
     <section class="panel">
@@ -502,6 +525,51 @@ async function loadLeague() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Asymmetric Bets Engine  (60s)
+════════════════════════════════════════════════════════════════════ */
+async function loadAsym() {
+  try {
+    const data = await getJSON('/api/asym/engine');
+    el('asymBudget').textContent = fm(data.risk_budget);
+    el('asymDeployed').textContent = fm(data.risk_deployed);
+    if (data.min_ratio) el('asymSub').textContent =
+      `Defined max loss · payoff ≥ ${data.min_ratio}× risk · portfolio-scaled bets`;
+
+    const rows = [];
+    for (const bet of data.open_bets || []) {
+      rows.push(`<tr>
+        <td class="mut">${esc(bet.source || 'open')}</td>
+        <td class="sym">${esc(bet.symbol)}</td>
+        <td class="num">${fm(bet.entry_price)}</td>
+        <td class="num neg">${fm(bet.max_loss_per_unit)}</td>
+        <td class="num pos">${bet.target_price != null ? fm(bet.target_price) : '—'}</td>
+        <td class="num">${bet.asymmetry_ratio != null ? bet.asymmetry_ratio + 'x' : '—'}</td>
+        <td><span class="badge b-on">OPEN BET</span></td>
+        <td class="mut" style="font-family:var(--sans);font-size:11px">stop ${bet.stop_price != null ? fm(bet.stop_price) : '—'}</td>
+      </tr>`);
+    }
+    for (const s of (data.setups || []).slice(0, 25)) {
+      const b = s.status === 'taken' ? 'b-executed' : s.status === 'delegated' ? 'b-info'
+        : s.status === 'error' ? 'b-rejected' : 'b-gated';
+      rows.push(`<tr>
+        <td class="mut">${esc(s.source)}</td>
+        <td class="sym" style="opacity:${s.status === 'taken' ? 1 : .6}">${esc(s.symbol)}</td>
+        <td class="num">${s.entry_price != null ? fm(s.entry_price) : '—'}</td>
+        <td class="num neg">${s.max_loss_per_unit != null ? fm(s.max_loss_per_unit) : '—'}</td>
+        <td class="num pos">${s.target_gain_per_unit != null ? fm(s.target_gain_per_unit) : '—'}</td>
+        <td class="num">${s.asymmetry_ratio != null ? s.asymmetry_ratio + 'x' : '—'}</td>
+        <td><span class="badge ${b}">${esc(String(s.status || '').toUpperCase())}</span></td>
+        <td class="reason">${esc(s.reason || s.note || '')}</td>
+      </tr>`);
+    }
+    el('asymBody').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="8" class="empty">No engine pass recorded yet — runs inside each strategy cycle.</td></tr>';
+    ageBadge(el('asymAge'), data.generated_at_utc ? isoAge(data.generated_at_utc) : null, 3600, 86400);
+  } catch (e) { console.warn('asym', e); ageBadge(el('asymAge'), null); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Secondary: equity spark, deep value, risk lights  (60s)
 ════════════════════════════════════════════════════════════════════ */
 function drawSpark(canvas, values) {
@@ -574,12 +642,13 @@ async function loadSecondary() {
    Boot + polling
 ════════════════════════════════════════════════════════════════════ */
 (function boot() {
-  loadSummary(); loadHoldings(); loadExecutions(); loadMind(); loadLeague(); loadSecondary();
+  loadSummary(); loadHoldings(); loadExecutions(); loadMind(); loadLeague(); loadAsym(); loadSecondary();
   setInterval(loadSummary, 15000);
   setInterval(loadHoldings, 30000);
   setInterval(loadExecutions, 30000);
   setInterval(loadMind, 10000);
   setInterval(loadLeague, 300000);
+  setInterval(loadAsym, 60000);
   setInterval(loadSecondary, 60000);
 })();
 </script>
