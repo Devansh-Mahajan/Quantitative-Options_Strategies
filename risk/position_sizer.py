@@ -113,6 +113,22 @@ class PositionSizer:
         return max(lo, min(hi, value))
 
     @staticmethod
+    def _roundtrip_cost_pct() -> float:
+        """
+        Expected roundtrip execution cost as a fraction of notional for the
+        LIVE venue: 2 taker fees (entry + exit at market) + a 10bps slippage
+        buffer. Alpaca crypto: 2x25bps + 10bps = 60bps. Binance futures:
+        2x4bps + 10bps = 18bps.
+        """
+        try:
+            from backtester.fill_model import venue_fees
+
+            _, taker = venue_fees(cfg.broker, "spot" if cfg.is_alpaca else "futures")
+        except Exception:
+            taker = 0.0025  # conservative fallback (Alpaca level)
+        return 2.0 * taker + 0.0010
+
+    @staticmethod
     def _zero_decision(reason: str, context: SizingContext | None = None) -> SizingDecision:
         stop = PositionSizer._finite(context.stop_loss_pct, 0.0) if context else 0.0
         take = PositionSizer._finite(context.take_profit_pct, 0.0) if context else 0.0
@@ -198,6 +214,18 @@ class PositionSizer:
         stop = self._clamp(stop_override or plan.stop_loss_pct, 0.0025, 0.20)
         take = self._clamp(take_override or plan.take_profit_pct, stop * 1.01, 0.40)
 
+        # ---- Cost-aware edge floor -------------------------------------- #
+        # A trade whose profit target barely covers the roundtrip cost has
+        # negative expectancy after the win rate is applied. Require the
+        # target to clear COST_EDGE_MULTIPLE x (2 taker fees + slippage);
+        # otherwise reject before any capital is committed.
+        roundtrip_cost = self._roundtrip_cost_pct()
+        min_take = float(getattr(cfg, "cost_edge_multiple", 3.0)) * roundtrip_cost
+        if take < min_take:
+            return self._zero_decision("edge_below_cost_floor", context)
+        # Headroom scaling: thin edges over the floor get proportionally less.
+        cost_edge_scalar = self._clamp(take / (2.0 * min_take), 0.5, 1.0)
+
         regime_scalar = {
             "bull": 1.00,
             "ranging": 0.85,
@@ -234,6 +262,7 @@ class PositionSizer:
             * daily_loss_scalar
             * liquidity_scalar
             * execution_scalar
+            * cost_edge_scalar
         )
 
         # Treat confidence as calibrated win probability only after shrinkage

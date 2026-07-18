@@ -102,7 +102,12 @@ def compute_metrics(
 
     # --- Sharpe ---
     excess = bar_returns - rfr_per_bar
-    sharpe = float(excess.mean() / (bar_returns.std() + 1e-10) * np.sqrt(ann))
+    if float(bar_returns.std()) < 1e-12:
+        # Flat curve (no trades): Sharpe is undefined, not astronomically
+        # negative — report 0 instead of -rfr/epsilon garbage.
+        sharpe = 0.0
+    else:
+        sharpe = float(excess.mean() / (bar_returns.std() + 1e-10) * np.sqrt(ann))
 
     # --- Sortino (downside deviation only) ---
     # Arithmetic annualized excess return over arithmetic downside deviation —

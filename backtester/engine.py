@@ -185,6 +185,9 @@ class BacktestEngine:
         self.take_profit_pct = take_profit_pct
         self.max_risk_per_trade = max_risk_per_trade or cfg.max_risk_per_trade
         self._sizer = PositionSizer()
+        from strategies.base import SignalCooldown
+
+        self._cooldown = SignalCooldown(gap=int(getattr(cfg, "signal_cooldown_cycles", 4)))
 
         # Validate data
         if not data:
@@ -352,9 +355,16 @@ class BacktestEngine:
                 for strategy in self.strategies:
                     try:
                         sigs = strategy.generate_signals(store, regime, predictions)
+                        # Same turnover throttle the live orchestrator applies,
+                        # so backtests measure the throttled behavior.
+                        sigs = self._cooldown.filter(sigs, i)
                         total_signals += len(sigs)
                         for sig in sigs:
-                            order = self._signal_to_order(sig, equity, i, atr_series)
+                            sym_vol = float(ann_vol_series.get(sig.symbol, [0.5] * (i + 1))[min(i, len(ann_vol_series.get(sig.symbol, [0.5])) - 1)] or 0.5)
+                            order = self._signal_to_order(
+                                sig, equity, i, atr_series,
+                                realised_vol=sym_vol, regime=regime,
+                            )
                             if order:
                                 pending_orders.append(order)
                     except Exception as exc:
@@ -449,12 +459,21 @@ class BacktestEngine:
     # ------------------------------------------------------------------ #
 
     def _signal_to_order(
-        self, sig, equity: float, bar_index: int, atr_series: dict
+        self, sig, equity: float, bar_index: int, atr_series: dict,
+        realised_vol: float = 0.5, regime: str = "ranging",
     ) -> Order | None:
         """Convert a live Signal to a backtester Order with realistic sizing."""
         price = sig.price or float(self.data.get(sig.symbol, self.data[self._anchor_sym])
                                    .reset_index().iloc[bar_index]["close"])
         if price <= 0:
+            return None
+
+        # Cost-aware edge floor — parity with risk/position_sizer.size_signal:
+        # skip trades whose profit target can't clear a multiple of the
+        # roundtrip cost at this engine's OWN fee schedule.
+        plan = self._sizer.exit_plan(realised_vol=realised_vol, regime=regime)
+        roundtrip = 2.0 * self.fill_model.taker_fee + 0.0010
+        if plan.take_profit_pct < float(getattr(cfg, "cost_edge_multiple", 3.0)) * roundtrip:
             return None
 
         # Size: risk-based
@@ -530,12 +549,37 @@ class BacktestEngine:
     def _per_strategy_metrics(
         self, trades_df: pd.DataFrame, eq_series: pd.Series
     ) -> dict[str, PerformanceMetrics]:
+        """
+        Attribute metrics per strategy from that strategy's OWN trades.
+
+        Each strategy gets an equity series built from its cumulative trade
+        PnL (indexed by exit-bar timestamp) — passing the shared PORTFOLIO
+        curve to every strategy (the old behavior) contaminated per-strategy
+        Sharpe/return/drawdown with everyone else's trades.
+        """
         if trades_df.empty or "strategy" not in trades_df.columns:
             return {}
         result = {}
         for strat in trades_df["strategy"].unique():
-            strat_trades = trades_df[trades_df["strategy"] == strat]
+            strat_trades = trades_df[trades_df["strategy"] == strat].sort_values("bar_index")
             rets = strat_trades["pnl_pct"].tolist()
             holds = strat_trades["holding_bars"].tolist()
-            result[strat] = compute_metrics(eq_series, rets, holds)
+
+            strat_eq = eq_series
+            try:
+                # eq_series row 0 corresponds to bar `lookback`, not bar 0.
+                bar_positions = (strat_trades["bar_index"].astype(int) - self.lookback).clip(0, len(eq_series) - 1)
+                timestamps = eq_series.index[bar_positions.to_numpy()]
+                equity_values = self.initial_equity + strat_trades["pnl_abs"].cumsum().to_numpy()
+                own = pd.Series(equity_values, index=timestamps, name="equity")
+                # Prepend the starting point so returns/drawdowns are anchored.
+                start_point = pd.Series([self.initial_equity], index=[eq_series.index[0]], name="equity")
+                own = pd.concat([start_point, own])
+                own = own[~own.index.duplicated(keep="last")]
+                if len(own) >= 2:
+                    strat_eq = own
+            except Exception:
+                pass  # fall back to portfolio curve rather than dropping the strategy
+
+            result[strat] = compute_metrics(strat_eq, rets, holds)
         return result

@@ -67,6 +67,50 @@ def _suggest_params(trial) -> dict:
     )
 
 
+# Per-strategy Optuna search spaces. Keys are strategy names; each function
+# returns __init__ kwargs for that strategy class (all promoted/tunable).
+# Used when BacktestOptimizer is constructed with tune_strategy=<name>.
+STRATEGY_PARAM_SPACES: dict = {
+    "tsmom": lambda t: dict(
+        lookback=t.suggest_int("s_lookback", 48, 336, step=24),
+        entry_threshold=t.suggest_float("s_entry_threshold", 0.05, 0.30, step=0.05),
+        rebal_bars=t.suggest_int("s_rebal_bars", 2, 12, step=2),
+    ),
+    "statistical_arb": lambda t: dict(
+        entry_z=t.suggest_float("s_entry_z", 1.6, 3.2, step=0.2),
+        exit_z=t.suggest_float("s_exit_z", 0.2, 1.0, step=0.2),
+    ),
+    "mean_reversion": lambda t: dict(
+        bb_std=t.suggest_float("s_bb_std", 1.8, 3.0, step=0.2),
+        rsi_oversold=t.suggest_int("s_rsi_oversold", 18, 34, step=4),
+        rsi_overbought=t.suggest_int("s_rsi_overbought", 66, 82, step=4),
+    ),
+    "breakout": lambda t: dict(
+        donchian_period=t.suggest_int("s_donchian_period", 16, 48, step=8),
+        vol_surge=t.suggest_float("s_vol_surge", 1.2, 2.4, step=0.2),
+    ),
+    "hp_trend": lambda t: dict(
+        ma_fast=t.suggest_int("s_ma_fast", 6, 18, step=3),
+        ma_slow=t.suggest_int("s_ma_slow", 24, 72, step=8),
+        rebal_bars=t.suggest_int("s_rebal_bars", 2, 8, step=2),
+    ),
+    "vpin_flow": lambda t: dict(),  # engine-level params only (thresholds internal)
+    "quant_factors": lambda t: dict(
+        ibs_low=t.suggest_float("s_ibs_low", 0.10, 0.30, step=0.05),
+        ibs_high=t.suggest_float("s_ibs_high", 0.70, 0.90, step=0.05),
+    ),
+    "momentum_carry_combo": lambda t: dict(
+        entry_score=t.suggest_float("s_entry_score", 0.10, 0.40, step=0.05),
+        rebal_bars=t.suggest_int("s_rebal_bars", 4, 16, step=4),
+    ),
+    "momentum": lambda t: dict(
+        ema_fast=t.suggest_int("s_ema_fast", 6, 14, step=2),
+        ema_slow=t.suggest_int("s_ema_slow", 16, 34, step=3),
+        vol_ratio=t.suggest_float("s_vol_ratio", 1.0, 1.8, step=0.2),
+    ),
+}
+
+
 def _composite_score(oos_metrics, is_metrics, degradation_pct: float) -> float:
     """
     Composite objective maximised by the optimizer.
@@ -119,7 +163,14 @@ class BacktestOptimizer:
         initial_equity: float = 10_000,
         output_dir: Path | None = None,
         holdout_fraction: float = 0.20,
+        tune_strategy: str | None = None,
     ) -> None:
+        # When tune_strategy is set, each trial ALSO suggests that strategy's
+        # __init__ kwargs (STRATEGY_PARAM_SPACES) and strategy_factory must
+        # accept them as keyword arguments.
+        self.tune_strategy = tune_strategy
+        if tune_strategy is not None and tune_strategy not in STRATEGY_PARAM_SPACES:
+            raise ValueError(f"no param space defined for strategy '{tune_strategy}'")
         # Reserve the FINAL holdout_fraction of bars as an untouched test
         # window. Optuna only ever sees the earlier portion; without this, the
         # reported best_value is the max over n_trials evaluations of the same
@@ -179,7 +230,16 @@ class BacktestOptimizer:
         import optuna
         params = _suggest_params(trial)
 
+        strategy_params: dict = {}
+        if self.tune_strategy is not None:
+            strategy_params = STRATEGY_PARAM_SPACES[self.tune_strategy](trial)
+
         from backtester.walk_forward import WalkForwardValidator
+
+        factory = self.strategy_factory
+        if strategy_params:
+            base_factory = self.strategy_factory
+            factory = lambda: base_factory(**strategy_params)  # noqa: E731
 
         validator = WalkForwardValidator(
             data=self.data,
@@ -191,7 +251,7 @@ class BacktestOptimizer:
                 initial_equity=self.initial_equity,
                 **params,
             ),
-            strategy_factory=self.strategy_factory,
+            strategy_factory=factory,
         )
         try:
             wf = validator.run(verbose=False)

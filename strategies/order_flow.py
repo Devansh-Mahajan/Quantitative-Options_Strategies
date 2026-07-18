@@ -23,6 +23,18 @@ class OrderFlowStrategy(BaseStrategy):
     name = "order_flow"
     market = "futures"
 
+
+    def __init__(
+        self,
+        imbalance_threshold: float = IMBALANCE_THRESHOLD,
+        vwap_threshold: float = VWAP_THRESHOLD,
+        lookback_bars: int = LOOKBACK_BARS,
+    ) -> None:
+        # Tunable thresholds (defaults = historical module constants).
+        self._imbalance_threshold = imbalance_threshold
+        self._vwap_threshold = vwap_threshold
+        self._lookback_bars = int(lookback_bars)
+
     @property
     def symbols(self) -> list[str]:
         # Focus on the mixed top-of-book universe where quote-based microstructure is meaningful.
@@ -35,7 +47,7 @@ class OrderFlowStrategy(BaseStrategy):
         for symbol in self.symbols:
             try:
                 df = store.get_history_df(symbol, "5m")
-                if len(df) < LOOKBACK_BARS + 5:
+                if len(df) < self._lookback_bars + 5:
                     continue
 
                 c = df["close"].astype(float).values
@@ -46,14 +58,14 @@ class OrderFlowStrategy(BaseStrategy):
 
                 # --- VWAP calculation ---
                 typical = (df["high"].astype(float).values + df["low"].astype(float).values + c) / 3.0
-                vwap = (typical[-LOOKBACK_BARS:] * v[-LOOKBACK_BARS:]).sum() / (v[-LOOKBACK_BARS:].sum() + 1e-10)
+                vwap = (typical[-self._lookback_bars:] * v[-self._lookback_bars:]).sum() / (v[-self._lookback_bars:].sum() + 1e-10)
                 vwap_dev = (price - vwap) / (vwap + 1e-10)
 
                 # --- Buy/sell imbalance ---
                 imbalance = 0.5  # default neutral
                 if taker is not None and not taker.isna().all():
-                    tb = taker.astype(float).values[-LOOKBACK_BARS:]
-                    total = v[-LOOKBACK_BARS:]
+                    tb = taker.astype(float).values[-self._lookback_bars:]
+                    total = v[-self._lookback_bars:]
                     buy_vol = tb.sum()
                     total_vol = total.sum()
                     imbalance = buy_vol / (total_vol + 1e-10)
@@ -65,8 +77,8 @@ class OrderFlowStrategy(BaseStrategy):
                     spread_pct = (book.ask - book.bid) / (book.bid + 1e-10)
 
                 # Tight spread + strong buy imbalance + below VWAP = bullish microstructure
-                if imbalance > IMBALANCE_THRESHOLD and vwap_dev < -VWAP_THRESHOLD and spread_pct < 0.001:
-                    confidence = min(0.75, 0.45 + (imbalance - IMBALANCE_THRESHOLD) * 2.0 + abs(vwap_dev) * 10)
+                if imbalance > self._imbalance_threshold and vwap_dev < -self._vwap_threshold and spread_pct < 0.001:
+                    confidence = min(0.75, 0.45 + (imbalance - self._imbalance_threshold) * 2.0 + abs(vwap_dev) * 10)
                     confidence *= regime_scale
                     signals.append(Signal(
                         symbol=symbol, market="futures", side="BUY",
@@ -76,8 +88,8 @@ class OrderFlowStrategy(BaseStrategy):
                         meta={"imbalance": imbalance, "vwap_dev": vwap_dev},
                     ))
 
-                elif imbalance < (1 - IMBALANCE_THRESHOLD) and vwap_dev > VWAP_THRESHOLD and spread_pct < 0.001:
-                    confidence = min(0.75, 0.45 + ((1 - IMBALANCE_THRESHOLD) - imbalance) * 2.0 + abs(vwap_dev) * 10)
+                elif imbalance < (1 - self._imbalance_threshold) and vwap_dev > self._vwap_threshold and spread_pct < 0.001:
+                    confidence = min(0.75, 0.45 + ((1 - self._imbalance_threshold) - imbalance) * 2.0 + abs(vwap_dev) * 10)
                     confidence *= regime_scale
                     signals.append(Signal(
                         symbol=symbol, market="futures", side="SELL",

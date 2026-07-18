@@ -36,6 +36,26 @@ class MeanReversionStrategy(BaseStrategy):
     market = "futures"
     required_regime = "ranging"
 
+
+    def __init__(
+        self,
+        bb_period: int = BB_PERIOD,
+        bb_std: float = BB_STD,
+        rsi_period: int = RSI_PERIOD,
+        rsi_oversold: float = RSI_OVERSOLD,
+        rsi_overbought: float = RSI_OVERBOUGHT,
+        atr_period: int = ATR_PERIOD,
+        kc_mult: float = KC_MULT,
+    ) -> None:
+        # Tunable thresholds (defaults = historical module constants).
+        self._bb_period = int(bb_period)
+        self._bb_std = bb_std
+        self._rsi_period = int(rsi_period)
+        self._rsi_oversold = rsi_oversold
+        self._rsi_overbought = rsi_overbought
+        self._atr_period = int(atr_period)
+        self._kc_mult = kc_mult
+
     @property
     def symbols(self) -> list[str]:
         return cfg.runtime_symbols[:6]
@@ -48,7 +68,7 @@ class MeanReversionStrategy(BaseStrategy):
         for symbol in self.symbols:
             try:
                 df = store.get_history_df(symbol, "1h")
-                if len(df) < BB_PERIOD + ATR_PERIOD + 5:
+                if len(df) < self._bb_period + self._atr_period + 5:
                     continue
 
                 c = df["close"].astype(float)
@@ -57,23 +77,23 @@ class MeanReversionStrategy(BaseStrategy):
                 price = float(c.iloc[-1])
 
                 # Bollinger Bands
-                bb_mid = c.rolling(BB_PERIOD).mean()
-                bb_std = c.rolling(BB_PERIOD).std()
-                bb_upper = bb_mid + BB_STD * bb_std
-                bb_lower = bb_mid - BB_STD * bb_std
+                bb_mid = c.rolling(self._bb_period).mean()
+                bb_std = c.rolling(self._bb_period).std()
+                bb_upper = bb_mid + self._bb_std * bb_std
+                bb_lower = bb_mid - self._bb_std * bb_std
                 bb_pct = (c - bb_lower) / (bb_upper - bb_lower + 1e-10)
 
                 # RSI
-                rsi = _rsi(c, RSI_PERIOD)
+                rsi = _rsi(c, self._rsi_period)
 
                 # ATR
                 tr = pd.concat([h - l_, (h - c.shift()).abs(), (l_ - c.shift()).abs()], axis=1).max(axis=1)
-                atr = tr.rolling(ATR_PERIOD).mean()
+                atr = tr.rolling(self._atr_period).mean()
 
                 # Keltner Channel
                 ema20 = c.ewm(span=20, adjust=False).mean()
-                kc_upper = ema20 + KC_MULT * atr
-                kc_lower = ema20 - KC_MULT * atr
+                kc_upper = ema20 + self._kc_mult * atr
+                kc_lower = ema20 - self._kc_mult * atr
 
                 curr_rsi = float(rsi.iloc[-1])
                 curr_bb = float(bb_pct.iloc[-1])
@@ -83,8 +103,8 @@ class MeanReversionStrategy(BaseStrategy):
                              float(bb_lower.iloc[-1]) > float(kc_lower.iloc[-1])
 
                 # Long: price at lower BB + RSI oversold
-                if curr_bb < 0.10 and curr_rsi < RSI_OVERSOLD and not in_squeeze:
-                    confidence = min(0.85, 0.50 + (RSI_OVERSOLD - curr_rsi) / 100 + (0.10 - curr_bb))
+                if curr_bb < 0.10 and curr_rsi < self._rsi_oversold and not in_squeeze:
+                    confidence = min(0.85, 0.50 + (self._rsi_oversold - curr_rsi) / 100 + (0.10 - curr_bb))
                     confidence *= regime_scale
                     signals.append(Signal(
                         symbol=symbol, market="futures", side="BUY",
@@ -95,8 +115,8 @@ class MeanReversionStrategy(BaseStrategy):
                     ))
 
                 # Short: price at upper BB + RSI overbought
-                elif curr_bb > 0.90 and curr_rsi > RSI_OVERBOUGHT and not in_squeeze:
-                    confidence = min(0.85, 0.50 + (curr_rsi - RSI_OVERBOUGHT) / 100 + (curr_bb - 0.90))
+                elif curr_bb > 0.90 and curr_rsi > self._rsi_overbought and not in_squeeze:
+                    confidence = min(0.85, 0.50 + (curr_rsi - self._rsi_overbought) / 100 + (curr_bb - 0.90))
                     confidence *= regime_scale
                     signals.append(Signal(
                         symbol=symbol, market="futures", side="SELL",

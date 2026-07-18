@@ -19,6 +19,36 @@ class Signal(NamedTuple):
     meta: dict | None = None
 
 
+class SignalCooldown:
+    """
+    Turnover throttle shared by the live orchestrator and the backtester so
+    both measure the same behavior.
+
+    Drops a signal when the same (strategy, symbol, side) was emitted within
+    the last `gap` counter ticks (cycles live, bars in backtests). Eleven
+    strategies emit every cycle with no rebalance gating; at ~50bps roundtrip
+    on Alpaca that re-entry churn is a systematic bleed. Rebalance-gated
+    strategies are naturally slower, so this is effectively a no-op for them.
+    """
+
+    def __init__(self, gap: int = 4) -> None:
+        self.gap = max(0, int(gap))
+        self._last_emit: dict[tuple[str, str, str], int] = {}
+
+    def filter(self, signals: list["Signal"], counter: int) -> list["Signal"]:
+        if self.gap <= 0:
+            return signals
+        kept: list[Signal] = []
+        for sig in signals:
+            key = (sig.strategy, sig.symbol, sig.side)
+            last = self._last_emit.get(key)
+            if last is not None and (counter - last) < self.gap:
+                continue
+            self._last_emit[key] = counter
+            kept.append(sig)
+        return kept
+
+
 class BaseStrategy(ABC):
     name: str = "base"
     market: str = "futures"     # spot | futures | options

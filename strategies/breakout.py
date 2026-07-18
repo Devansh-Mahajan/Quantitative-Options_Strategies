@@ -26,6 +26,20 @@ class BreakoutStrategy(BaseStrategy):
     market = "futures"
     required_regime = None
 
+
+    def __init__(
+        self,
+        donchian_period: int = DONCHIAN_PERIOD,
+        atr_period: int = ATR_PERIOD,
+        vol_surge: float = VOL_SURGE,
+        atr_expand: float = ATR_EXPAND,
+    ) -> None:
+        # Tunable thresholds (defaults = historical module constants).
+        self._donchian_period = int(donchian_period)
+        self._atr_period = int(atr_period)
+        self._vol_surge = vol_surge
+        self._atr_expand = atr_expand
+
     @property
     def symbols(self) -> list[str]:
         return cfg.runtime_symbols
@@ -37,7 +51,7 @@ class BreakoutStrategy(BaseStrategy):
         for symbol in self.symbols:
             try:
                 df = store.get_history_df(symbol, "4h")
-                if len(df) < DONCHIAN_PERIOD + ATR_PERIOD + 5:
+                if len(df) < self._donchian_period + self._atr_period + 5:
                     continue
 
                 c = df["close"].astype(float)
@@ -46,18 +60,18 @@ class BreakoutStrategy(BaseStrategy):
                 v = df["volume"].astype(float)
 
                 price = float(c.iloc[-1])
-                prev_high = float(h.iloc[-(DONCHIAN_PERIOD + 1): -1].max())
-                prev_low = float(l_.iloc[-(DONCHIAN_PERIOD + 1): -1].min())
+                prev_high = float(h.iloc[-(self._donchian_period + 1): -1].max())
+                prev_low = float(l_.iloc[-(self._donchian_period + 1): -1].min())
 
                 # ATR
                 tr = pd.concat([h - l_, (h - c.shift()).abs(), (l_ - c.shift()).abs()], axis=1).max(axis=1)
-                atr = tr.rolling(ATR_PERIOD).mean()
+                atr = tr.rolling(self._atr_period).mean()
                 atr_curr = float(atr.iloc[-1])
                 atr_prev = float(atr.iloc[-2])
 
                 vol_ratio = float(v.iloc[-1]) / (float(v.rolling(20).mean().iloc[-1]) + 1e-10)
-                vol_ok = vol_ratio >= VOL_SURGE
-                atr_ok = atr_curr >= atr_prev * ATR_EXPAND
+                vol_ok = vol_ratio >= self._vol_surge
+                atr_ok = atr_curr >= atr_prev * self._atr_expand
 
                 # ML prediction alignment
                 pred = predictions.get(symbol, {})

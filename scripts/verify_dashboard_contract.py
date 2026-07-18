@@ -14,7 +14,17 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PATH = ROOT / "dashboard" / "static" / "index.html"
+# 2026-07: the research dashboard moved to legacy.html; index.html is now the
+# ops console with its own (smaller) contract, checked separately below.
+DEFAULT_PATH = ROOT / "dashboard" / "static" / "legacy.html"
+OPS_CONSOLE_PATH = ROOT / "dashboard" / "static" / "index.html"
+
+# Ops console contract: the four core panels and their loaders must exist.
+OPS_REQUIRED_IDS = [
+    "holdingsBody", "execBody", "mindList", "leagueBody",
+    "aEquity", "aDayPnl", "acctAge",
+]
+OPS_REQUIRED_HOOKS = ["loadSummary", "loadHoldings", "loadExecutions", "loadMind", "loadLeague"]
 
 REQUIRED_TABS = [
     "live",
@@ -115,6 +125,21 @@ def main() -> int:
         print("Too few API call sites; backend functionality may have been replaced by stubs.", file=sys.stderr)
         return 1
     if missing_tabs or missing_hooks:
+        return 1
+
+    # --- Ops console contract (index.html) ---
+    if OPS_CONSOLE_PATH.exists():
+        ops_source = OPS_CONSOLE_PATH.read_text(encoding="utf-8")
+        ops_missing_ids = [i for i in OPS_REQUIRED_IDS if f'id="{i}"' not in ops_source]
+        ops_missing_hooks = [h for h in OPS_REQUIRED_HOOKS if not has_function_or_binding(ops_source, h)]
+        print(f"Ops console: {len(ops_source.splitlines())} lines, "
+              f"{len(OPS_REQUIRED_IDS) - len(ops_missing_ids)}/{len(OPS_REQUIRED_IDS)} panels, "
+              f"{len(OPS_REQUIRED_HOOKS) - len(ops_missing_hooks)}/{len(OPS_REQUIRED_HOOKS)} loaders")
+        if ops_missing_ids or ops_missing_hooks:
+            print(f"Ops console missing: ids={ops_missing_ids} hooks={ops_missing_hooks}", file=sys.stderr)
+            return 1
+    else:
+        print("Ops console index.html missing!", file=sys.stderr)
         return 1
     return 0
 

@@ -664,11 +664,97 @@ async def root_head():
     )
 
 
+@app.get("/legacy")
+async def legacy_dashboard():
+    """Full research dashboard (pre-2026-07 ops-console rebuild)."""
+    return FileResponse(
+        str(STATIC / "legacy.html"),
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
+    )
+
+
 @app.get("/favicon.ico")
 @app.get("/apple-touch-icon.png")
 @app.get("/apple-touch-icon-precomposed.png")
 async def browser_icon_stub():
     return Response(status_code=204)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST — Ops console (2026-07 rebuild)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/ops/summary")
+async def ops_summary():
+    """Live account values + freshness of the decision/execution telemetry."""
+    snapshot = live_broker_snapshot()
+
+    def _age_seconds(path: Path) -> float | None:
+        try:
+            if path.exists():
+                return round(datetime.now(timezone.utc).timestamp() - path.stat().st_mtime, 1)
+        except Exception:
+            pass
+        return None
+
+    from core.telemetry.trade_decision_tape import DEFAULT_DECISION_TAPE_PATH as _tape_path
+
+    # When broker credentials are absent (e.g. dev machine without .env),
+    # fall back to the bot-book equity curve so the console shows something
+    # truthful — clearly labeled as book data, not the live account.
+    book = None
+    if not snapshot or snapshot.get("available") is False:
+        try:
+            with _db_conn() as conn:
+                row = conn.execute(
+                    "SELECT ts, equity FROM equity_curve ORDER BY ts DESC LIMIT 1"
+                ).fetchone()
+            if row:
+                book = {"equity": float(row["equity"]), "ts": row["ts"]}
+        except Exception:
+            book = None
+
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "account": snapshot,
+        "book_fallback": book,
+        "freshness": {
+            "decision_tape_age_s": _age_seconds(Path(_tape_path)),
+            "execution_ledger_age_s": _age_seconds(EXEC_LEDGER_PATH),
+            "live_allocation_age_s": _age_seconds(RUNTIME_DIR / "live_allocation.json"),
+            "risk_snapshot_age_s": _age_seconds(RUNTIME_DIR / "risk_snapshot.json"),
+        },
+        "broker": cfg.broker,
+        "paper": bool(getattr(cfg, "alpaca_paper", True)),
+    }
+
+
+@app.get("/api/ops/league")
+async def ops_league():
+    """Measured strategy league joined with each strategy's live enable flag."""
+    league = read_json(ROOT / "reports" / "strategy_league_gated.json", {})
+    rows = league.get("rows") or []
+    enabled_flags = {
+        k.replace("enable_", ""): bool(v)
+        for k, v in vars(cfg).items()
+        if k.startswith("enable_")
+    }
+    try:
+        from strategies.registry import build_registry
+
+        active = {s.name for s in build_registry()}
+    except Exception:
+        active = set()
+    for row in rows:
+        name = row.get("strategy")
+        row["enabled"] = enabled_flags.get(name, False)
+        row["active_on_venue"] = name in active
+    return {
+        "window": league.get("window"),
+        "fees": league.get("fees"),
+        "generated_at_utc": league.get("generated_at_utc"),
+        "rows": rows,
+    }
 
 
 @app.get("/api/health")

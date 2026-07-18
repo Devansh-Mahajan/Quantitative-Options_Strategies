@@ -49,6 +49,26 @@ class MomentumStrategy(BaseStrategy):
     market = "futures"
     required_regime = None
 
+
+    def __init__(
+        self,
+        ema_fast: int = EMA_FAST,
+        ema_slow: int = EMA_SLOW,
+        ema_trend: int = EMA_TREND,
+        macd_fast: float = MACD_FAST,
+        macd_slow: float = MACD_SLOW,
+        macd_sig: float = MACD_SIG,
+        vol_ratio: float = VOL_RATIO,
+    ) -> None:
+        # Tunable thresholds (defaults = historical module constants).
+        self._ema_fast = int(ema_fast)
+        self._ema_slow = int(ema_slow)
+        self._ema_trend = int(ema_trend)
+        self._macd_fast = macd_fast
+        self._macd_slow = macd_slow
+        self._macd_sig = macd_sig
+        self._vol_ratio = vol_ratio
+
     @property
     def symbols(self) -> list[str]:
         return cfg.runtime_symbols
@@ -71,18 +91,18 @@ class MomentumStrategy(BaseStrategy):
             try:
                 # ── 1h data ───────────────────────────────────────────────
                 df_1h = store.get_history_df(symbol, "1h")
-                if len(df_1h) < EMA_TREND + 20:
+                if len(df_1h) < self._ema_trend + 20:
                     continue
 
                 c1 = df_1h["close"].astype(float)
                 v1 = df_1h["volume"].astype(float)
 
-                ema_f = c1.ewm(span=EMA_FAST,  adjust=False).mean()
-                ema_s = c1.ewm(span=EMA_SLOW,  adjust=False).mean()
-                ema_t = c1.ewm(span=EMA_TREND, adjust=False).mean()
+                ema_f = c1.ewm(span=self._ema_fast,  adjust=False).mean()
+                ema_s = c1.ewm(span=self._ema_slow,  adjust=False).mean()
+                ema_t = c1.ewm(span=self._ema_trend, adjust=False).mean()
 
-                macd_1h = c1.ewm(span=MACD_FAST).mean() - c1.ewm(span=MACD_SLOW).mean()
-                hist_1h = macd_1h - macd_1h.ewm(span=MACD_SIG).mean()
+                macd_1h = c1.ewm(span=self._macd_fast).mean() - c1.ewm(span=self._macd_slow).mean()
+                hist_1h = macd_1h - macd_1h.ewm(span=self._macd_sig).mean()
 
                 vol_ratio = float(v1.iloc[-1]) / (float(v1.rolling(20).mean().iloc[-1]) + 1e-10)
 
@@ -116,7 +136,7 @@ class MomentumStrategy(BaseStrategy):
                     trend_4h_bearish = (not above_4h_ema) and macd_4h_neg
 
                 # ── Signal generation (confluence required) ───────────────
-                vol_ok = vol_ratio >= VOL_RATIO
+                vol_ok = vol_ratio >= self._vol_ratio
                 pred   = predictions.get(symbol, {})
                 h1_ret = float(pred.get("h1_ret", 0.0))
 
