@@ -32,6 +32,7 @@ models/live/
 models/training/
 data/*.pt
 config/*.pth
+<<<<<<< Updated upstream
 config/*.pkl
 config/adaptive_profile.json
 config/model_state.json
@@ -41,3 +42,38 @@ config/quant_strategy_pack.json
 config/equity_overlay_positions.json
 config/symbol_list.txt
 config/volatile_symbols.txt
+=======
+# -----------------------------
+# Runtime & State Data
+# -----------------------------
+.runtime/
+
+# -----------------------------
+# Logs
+# -----------------------------
+logging/*.log
+
+# -----------------------------
+# Machine Learning Models
+# -----------------------------
+models/live/
+models/training/
+
+# -----------------------------
+# Config & State Caches
+# -----------------------------
+config/adaptive_profile.json
+config/*.pkl
+config/foundry_last_model_config.json
+config/model_state.json
+config/quant_strategy_pack.json
+config/symbol_list.txt
+config/volatile_symbols.txt
+
+# -----------------------------
+# Generated Reports
+# -----------------------------
+reports/daily/
+reports/*.json
+reports/*.md
+>>>>>>> Stashed changes
