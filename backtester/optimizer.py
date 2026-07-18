@@ -202,13 +202,21 @@ class BacktestOptimizer:
             return float("nan"), None
         from backtester.engine import BacktestEngine
 
+        # Split trial params: "s_" prefix = strategy __init__ kwargs (threaded
+        # through the factory), everything else = engine kwargs.
+        engine_params = {k: v for k, v in best_params.items() if not k.startswith("s_")}
+        strategy_params = {k[2:]: v for k, v in best_params.items() if k.startswith("s_")}
+
         try:
+            strategies = (
+                self.strategy_factory(**strategy_params) if strategy_params else self.strategy_factory()
+            )
             engine = BacktestEngine(
                 data=self.holdout_data,
                 interval=self.interval,
                 initial_equity=self.initial_equity,
-                strategies=self.strategy_factory(),
-                **best_params,
+                strategies=strategies,
+                **engine_params,
             )
             result = engine.run()
             m = result.metrics

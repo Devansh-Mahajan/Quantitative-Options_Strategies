@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Tune one strategy's params with holdout validation.")
     parser.add_argument("--strategy", required=True)
     parser.add_argument("--trials", type=int, default=40)
+    parser.add_argument("--folds", type=int, default=3)
     parser.add_argument("--months", type=int, default=12)
     parser.add_argument("--symbols", nargs="+", default=LEAGUE_SYMBOLS)
     parser.add_argument("--output-dir", default=str(ROOT / "reports"))
@@ -70,7 +71,7 @@ def main() -> int:
         interval="1h",
         strategy_factory=factory,
         n_trials=args.trials,
-        n_wf_folds=3,
+        n_wf_folds=args.folds,
         tune_strategy=args.strategy,
         output_dir=Path(args.output_dir) / "tuning",
     )

@@ -49,14 +49,21 @@ class Liquidation:
     ts: float = field(default_factory=time.monotonic)
 
 
+HISTORY_MAX_BARS = 2400   # ≈100 days of 1h bars
+
+
 class MarketDataStore:
     """Thread-safe (GIL-protected) in-process market data bus."""
 
     def __init__(self) -> None:
         # latest closed candle per (symbol, interval)
         self.candles: dict[tuple[str, str], Candle] = {}
-        # rolling candle history: 500 candles per (symbol, interval)
-        self.history: dict[tuple[str, str], deque[Candle]] = defaultdict(lambda: deque(maxlen=500))
+        # rolling candle history per (symbol, interval)
+        # 2400 x 1h ≈ 100 days — the daily/weekly strategies (trend_follow_daily,
+        # weekly_momentum_rotation, dip_buyer) need 30-90 days of history; the
+        # old 500-bar cap (~21 days) silently starved them into permanent
+        # no-signal mode in both live trading and backtests.
+        self.history: dict[tuple[str, str], deque[Candle]] = defaultdict(lambda: deque(maxlen=HISTORY_MAX_BARS))
         # best bid/ask
         self.book: dict[str, BookTicker] = {}
         # recent liquidations per symbol

@@ -173,3 +173,128 @@ def test_strategy_param_spaces_produce_valid_kwargs():
         kwargs = space(FakeTrial())
         if name in instances:
             instances[name](**kwargs)  # must construct without error
+
+
+# --------------------------------------------------------------------------- #
+# New cost-aware strategies (2026-07)
+# --------------------------------------------------------------------------- #
+
+class _FakeStore:
+    """Minimal store: one symbol of hourly bars."""
+
+    def __init__(self, closes, symbol="BTCUSDT"):
+        n = len(closes)
+        idx = pd.date_range("2026-01-01", periods=n, freq="1h", tz="UTC")
+        c = np.asarray(closes, dtype=float)
+        self._df = pd.DataFrame({
+            "open_time": [int(t.timestamp() * 1000) for t in idx],  # epoch ms
+            "open": c, "high": c * 1.002, "low": c * 0.998, "close": c,
+            "volume": np.full(n, 1e5),
+        })
+        self._symbol = symbol
+        self.candles = {(symbol, "1h"): object()}
+
+    def get_history_df(self, symbol, interval):
+        return self._df if symbol == self._symbol else pd.DataFrame()
+
+    def get_closes(self, symbol, interval, n):
+        if symbol != self._symbol:
+            return []
+        return self._df["close"].tolist()[-n:]
+
+
+def _hourly_from_daily(daily_closes):
+    """Expand daily closes to flat hourly bars (24 per day)."""
+    out = []
+    for value in daily_closes:
+        out.extend([value] * 24)
+    return out
+
+
+def test_trend_follow_daily_fires_on_breakout(monkeypatch):
+    from strategies.trend_follow_daily import TrendFollowDailyStrategy
+
+    # 80 flat days then a strong 8-day ramp to new highs.
+    daily = [100.0] * 80 + [100 + 3 * i for i in range(1, 9)]
+    store = _FakeStore(_hourly_from_daily(daily))
+    strat = TrendFollowDailyStrategy(eval_every=1)
+    monkeypatch.setattr(type(strat), "symbols", property(lambda self: ["BTCUSDT"]))
+
+    sigs = strat.generate_signals(store, "bull", {})
+    assert len(sigs) == 1 and sigs[0].side == "BUY"
+    assert 0.5 <= sigs[0].confidence <= 0.9
+    # No re-entry while the internal position is open.
+    assert strat.generate_signals(store, "bull", {}) == []
+
+
+def test_trend_follow_daily_silent_on_flat(monkeypatch):
+    from strategies.trend_follow_daily import TrendFollowDailyStrategy
+
+    store = _FakeStore(_hourly_from_daily([100.0] * 90))
+    strat = TrendFollowDailyStrategy(eval_every=1)
+    monkeypatch.setattr(type(strat), "symbols", property(lambda self: ["BTCUSDT"]))
+    assert strat.generate_signals(store, "bull", {}) == []
+
+
+def test_dip_buyer_fires_on_capitulation_in_uptrend(monkeypatch):
+    from strategies.dip_buyer import DipBuyerStrategy
+
+    # Steady uptrend for 120 days, then a sharp 3-day dump that keeps price
+    # above the 60-day mean.
+    daily = [100 + 0.8 * i for i in range(120)]
+    peak = daily[-1]
+    daily += [peak * 0.97, peak * 0.94, peak * 0.90]
+    store = _FakeStore(_hourly_from_daily(daily))
+    strat = DipBuyerStrategy(eval_every=1)
+    monkeypatch.setattr(type(strat), "symbols", property(lambda self: ["BTCUSDT"]))
+
+    sigs = strat.generate_signals(store, "bull", {})
+    assert len(sigs) == 1 and sigs[0].side == "BUY"
+    assert sigs[0].meta["mode"] == "dip_entry"
+
+
+def test_dip_buyer_ignores_dip_in_downtrend(monkeypatch):
+    from strategies.dip_buyer import DipBuyerStrategy
+
+    # Long downtrend then a further dump: dip triggers but the trend gate fails.
+    daily = [200 - 0.8 * i for i in range(120)]
+    last = daily[-1]
+    daily += [last * 0.97, last * 0.94, last * 0.90]
+    store = _FakeStore(_hourly_from_daily(daily))
+    strat = DipBuyerStrategy(eval_every=1)
+    monkeypatch.setattr(type(strat), "symbols", property(lambda self: ["BTCUSDT"]))
+    assert strat.generate_signals(store, "bear", {}) == []
+
+
+class _MultiStore:
+    def __init__(self, series_map):
+        self._stores = {s: _FakeStore(c, s) for s, c in series_map.items()}
+        self.candles = {(s, "1h"): object() for s in series_map}
+
+    def get_history_df(self, symbol, interval):
+        return self._stores[symbol].get_history_df(symbol, interval)
+
+    def get_closes(self, symbol, interval, n):
+        return self._stores[symbol].get_closes(symbol, interval, n)
+
+
+def test_weekly_rotation_picks_leaders(monkeypatch):
+    from strategies.weekly_momentum_rotation import WeeklyMomentumRotationStrategy
+
+    n_days = 40
+    series = {
+        "AAAUSDT": _hourly_from_daily([100 * (1.01 ** i) for i in range(n_days)]),   # strong up
+        "BBBUSDT": _hourly_from_daily([100 * (1.005 ** i) for i in range(n_days)]),  # mild up
+        "CCCUSDT": _hourly_from_daily([100 * (0.995 ** i) for i in range(n_days)]),  # down
+        "DDDUSDT": _hourly_from_daily([100.0] * n_days),                              # flat
+    }
+    store = _MultiStore(series)
+    strat = WeeklyMomentumRotationStrategy(rebal_cycles=1)
+    monkeypatch.setattr(type(strat), "symbols", property(lambda self: list(series)))
+
+    sigs = strat.generate_signals(store, "bull", {})
+    buys = {s.symbol for s in sigs if s.side == "BUY"}
+    assert buys == {"AAAUSDT", "BBBUSDT"}   # top-2 with positive momentum
+
+    # Next rebalance with the same data: no churn (already held).
+    assert strat.generate_signals(store, "bull", {}) == []

@@ -220,8 +220,9 @@ class DashboardRouteTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["current_equity"], 10011.76)
 
     def test_dashboard_shell_contains_forwardtest_progress_bar(self):
+        # The research dashboard moved to /legacy (2026-07 ops-console rebuild).
         with TestClient(app) as client:
-            response = client.get("/")
+            response = client.get("/legacy")
             self.assertEqual(response.status_code, 200)
 
         self.assertIn('id="ftProgBar"', response.text)

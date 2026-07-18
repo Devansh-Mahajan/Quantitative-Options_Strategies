@@ -64,7 +64,9 @@ class SimulatedMarketDataStore(MarketDataStore):
                     volume=float(row["volume"]), closed=True,
                 ))
             self._prebuilt[(symbol, interval)] = candles
-            self.history[(symbol, interval)] = deque(maxlen=500)
+            from exchange.streams import HISTORY_MAX_BARS
+
+            self.history[(symbol, interval)] = deque(maxlen=HISTORY_MAX_BARS)
 
     def set_time_index(self, i: int) -> None:
         """Incrementally advance store to bar i — O(1) per call after prebuild."""

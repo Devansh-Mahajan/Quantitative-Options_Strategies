@@ -1,0 +1,32 @@
+{
+  "strategy": "tsmom",
+  "generated_at_utc": "2026-07-18T13:55:03.338812+00:00",
+  "trials": 12,
+  "best_params": {
+    "stop_loss_pct": 0.05500000000000001,
+    "take_profit_pct": 0.28800000000000003,
+    "max_open_positions": 10,
+    "lookback": 70,
+    "max_risk_per_trade": 0.01,
+    "s_lookback": 96,
+    "s_entry_threshold": 0.05,
+    "s_rebal_bars": 12
+  },
+  "strategy_kwargs": {
+    "lookback": 96,
+    "entry_threshold": 0.05,
+    "rebal_bars": 12
+  },
+  "search_score": -10.0,
+  "tuned_holdout_sharpe": null,
+  "tuned_holdout_metrics": null,
+  "default_holdout_sharpe": -5.108,
+  "default_holdout_metrics": {
+    "sharpe": -5.107832855764642,
+    "total_return_pct": -0.45567996960375057,
+    "max_drawdown_pct": -0.8201545041475472,
+    "num_trades": 60
+  },
+  "adopted": false,
+  "adoption_rule": "tuned holdout Sharpe > 0 AND > default holdout Sharpe"
+}

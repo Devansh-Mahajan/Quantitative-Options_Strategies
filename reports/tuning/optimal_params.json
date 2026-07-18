@@ -1,0 +1,87 @@
+{
+  "best_params": {
+    "stop_loss_pct": 0.035,
+    "take_profit_pct": 0.098,
+    "max_open_positions": 6,
+    "lookback": 60,
+    "max_risk_per_trade": 0.02,
+    "s_ibs_low": 0.15000000000000002,
+    "s_ibs_high": 0.85
+  },
+  "best_score": 35.57132570370363,
+  "n_trials": 12,
+  "n_completed": 12,
+  "robustness_score": 10.423025692232429,
+  "param_importances": {
+    "lookback": 0.4743079124763044,
+    "stop_loss_pct": 0.3156726892532739,
+    "max_open_positions": 0.0745784954656627,
+    "s_ibs_low": 0.05418433597871765,
+    "s_ibs_high": 0.04751339227079417,
+    "max_risk_per_trade": 0.0337431745552471
+  },
+  "top_trials": [
+    {
+      "params": {
+        "stop_loss_pct": 0.035,
+        "take_profit_pct": 0.098,
+        "max_open_positions": 6,
+        "lookback": 60,
+        "max_risk_per_trade": 0.02,
+        "s_ibs_low": 0.15000000000000002,
+        "s_ibs_high": 0.85
+      },
+      "score": 35.57132570370363
+    },
+    {
+      "params": {
+        "stop_loss_pct": 0.03,
+        "take_profit_pct": 0.12,
+        "max_open_positions": 6,
+        "lookback": 60,
+        "max_risk_per_trade": 0.034999999999999996,
+        "s_ibs_low": 0.1,
+        "s_ibs_high": 0.7999999999999999
+      },
+      "score": 13.439880302196157
+    },
+    {
+      "params": {
+        "stop_loss_pct": 0.02,
+        "take_profit_pct": 0.28,
+        "max_open_positions": 5,
+        "lookback": 70,
+        "max_risk_per_trade": 0.015,
+        "s_ibs_low": 0.2,
+        "s_ibs_high": 0.7999999999999999
+      },
+      "score": 10.68256414414598
+    },
+    {
+      "params": {
+        "stop_loss_pct": 0.035,
+        "take_profit_pct": 0.293,
+        "max_open_positions": 10,
+        "lookback": 100,
+        "max_risk_per_trade": 0.04,
+        "s_ibs_low": 0.2,
+        "s_ibs_high": 0.8999999999999999
+      },
+      "score": 9.821774247741036
+    },
+    {
+      "params": {
+        "stop_loss_pct": 0.085,
+        "take_profit_pct": 0.20800000000000002,
+        "max_open_positions": 12,
+        "lookback": 100,
+        "max_risk_per_trade": 0.025,
+        "s_ibs_low": 0.25,
+        "s_ibs_high": 0.7
+      },
+      "score": 6.495066100754583
+    }
+  ],
+  "holdout_score": null,
+  "holdout_metrics": null
+}

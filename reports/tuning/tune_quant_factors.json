@@ -1,0 +1,30 @@
+{
+  "strategy": "quant_factors",
+  "generated_at_utc": "2026-07-18T13:59:47.967176+00:00",
+  "trials": 12,
+  "best_params": {
+    "stop_loss_pct": 0.035,
+    "take_profit_pct": 0.098,
+    "max_open_positions": 6,
+    "lookback": 60,
+    "max_risk_per_trade": 0.02,
+    "s_ibs_low": 0.15000000000000002,
+    "s_ibs_high": 0.85
+  },
+  "strategy_kwargs": {
+    "ibs_low": 0.15000000000000002,
+    "ibs_high": 0.85
+  },
+  "search_score": 35.57132570370363,
+  "tuned_holdout_sharpe": null,
+  "tuned_holdout_metrics": null,
+  "default_holdout_sharpe": 6.459,
+  "default_holdout_metrics": {
+    "sharpe": 6.458877879461251,
+    "total_return_pct": 11.843311555893443,
+    "max_drawdown_pct": -3.863581074098494,
+    "num_trades": 80
+  },
+  "adopted": false,
+  "adoption_rule": "tuned holdout Sharpe > 0 AND > default holdout Sharpe"
+}
