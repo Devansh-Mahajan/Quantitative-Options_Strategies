@@ -148,6 +148,19 @@ def _build_all_enabled() -> list[BaseStrategy]:
         from strategies.pullback_confluence import PullbackConfluenceStrategy
         strategies.append(PullbackConfluenceStrategy())
 
+    # ── Cost-aware daily/weekly strategies (2026-07) ───────────────────
+    if cfg.enable_trend_follow_daily:
+        from strategies.trend_follow_daily import TrendFollowDailyStrategy
+        strategies.append(TrendFollowDailyStrategy())
+
+    if cfg.enable_weekly_momentum_rotation:
+        from strategies.weekly_momentum_rotation import WeeklyMomentumRotationStrategy
+        strategies.append(WeeklyMomentumRotationStrategy())
+
+    if cfg.enable_dip_buyer:
+        from strategies.dip_buyer import DipBuyerStrategy
+        strategies.append(DipBuyerStrategy())
+
     # ── High-alpha quantitative strategies (Avellaneda-Stoikov, Taleb, Gatheral) ──
     if cfg.enable_market_making:
         from strategies.market_making import MarketMakingStrategy

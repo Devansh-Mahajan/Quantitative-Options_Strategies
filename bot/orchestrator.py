@@ -31,7 +31,7 @@ from risk.risk_guard import RiskGuard
 from execution.order_manager import OrderManager
 from execution.position_manager import PositionManager
 from strategies.registry import build_registry
-from strategies.base import Signal
+from strategies.base import Signal, SignalCooldown
 from core.execution.live_allocation import build_live_allocation_snapshot, market_session_open_now, write_live_allocation
 from core.telemetry.trade_decision_tape import record_trade_decision
 from core.ml.signal_router import build_routing_plan, confidence_modifier
@@ -114,6 +114,7 @@ class Orchestrator:
         self.order_manager: OrderManager | None = None
         self.position_manager: PositionManager | None = None
 
+        self._signal_cooldown = SignalCooldown(gap=int(getattr(cfg, "signal_cooldown_cycles", 4)))
         self._start_equity: float = 0.0
         self._last_funding_refresh = 0.0
         self._last_oi_refresh = 0.0
@@ -518,6 +519,9 @@ class Orchestrator:
         for strategy in self.strategies:
             try:
                 sigs = strategy.generate_signals(self.store, regime, predictions)
+                # Turnover throttle: drop same-direction re-emissions within
+                # the cooldown window (mirrors the backtester's behavior).
+                sigs = self._signal_cooldown.filter(sigs, self._cycle_count)
                 for signal in sigs:
                     normalized = self._normalize_signal_for_book(signal)
                     if normalized is None:

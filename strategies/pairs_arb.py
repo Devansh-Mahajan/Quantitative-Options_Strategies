@@ -27,6 +27,20 @@ class PairsArbStrategy(BaseStrategy):
     # BTC/ETH is the anchor pair; add more as needed
     PAIRS = [("BTCUSDT", "ETHUSDT"), ("BNBUSDT", "SOLUSDT")]
 
+
+    def __init__(
+        self,
+        zscore_entry: float = ZSCORE_ENTRY,
+        zscore_exit: float = ZSCORE_EXIT,
+        lookback: int = LOOKBACK,
+        min_correlation: float = MIN_CORRELATION,
+    ) -> None:
+        # Tunable thresholds (defaults = historical module constants).
+        self._zscore_entry = zscore_entry
+        self._zscore_exit = zscore_exit
+        self._lookback = int(lookback)
+        self._min_correlation = min_correlation
+
     @property
     def symbols(self) -> list[str]:
         seen: set[str] = set()
@@ -42,18 +56,18 @@ class PairsArbStrategy(BaseStrategy):
 
         for sym_a, sym_b in self.PAIRS:
             try:
-                closes_a = store.get_closes(sym_a, "1h", LOOKBACK + 5)
-                closes_b = store.get_closes(sym_b, "1h", LOOKBACK + 5)
+                closes_a = store.get_closes(sym_a, "1h", self._lookback + 5)
+                closes_b = store.get_closes(sym_b, "1h", self._lookback + 5)
 
-                if len(closes_a) < LOOKBACK or len(closes_b) < LOOKBACK:
+                if len(closes_a) < self._lookback or len(closes_b) < self._lookback:
                     continue
 
-                a = np.array(closes_a[-LOOKBACK:], dtype=float)
-                b = np.array(closes_b[-LOOKBACK:], dtype=float)
+                a = np.array(closes_a[-self._lookback:], dtype=float)
+                b = np.array(closes_b[-self._lookback:], dtype=float)
 
                 # Correlation check
                 corr = float(np.corrcoef(a, b)[0, 1])
-                if corr < MIN_CORRELATION:
+                if corr < self._min_correlation:
                     continue
 
                 spread = np.log(a) - np.log(b)
@@ -62,9 +76,9 @@ class PairsArbStrategy(BaseStrategy):
                 price_a = float(a[-1])
                 price_b = float(b[-1])
 
-                if z > ZSCORE_ENTRY:
+                if z > self._zscore_entry:
                     # spread too high: sell A, buy B
-                    confidence = min(0.85, 0.55 + (z - ZSCORE_ENTRY) * 0.10) * regime_scale
+                    confidence = min(0.85, 0.55 + (z - self._zscore_entry) * 0.10) * regime_scale
                     signals.append(Signal(
                         symbol=sym_a, market="futures", side="SELL",
                         quantity=0.0, price=price_a, confidence=confidence,
@@ -78,9 +92,9 @@ class PairsArbStrategy(BaseStrategy):
                         meta={"zscore": z, "pair": f"{sym_a}/{sym_b}", "corr": corr, "pair_id": f"pairs_arb:{sym_a}/{sym_b}"},
                     ))
 
-                elif z < -ZSCORE_ENTRY:
+                elif z < -self._zscore_entry:
                     # spread too low: buy A, sell B
-                    confidence = min(0.85, 0.55 + (abs(z) - ZSCORE_ENTRY) * 0.10) * regime_scale
+                    confidence = min(0.85, 0.55 + (abs(z) - self._zscore_entry) * 0.10) * regime_scale
                     signals.append(Signal(
                         symbol=sym_a, market="futures", side="BUY",
                         quantity=0.0, price=price_a, confidence=confidence,
